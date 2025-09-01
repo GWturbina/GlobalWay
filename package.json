@@ -8,7 +8,7 @@
   "start": "http-server . -p 8080",
   "build": "echo 'No build needed for static site'",
   "test": "echo 'No tests specified'"
-}
+},
   "keywords": [
     "web3",
     "blockchain",
