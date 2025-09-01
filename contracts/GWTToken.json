@@ -1,0 +1,41 @@
+{
+  "contractName": "GWTToken",
+  "abi": [
+    {
+      "inputs": [{"name": "account", "type": "address"}],
+      "name": "balanceOf",
+      "outputs": [{"name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalSupply",
+      "outputs": [{"name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {"name": "to", "type": "address"},
+        {"name": "amount", "type": "uint256"}
+      ],
+      "name": "transfer",
+      "outputs": [{"name": "", "type": "bool"}],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCurrentPrice",
+      "outputs": [{"name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "networks": {
+    "204": {
+      "address": "0xd9145CCE52D386f254917e481eB44e9943F39138"
+    }
+  }
+}
