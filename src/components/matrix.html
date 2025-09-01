@@ -1,0 +1,611 @@
+<!-- Matrix Component -->
+<div class="matrix-content">
+  <!-- Matrix Navigation -->
+  <div class="cosmic-card">
+    <h3>🔍 <span data-translate="matrix_navigation">Matrix Navigation</span></h3>
+    <div class="search-container">
+      <input type="text" id="searchMatrixId" placeholder="🔍 Search by ID..." class="search-input">
+      <button id="searchMatrixBtn" class="search-btn">
+        <span data-translate="search">Search</span>
+      </button>
+    </div>
+    <div class="matrix-controls">
+      <button id="resetMatrixView" class="control-btn">
+        🏠 <span data-translate="home">Home</span>
+      </button>
+      <button id="matrixFullscreen" class="control-btn">
+        🔽️ <span data-translate="fullscreen">Fullscreen</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Interactive Matrix Canvas -->
+  <div class="cosmic-card">
+    <h3>🌌 <span data-translate="interactive_matrix">Interactive Matrix</span></h3>
+    <div class="matrix-canvas-container" id="matrixCanvasContainer">
+      <canvas id="matrixCanvas" width="800" height="600"></canvas>
+      
+      <!-- Tooltip для hover эффектов -->
+      <div id="matrixTooltip" class="matrix-tooltip hidden">
+        <div class="tooltip-content">
+          <div class="tooltip-row">
+            <span class="tooltip-label">ID:</span>
+            <span class="tooltip-value" id="tooltipId">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Sponsor ID:</span>
+            <span class="tooltip-value" id="tooltipSponsorId">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Address:</span>
+            <span class="tooltip-value" id="tooltipAddress">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Level:</span>
+            <span class="tooltip-value" id="tooltipLevel">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Status:</span>
+            <span class="tooltip-value" id="tooltipStatus">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Легенда -->
+    <div class="matrix-legend">
+      <div class="legend-item">
+        <div class="legend-color active"></div>
+        <span data-translate="active_user">Active User</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color available"></div>
+        <span data-translate="available_spot">Available Spot</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color locked"></div>
+        <span data-translate="locked_spot">Locked Spot</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Matrix Level Selector -->
+  <div class="cosmic-card">
+    <h3>📊 <span data-translate="matrix_levels">Matrix Levels</span></h3>
+    <div class="matrix-level-selector">
+      <button class="level-selector-btn active" data-level="1">Level 1</button>
+      <button class="level-selector-btn" data-level="2">Level 2</button>
+      <button class="level-selector-btn" data-level="3">Level 3</button>
+      <button class="level-selector-btn" data-level="4">Level 4</button>
+      <button class="level-selector-btn" data-level="5">Level 5</button>
+      <button class="level-selector-btn" data-level="6">Level 6</button>
+    </div>
+  </div>
+ 
+  <!-- Matrix Structure Table -->
+  <div class="cosmic-card">
+    <h3>📊 <span data-translate="matrix_structure">Matrix Structure</span></h3>
+    <div class="matrix-filters">
+      <select id="matrixLevelFilter" class="filter-select">
+        <option value="all" data-translate="all_levels">All Levels</option>
+        <option value="1">Level 1</option>
+        <option value="2">Level 2</option>
+        <option value="3">Level 3</option>
+        <option value="4">Level 4</option>
+      </select>
+      <select id="matrixStatusFilter" class="filter-select">
+        <option value="all" data-translate="all_status">All Status</option>
+        <option value="active" data-translate="active">Active</option>
+        <option value="inactive" data-translate="inactive">Inactive</option>
+      </select>
+    </div>
+    <div class="matrix-table">
+      <div class="table-header">
+        <span>№</span>
+        <span>ID</span>
+        <span data-translate="address">Address</span>
+        <span data-translate="sponsor_id">Sponsor ID</span>
+        <span data-translate="activation_date">Activation Date</span>
+        <span data-translate="level">Level</span>
+        <span data-translate="position">Position</span>
+        <span data-translate="status">Status</span>
+      </div>
+      <div class="table-body" id="matrixTableBody">
+        <div class="no-data wallet-required">
+          🔗 <span data-translate="connect_wallet_to_view">Connect wallet to view data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Matrix Overflow History -->
+  <div class="cosmic-card">
+    <h3>🔄 <span data-translate="matrix_overflow">Matrix Overflow History</span></h3>
+    <div class="overflow-table">
+      <div class="table-header">
+        <span data-translate="date">Date</span>
+        <span data-translate="level">Level</span>
+        <span data-translate="position">Position</span>
+        <span data-translate="amount">Amount</span>
+        <span data-translate="status">Status</span>
+      </div>
+      <div class="table-body" id="overflowTableBody">
+        <div class="no-data">
+          🔄 <span data-translate="no_overflow_history">No overflow history yet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Matrix Canvas Styles */
+.matrix-canvas-container {
+  position: relative;
+  width: 100%;
+  background: rgba(26, 26, 46, 0.5);
+  border-radius: 15px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+#matrixCanvas {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  cursor: pointer;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.8) 0%, rgba(16, 21, 62, 0.8) 100%);
+}
+
+/* Tooltip Styles */
+.matrix-tooltip {
+  position: absolute;
+  background: var(--card-bg);
+  border: 2px solid var(--accent-gold);
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 200px;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.matrix-tooltip.hidden {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.matrix-tooltip:not(.hidden) {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tooltip-content {
+  color: var(--text-primary);
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.tooltip-row:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.tooltip-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.tooltip-value {
+  font-size: 12px;
+  color: var(--accent-gold);
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* Matrix Level Selector */
+.matrix-level-selector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.level-selector-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+  padding: 8px 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.level-selector-btn:hover {
+  background: rgba(255, 215, 0, 0.1);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.level-selector-btn.active {
+  background: var(--accent-gold);
+  color: #000;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
+/* Matrix Legend Updates */
+.matrix-legend {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.legend-color.active {
+  background: #00FF88;
+  border-color: #00FF88;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+}
+
+.legend-color.available {
+  background: #FFD700;
+  border-color: #FFD700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.legend-color.locked {
+  background: #666;
+  border-color: #666;
+  box-shadow: 0 0 8px rgba(102, 102, 102, 0.4);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .matrix-canvas-container {
+    padding: 15px;
+  }
+  
+  .matrix-tooltip {
+    min-width: 180px;
+    padding: 10px;
+  }
+  
+  .tooltip-row {
+    margin-bottom: 6px;
+  }
+  
+  .tooltip-label,
+  .tooltip-value {
+    font-size: 11px;
+  }
+  
+  .matrix-level-selector {
+    gap: 8px;
+  }
+  
+  .level-selector-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .matrix-canvas-container {
+    padding: 10px;
+  }
+  
+  .matrix-tooltip {
+    min-width: 160px;
+    padding: 8px;
+  }
+  
+  .matrix-legend {
+    gap: 15px;
+    padding: 10px;
+  }
+  
+  .legend-item {
+    font-size: 11px;
+  }
+  
+  .matrix-level-selector {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+}
+</style>
+
+<script>
+// Matrix Canvas Manager
+class MatrixCanvas {
+  constructor(canvasId, containerId) {
+    this.canvas = document.getElementById(canvasId);
+    this.container = document.getElementById(containerId);
+    this.ctx = this.canvas.getContext('2d');
+    this.tooltip = document.getElementById('matrixTooltip');
+    
+    this.nodes = [];
+    this.currentLevel = 1;
+    this.hoveredNode = null;
+    
+    this.init();
+  }
+  
+  init() {
+    this.setupCanvas();
+    this.generateSampleData();
+    this.bindEvents();
+    this.draw();
+  }
+  
+  setupCanvas() {
+    const updateCanvasSize = () => {
+      const rect = this.container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Устанавливаем размеры канвас
+      this.canvas.width = (rect.width - 40) * dpr;
+      this.canvas.height = 400 * dpr;
+      
+      // Масштабируем контекст
+      this.ctx.scale(dpr, dpr);
+      
+      // Устанавливаем CSS размеры
+      this.canvas.style.width = (rect.width - 40) + 'px';
+      this.canvas.style.height = '400px';
+      
+      this.canvasWidth = rect.width - 40;
+      this.canvasHeight = 400;
+      
+      this.draw();
+    };
+    
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+  }
+  
+  generateSampleData() {
+    // Пример данных для демонстрации
+    this.nodes = [
+      { id: 1, x: 0.5, y: 0.15, status: 'active', sponsorId: 0, address: '0x1234...5678', level: 1, position: 1 },
+      { id: 2, x: 0.25, y: 0.35, status: 'active', sponsorId: 1, address: '0x2345...6789', level: 1, position: 2 },
+      { id: 3, x: 0.75, y: 0.35, status: 'available', sponsorId: 1, address: '0x0000...0000', level: 1, position: 3 },
+      { id: 4, x: 0.15, y: 0.55, status: 'active', sponsorId: 2, address: '0x3456...7890', level: 1, position: 4 },
+      { id: 5, x: 0.35, y: 0.55, status: 'locked', sponsorId: 2, address: '0x0000...0000', level: 1, position: 5 },
+      { id: 6, x: 0.65, y: 0.55, status: 'locked', sponsorId: 3, address: '0x0000...0000', level: 1, position: 6 },
+      { id: 7, x: 0.85, y: 0.55, status: 'locked', sponsorId: 3, address: '0x0000...0000', level: 1, position: 7 },
+      { id: 8, x: 0.1, y: 0.75, status: 'available', sponsorId: 4, address: '0x0000...0000', level: 1, position: 8 },
+      { id: 9, x: 0.2, y: 0.75, status: 'available', sponsorId: 4, address: '0x0000...0000', level: 1, position: 9 },
+      { id: 10, x: 0.3, y: 0.75, status: 'locked', sponsorId: 5, address: '0x0000...0000', level: 1, position: 10 },
+      { id: 11, x: 0.4, y: 0.75, status: 'locked', sponsorId: 5, address: '0x0000...0000', level: 1, position: 11 },
+      { id: 12, x: 0.6, y: 0.75, status: 'locked', sponsorId: 6, address: '0x0000...0000', level: 1, position: 12 },
+      { id: 13, x: 0.7, y: 0.75, status: 'locked', sponsorId: 6, address: '0x0000...0000', level: 1, position: 13 },
+      { id: 14, x: 0.8, y: 0.75, status: 'locked', sponsorId: 7, address: '0x0000...0000', level: 1, position: 14 },
+      { id: 15, x: 0.9, y: 0.75, status: 'locked', sponsorId: 7, address: '0x0000...0000', level: 1, position: 15 },
+    ];
+  }
+  
+  bindEvents() {
+    // Mouse move для tooltip
+    this.canvas.addEventListener('mousemove', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / this.canvasWidth;
+      const y = (e.clientY - rect.top) / this.canvasHeight;
+      
+      this.hoveredNode = this.getNodeAtPosition(x, y);
+      
+      if (this.hoveredNode) {
+        this.showTooltip(e.clientX, e.clientY, this.hoveredNode);
+        this.canvas.style.cursor = 'pointer';
+      } else {
+        this.hideTooltip();
+        this.canvas.style.cursor = 'default';
+      }
+      
+      this.draw();
+    });
+    
+    // Mouse leave
+    this.canvas.addEventListener('mouseleave', () => {
+      this.hoveredNode = null;
+      this.hideTooltip();
+      this.draw();
+    });
+    
+    // Click event
+    this.canvas.addEventListener('click', (e) => {
+      if (this.hoveredNode) {
+        this.onNodeClick(this.hoveredNode);
+      }
+    });
+    
+    // Level selector
+    document.querySelectorAll('.level-selector-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.level-selector-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.currentLevel = parseInt(btn.dataset.level);
+        this.draw();
+      });
+    });
+  }
+  
+  getNodeAtPosition(x, y) {
+    const nodeRadius = 0.04; // 4% от ширины канваса
+    
+    for (const node of this.nodes) {
+      const distance = Math.sqrt(
+        Math.pow(x - node.x, 2) + Math.pow(y - node.y, 2)
+      );
+      
+      if (distance <= nodeRadius) {
+        return node;
+      }
+    }
+    
+    return null;
+  }
+  
+  showTooltip(mouseX, mouseY, node) {
+    document.getElementById('tooltipId').textContent = node.id;
+    document.getElementById('tooltipSponsorId').textContent = node.sponsorId || 'Root';
+    document.getElementById('tooltipAddress').textContent = node.address;
+    document.getElementById('tooltipLevel').textContent = node.level;
+    document.getElementById('tooltipStatus').textContent = this.getStatusText(node.status);
+    
+    this.tooltip.style.left = mouseX + 15 + 'px';
+    this.tooltip.style.top = mouseY - 10 + 'px';
+    this.tooltip.classList.remove('hidden');
+  }
+  
+  hideTooltip() {
+    this.tooltip.classList.add('hidden');
+  }
+  
+  getStatusText(status) {
+    const statusMap = {
+      'active': 'Active',
+      'available': 'Available', 
+      'locked': 'Locked'
+    };
+    return statusMap[status] || status;
+  }
+  
+  onNodeClick(node) {
+    console.log('Node clicked:', node);
+    // Здесь можно добавить логику для обработки клика по узлу
+  }
+  
+  draw() {
+    // Очищаем канвас
+    this.ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
+    
+    // Рисуем связи
+    this.drawConnections();
+    
+    // Рисуем узлы
+    this.drawNodes();
+  }
+  
+  drawConnections() {
+    this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+    this.ctx.lineWidth = 2;
+    
+    for (const node of this.nodes) {
+      if (node.sponsorId) {
+        const sponsor = this.nodes.find(n => n.id === node.sponsorId);
+        if (sponsor) {
+          const startX = sponsor.x * this.canvasWidth;
+          const startY = sponsor.y * this.canvasHeight;
+          const endX = node.x * this.canvasWidth;
+          const endY = node.y * this.canvasHeight;
+          
+          // Анимированная линия для активных соединений
+          if (node.status === 'active' && sponsor.status === 'active') {
+            this.ctx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
+            this.ctx.lineWidth = 3;
+          } else {
+            this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
+            this.ctx.lineWidth = 2;
+          }
+          
+          this.ctx.beginPath();
+          this.ctx.moveTo(startX, startY);
+          this.ctx.lineTo(endX, endY);
+          this.ctx.stroke();
+        }
+      }
+    }
+  }
+  
+  drawNodes() {
+    const baseRadius = Math.min(this.canvasWidth, this.canvasHeight) * 0.025;
+    
+    for (const node of this.nodes) {
+      const x = node.x * this.canvasWidth;
+      const y = node.y * this.canvasHeight;
+      const radius = this.hoveredNode === node ? baseRadius * 1.3 : baseRadius;
+      
+      // Цвета по статусу
+      let fillColor, strokeColor, glowColor;
+      
+      switch (node.status) {
+        case 'active':
+          fillColor = 'rgba(0, 255, 136, 0.8)';
+          strokeColor = '#00FF88';
+          glowColor = 'rgba(0, 255, 136, 0.4)';
+          break;
+        case 'available':
+          fillColor = 'rgba(255, 215, 0, 0.8)';
+          strokeColor = '#FFD700';
+          glowColor = 'rgba(255, 215, 0, 0.4)';
+          break;
+        case 'locked':
+          fillColor = 'rgba(102, 102, 102, 0.6)';
+          strokeColor = '#666666';
+          glowColor = 'rgba(102, 102, 102, 0.3)';
+          break;
+      }
+      
+      // Эффект свечения
+      if (this.hoveredNode === node) {
+        this.ctx.shadowBlur = 20;
+        this.ctx.shadowColor = glowColor;
+      }
+      
+      // Рисуем круг
+      this.ctx.fillStyle = fillColor;
+      this.ctx.strokeStyle = strokeColor;
+      this.ctx.lineWidth = 3;
+      
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+      
+      // Сбрасываем тень
+      this.ctx.shadowBlur = 0;
+      
+      // Рисуем ID в центре
+      this.ctx.fillStyle = node.status === 'locked' ? '#999' : '#000';
+      this.ctx.font = `bold ${baseRadius * 0.8}px Arial`;
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText(node.id.toString(), x, y);
+    }
+  }
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('matrixCanvas')) {
+    window.matrixCanvas = new MatrixCanvas('matrixCanvas', 'matrixCanvasContainer');
+  }
+});
+</script>
