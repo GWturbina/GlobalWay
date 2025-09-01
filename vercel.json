@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "src/**/*.js": {
+      "runtime": "@vercel/static"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}
