@@ -1,0 +1,52 @@
+{
+  "name": "globalway-dapp",
+  "version": "1.0.0",
+  "description": "GlobalWay - Decentralized platform for global internet opportunities",
+  "main": "src/js/app.js",
+  "scripts": {
+    "dev": "http-server . -p 8080 -c-1",
+    "start": "npm run dev",
+    "build": "npm run copy-assets && npm run minify",
+    "copy-assets": "cp -r public/* dist/",
+    "minify": "npm run minify-js && npm run minify-css",
+    "minify-js": "terser src/js/*.js -o dist/js/app.min.js --compress --mangle",
+    "minify-css": "cleancss src/css/*.css -o dist/css/styles.min.css",
+    "lint": "eslint src/js/*.js",
+    "format": "prettier --write src/js/*.js src/css/*.css public/*.html",
+    "test": "echo 'No tests specified' && exit 0"
+  },
+  "keywords": [
+    "web3",
+    "blockchain",
+    "dapp",
+    "opbnb",
+    "cryptocurrency",
+    "defi",
+    "global",
+    "opportunity"
+  ],
+  "author": "GlobalWay Team",
+  "license": "MIT",
+  "dependencies": {
+    "web3": "^4.0.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "terser": "^5.19.2",
+    "clean-css-cli": "^5.6.1",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/globalway/dapp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/globalway/dapp/issues"
+  },
+  "homepage": "https://globalway.io"
+}
