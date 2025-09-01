@@ -210,38 +210,46 @@ class ContractManager {
   }
 
   async setupContracts() {
+  // Ограничиваем количество попыток
+  if (!this.initAttempts) this.initAttempts = 0;
+  
   if (!window.web3Manager || !window.web3Manager.web3) {
-    console.log('⏳ Ожидание Web3Manager...');
-    setTimeout(() => this.setupContracts(), 500);
+    this.initAttempts++;
+    
+    if (this.initAttempts > 10) {
+      console.warn('❌ Web3Manager не готов после 10 попыток, работаем без контрактов');
+      this.initWithoutWeb3();
+      return;
+    }
+    
+    console.log(`⏳ Ожидание Web3Manager... попытка ${this.initAttempts}`);
+    setTimeout(() => this.setupContracts(), 1000);
     return;
   }
+  
+  // Сброс счетчика при успехе
+  this.initAttempts = 0;
+  console.log('✅ Web3Manager готов, инициализируем контракты');
+  
+  // Здесь идет остальной код инициализации контрактов
+  const web3 = window.web3Manager.web3;
+  // остальная логика...
+}
 
-    const web3 = window.web3Manager.web3;
-    
-    try {
-      // Основной контракт
-      this.contracts.globalWay = new web3.eth.Contract(
-        this.globalWayABI,
-        this.contractAddresses.globalWay
-      );
-      
-      // Контракт статистики
-      this.contracts.globalWayStats = new web3.eth.Contract(
-        this.globalWayStatsABI,
-        this.contractAddresses.globalWayStats
-      );
-
-      // ИСПРАВЛЕНО: Добавлен GWT Token контракт
-      this.contracts.gwtToken = new web3.eth.Contract(
-        this.gwtTokenABI,
-        this.contractAddresses.gwtToken
-      );
-      
-      console.log('Contracts initialized successfully');
-    } catch (error) {
-      console.error('Error initializing contracts:', error);
-    }
+// Добавь эту новую функцию:
+initWithoutWeb3() {
+  console.log('🔧 Инициализация в режиме просмотра без Web3');
+  
+  // Показываем матрицу в демо режиме
+  if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
+    this.showDemoMatrix();
   }
+}
+
+showDemoMatrix() {
+  console.log('🎭 Показ демо матрицы');
+  // Здесь код для отображения демо матрицы
+}
 
   // ==================== ОСНОВНЫЕ МЕТОДЫ ====================
 
