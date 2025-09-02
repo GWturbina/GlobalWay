@@ -62,83 +62,41 @@ class Web3Manager {
   }
 
   async detectWalletProvider() {
-    console.log('🔍 Поиск кошелька SafePal...');
+  console.log('🔍 Поиск кошелька SafePal...');
+  
+  // Ждем немного для полной загрузки расширения
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Проверяем все возможные способы обнаружения SafePal
+  if (window.safepal && window.safepal.ethereum) {
+    console.log('✅ SafePal (safepal.ethereum) обнаружен');
+    this.provider = window.safepal.ethereum;
+    this.providerType = 'SafePal';
+  } else if (window.ethereum && window.ethereum.isSafePal) {
+    console.log('✅ SafePal (ethereum.isSafePal) обнаружен');
+    this.provider = window.ethereum;
+    this.providerType = 'SafePal';
+  } else if (window.ethereum) {
+    // Пытаемся определить SafePal по другим признакам
+    console.log('✅ Ethereum provider найден, проверяем тип...');
+    this.provider = window.ethereum;
     
-    // Приоритет 1: SafePal (десктоп расширение)
-    if (window.safepal && window.safepal.ethereum) {
-      console.log('✅ SafePal (десктоп расширение) обнаружен');
-      this.provider = window.safepal.ethereum;
-      this.providerType = 'SafePal';
-      this.web3 = new Web3(this.provider);
-      return;
+    // Проверяем метаданные
+    if (window.ethereum.isMetaMask) {
+      this.providerType = 'MetaMask';
+    } else {
+      this.providerType = 'SafePal или другой кошелек';
     }
-    
-    // Приоритет 2: SafePal через window.ethereum
-    if (window.ethereum && window.ethereum.isSafePal) {
-      console.log('✅ SafePal через ethereum provider обнаружен');
-      this.provider = window.ethereum;
-      this.providerType = 'SafePal';
-      this.web3 = new Web3(this.provider);
-      return;
-    }
-    
-    // Приоритет 3: Проверяем provider на SafePal признаки
-    if (window.ethereum) {
-      try {
-        // Проверяем метаданные провайдера
-        const isMetaMask = window.ethereum.isMetaMask;
-        const isTrust = window.ethereum.isTrust;
-        const isCoinbaseWallet = window.ethereum.isCoinbaseWallet;
-        const isSafePal = window.ethereum.isSafePal;
-        
-        if (isSafePal) {
-          console.log('✅ SafePal идентифицирован через флаг');
-          this.provider = window.ethereum;
-          this.providerType = 'SafePal';
-        } else if (!isMetaMask && !isTrust && !isCoinbaseWallet) {
-          // Возможно SafePal без флага
-          console.log('🤔 Неизвестный ethereum provider, возможно SafePal');
-          this.provider = window.ethereum;
-          this.providerType = 'Unknown (возможно SafePal)';
-        } else if (isMetaMask) {
-          console.log('⚠️ MetaMask обнаружен, но приоритет у SafePal');
-          this.provider = window.ethereum;
-          this.providerType = 'MetaMask';
-        } else if (isTrust) {
-          console.log('⚠️ Trust Wallet обнаружен');
-          this.provider = window.ethereum;
-          this.providerType = 'Trust Wallet';
-        } else if (isCoinbaseWallet) {
-          console.log('⚠️ Coinbase Wallet обнаружен');
-          this.provider = window.ethereum;
-          this.providerType = 'Coinbase Wallet';
-        } else {
-          this.provider = window.ethereum;
-          this.providerType = 'Generic';
-        }
-        
-        this.web3 = new Web3(this.provider);
-        return;
-        
-      } catch (error) {
-        console.error('Ошибка при определении типа кошелька:', error);
-      }
-    }
-    
-    // Приоритет 4: Web3 provider (legacy)
-    if (window.web3 && window.web3.currentProvider) {
-      console.log('✅ Legacy Web3 provider обнаружен');
-      this.provider = window.web3.currentProvider;
-      this.providerType = 'Legacy Web3';
-      this.web3 = new Web3(this.provider);
-      return;
-    }
-    
+  } else {
     console.warn('❌ Кошелек не найден');
     this.provider = null;
-    this.web3 = null;
     this.providerType = null;
   }
+  
+  if (this.provider) {
+    this.web3 = new Web3(this.provider);
+  }
+}
 
   async connectWallet() {
     console.log('🔗 Попытка подключения к кошельку...');
