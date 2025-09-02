@@ -231,10 +231,29 @@ class ContractManager {
   this.initAttempts = 0;
   console.log('✅ Web3Manager готов, инициализируем контракты');
   
-  // Здесь идет остальной код инициализации контрактов
   const web3 = window.web3Manager.web3;
-  // остальная логика...
-}
+
+  try {
+    // Создаем экземпляры контрактов
+    this.contracts.globalWay = new web3.eth.Contract(
+      this.globalWayABI, 
+      this.contractAddresses.globalWay
+    );
+    
+    this.contracts.globalWayStats = new web3.eth.Contract(
+      this.globalWayStatsABI, 
+      this.contractAddresses.globalWayStats
+    );
+    
+    this.contracts.gwtToken = new web3.eth.Contract(
+      this.gwtTokenABI, 
+      this.contractAddresses.gwtToken
+    );
+    
+    console.log('Contracts initialized successfully');
+  } catch (error) {
+    console.error('Error initializing contracts:', error);
+  }
 
 // Добавь эту новую функцию:
 initWithoutWeb3() {
