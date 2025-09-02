@@ -228,47 +228,47 @@ class ContractManager {
   }
   
   // Сброс счетчика при успехе
-  this.initAttempts = 0;
-  console.log('✅ Web3Manager готов, инициализируем контракты');
+this.initAttempts = 0;
+console.log('✅ Web3Manager готов, инициализируем контракты');
+
+const web3 = window.web3Manager.web3;
+try {
+  // Создаем экземпляры контрактов
+  this.contracts.globalWay = new web3.eth.Contract(
+    this.globalWayABI, 
+    this.contractAddresses.globalWay
+  );
   
-  const web3 = window.web3Manager.web3;
+  this.contracts.globalWayStats = new web3.eth.Contract(
+    this.globalWayStatsABI, 
+    this.contractAddresses.globalWayStats
+  );
+  
+  this.contracts.gwtToken = new web3.eth.Contract(
+    this.gwtTokenABI, 
+    this.contractAddresses.gwtToken
+  );
+  
+  console.log('Contracts initialized successfully');
+} catch (error) {
+  console.error('Error initializing contracts:', error);
+}
+} // <- ДОБАВЛЕНА закрывающая скобка для функции setupContracts()
 
-  try {
-    // Создаем экземпляры контрактов
-    this.contracts.globalWay = new web3.eth.Contract(
-      this.globalWayABI, 
-      this.contractAddresses.globalWay
-    );
-    
-    this.contracts.globalWayStats = new web3.eth.Contract(
-      this.globalWayStatsABI, 
-      this.contractAddresses.globalWayStats
-    );
-    
-    this.contracts.gwtToken = new web3.eth.Contract(
-      this.gwtTokenABI, 
-      this.contractAddresses.gwtToken
-    );
-    
-    console.log('Contracts initialized successfully');
-  } catch (error) {
-    console.error('Error initializing contracts:', error);
+// Добавь эту новую функцию:
+initWithoutWeb3() {
+  console.log('🔧 Инициализация в режиме просмотра без Web3');
+  
+  // Показываем матрицу в демо режиме
+  if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
+    this.showDemoMatrix();
   }
+}
 
-  initWithoutWeb3() {
-    console.log('🔧 Инициализация в режиме просмотра без Web3');
-    
-    // Показываем матрицу в демо режиме
-    if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
-      this.showDemoMatrix();
-    }
-  }
-
-  showDemoMatrix() {
-    console.log('🎭 Показ демо матрицы');
-    // Здесь код для отображения демо матрицы
-  }
-
+showDemoMatrix() {
+  console.log('🎭 Показ демо матрицы');
+  // Здесь код для отображения демо матрицы
+}
   // ==================== ОСНОВНЫЕ МЕТОДЫ ====================
 
   async register(sponsor, fromAddress) {
