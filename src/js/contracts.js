@@ -255,20 +255,19 @@ class ContractManager {
     console.error('Error initializing contracts:', error);
   }
 
-// Добавь эту новую функцию:
-initWithoutWeb3() {
-  console.log('🔧 Инициализация в режиме просмотра без Web3');
-  
-  // Показываем матрицу в демо режиме
-  if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
-    this.showDemoMatrix();
+  initWithoutWeb3() {
+    console.log('🔧 Инициализация в режиме просмотра без Web3');
+    
+    // Показываем матрицу в демо режиме
+    if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
+      this.showDemoMatrix();
+    }
   }
-}
 
-showDemoMatrix() {
-  console.log('🎭 Показ демо матрицы');
-  // Здесь код для отображения демо матрицы
-}
+  showDemoMatrix() {
+    console.log('🎭 Показ демо матрицы');
+    // Здесь код для отображения демо матрицы
+  }
 
   // ==================== ОСНОВНЫЕ МЕТОДЫ ====================
 
