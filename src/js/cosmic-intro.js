@@ -1,56 +1,80 @@
 // cosmic-intro.js
 class CosmicIntro {
   constructor() {
-    this.currentLang = localStorage.getItem('selectedLanguage') || 'ru';
+    this.currentLang = this.getDefaultLanguage();
+    this.autoHideTimer = null;
     this.loadTranslations();
     this.init();
   }
   
+  getDefaultLanguage() {
+    // Английский по умолчанию
+    const saved = localStorage.getItem('selectedLanguage');
+    return saved || 'en';
+  }
+  
   loadTranslations() {
-    // Проверяем доступность переводов
     if (typeof cosmicIntroTranslations !== 'undefined') {
-      this.introData = cosmicIntroTranslations[this.currentLang] || cosmicIntroTranslations.ru;
+      this.introData = cosmicIntroTranslations[this.currentLang] || cosmicIntroTranslations.en;
     } else {
-      // Fallback если переводы не загружены
       this.introData = this.getDefaultTexts();
     }
   }
   
   getDefaultTexts() {
     return {
-      club: {
-        title: 'Клуб GlobalWay',
-        text: 'GlobalWay объединяет поколение опытных людей, готовых взять свою жизнь в свои руки.'
-      },
-      mission: {
-        title: 'Наша Миссия',
-        text: 'Построить справедливую экономическую модель для всех участников экосистемы.'
-      },
-      goals: {
-        title: 'Цели Клуба',
-        text: 'Создание личной экосистемы дохода и инструменты саморазвития.'
-      },
-      roadmap: {
-        title: 'Дорожная Карта',
-        text: '2025: Запуск платформы и 8 революционных проектов.'
-      },
-      projects: {
-        title: 'Наши Проекты',
-        text: 'KardGift, GlobalTub, GlobalMarket и другие проекты экосистемы.'
-      }
+      club: { title: 'GlobalWay Club', text: 'Living ecosystem where generations connect...' },
+      mission: { title: 'Our Mission', text: 'Building fair economy for everyone...' },
+      goals: { title: 'Club Goals', text: 'Creating personal income sources...' },
+      roadmap: { title: 'Roadmap', text: '2025 — platform launch and 8 projects...' },
+      projects: { title: 'Our Projects', text: 'CardGift, GlobalTub, GlobalMarket...' }
     };
   }
   
-  // Новый метод для обновления языка
-  updateLanguage(newLang) {
-    this.currentLang = newLang;
-    this.loadTranslations();
-    this.updateIntroTexts();
+  init() {
+    this.createLanguageSelector();
+    this.bindEvents();
+    this.startAutoHideTimer();
   }
   
-  updateIntroTexts() {
-    // Обновляем тексты в карточках (пока модальное окно не открыто)
-    // Если модальное окно открыто, обновляем и его
+  createLanguageSelector() {
+    const intro = document.getElementById('cosmic-intro');
+    if (!intro) return;
+    
+    const langSelector = document.createElement('div');
+    langSelector.className = 'intro-language-selector';
+    langSelector.innerHTML = `
+      <button class="intro-lang-btn ${this.currentLang === 'en' ? 'active' : ''}" data-lang="en">EN</button>
+      <button class="intro-lang-btn ${this.currentLang === 'ru' ? 'active' : ''}" data-lang="ru">RU</button>
+      <button class="intro-lang-btn ${this.currentLang === 'uk' ? 'active' : ''}" data-lang="uk">UK</button>
+    `;
+    
+    intro.appendChild(langSelector);
+    
+    // Привязываем события для кнопок языков
+    langSelector.querySelectorAll('.intro-lang-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const newLang = e.target.dataset.lang;
+        this.switchLanguage(newLang);
+      });
+    });
+  }
+  
+  switchLanguage(newLang) {
+    this.currentLang = newLang;
+    localStorage.setItem('selectedLanguage', newLang);
+    this.loadTranslations();
+    
+    // Обновляем активную кнопку
+    document.querySelectorAll('.intro-lang-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.lang === newLang);
+    });
+    
+    // Если модальное окно открыто, обновляем его
+    this.updateModalIfOpen();
+  }
+  
+  updateModalIfOpen() {
     const modal = document.getElementById('cosmic-modal');
     if (modal && modal.classList.contains('active')) {
       const currentTopic = modal.dataset.currentTopic;
@@ -60,10 +84,63 @@ class CosmicIntro {
     }
   }
   
-  // Обновленный метод showModal
+  startAutoHideTimer() {
+    // Автоматически скрыть интро через 8 секунд если не взаимодействуют
+    this.autoHideTimer = setTimeout(() => {
+      this.hideIntro();
+    }, 8000);
+  }
+  
+  clearAutoHideTimer() {
+    if (this.autoHideTimer) {
+      clearTimeout(this.autoHideTimer);
+      this.autoHideTimer = null;
+    }
+  }
+  
+  bindEvents() {
+    // Клики по космическим карточкам
+    document.querySelectorAll('.cosmic-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        this.clearAutoHideTimer(); // Останавливаем автоскрытие при взаимодействии
+        const topic = e.currentTarget.dataset.topic;
+        this.showModal(topic);
+      });
+    });
+    
+    // Пропуск интро
+    document.getElementById('skip-intro')?.addEventListener('click', () => {
+      this.clearAutoHideTimer();
+      this.hideIntro();
+    });
+    
+    // Закрытие модального окна
+    document.querySelector('.modal-close')?.addEventListener('click', () => {
+      this.hideModal();
+    });
+    
+    document.getElementById('modal-back')?.addEventListener('click', () => {
+      this.hideModal();
+    });
+    
+    // Закрытие по клику вне модального окна
+    document.getElementById('cosmic-modal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        this.hideModal();
+      }
+    });
+    
+    // Останавливаем автоскрытие при любом взаимодействии с интро
+    document.getElementById('cosmic-intro')?.addEventListener('click', () => {
+      this.clearAutoHideTimer();
+    });
+  }
+  
   showModal(topic) {
     const data = this.introData[topic];
     if (!data) return;
+    
+    this.clearAutoHideTimer(); // Останавливаем автоскрытие
     
     const titleElement = document.getElementById('modal-title');
     const textElement = document.getElementById('modal-text');
@@ -73,7 +150,7 @@ class CosmicIntro {
     if (textElement) textElement.textContent = data.text;
     if (modalElement) {
       modalElement.classList.add('active');
-      modalElement.dataset.currentTopic = topic; // Запоминаем текущую тему
+      modalElement.dataset.currentTopic = topic;
     }
   }
   
@@ -83,55 +160,9 @@ class CosmicIntro {
       modalElement.classList.remove('active');
       delete modalElement.dataset.currentTopic;
     }
-  }
-  
-  // Остальные методы остаются без изменений...
-  init() {
-    this.bindEvents();
-    this.createStarsAnimation();
-    this.setupLanguageListener();
-  }
-  
-  // Новый метод для прослушивания смены языка
-  setupLanguageListener() {
-    // Слушаем событие смены языка из основного приложения
-    document.addEventListener('languageChanged', (event) => {
-      this.updateLanguage(event.detail.language);
-    });
     
-    // Также можем слушать изменения в localStorage
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'selectedLanguage') {
-        this.updateLanguage(event.newValue);
-      }
-    });
-  }
-  
-  bindEvents() {
-    document.querySelectorAll('.cosmic-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        const topic = e.currentTarget.dataset.topic;
-        this.showModal(topic);
-      });
-    });
-    
-    document.getElementById('skip-intro')?.addEventListener('click', () => {
-      this.hideIntro();
-    });
-    
-    document.querySelector('.modal-close')?.addEventListener('click', () => {
-      this.hideModal();
-    });
-    
-    document.getElementById('modal-back')?.addEventListener('click', () => {
-      this.hideModal();
-    });
-    
-    document.getElementById('cosmic-modal')?.addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) {
-        this.hideModal();
-      }
-    });
+    // Возобновляем автоскрытие после закрытия модального окна
+    this.startAutoHideTimer();
   }
   
   hideIntro() {
@@ -141,36 +172,23 @@ class CosmicIntro {
       
       setTimeout(() => {
         intro.style.display = 'none';
+        
+        // Показываем основное приложение и переходим на Dashboard
         const appContainer = document.querySelector('.app-container');
         if (appContainer) {
           appContainer.style.display = 'block';
         }
         
-        if (window.globalWayApp && typeof window.globalWayApp.afterIntroHidden === 'function') {
-          window.globalWayApp.afterIntroHidden();
+        // Переключаемся на Dashboard
+        if (window.globalWayApp) {
+          window.globalWayApp.showPage('dashboard');
+        }
+        
+        // Обновляем язык в основном приложении
+        if (window.globalWayApp && window.globalWayApp.changeLanguage) {
+          window.globalWayApp.changeLanguage(this.currentLang);
         }
       }, 1000);
-    }
-  }
-  
-  createStarsAnimation() {
-    const starsContainer = document.querySelector('.stars-background');
-    if (!starsContainer) return;
-    
-    for (let i = 0; i < 50; i++) {
-      const star = document.createElement('div');
-      star.style.cssText = `
-        position: absolute;
-        width: 2px;
-        height: 2px;
-        background: white;
-        border-radius: 50%;
-        left: ${Math.random() * 100}%;
-        top: ${Math.random() * 100}%;
-        animation: twinkle ${2 + Math.random() * 3}s linear infinite;
-        animation-delay: ${Math.random() * 2}s;
-      `;
-      starsContainer.appendChild(star);
     }
   }
 }
