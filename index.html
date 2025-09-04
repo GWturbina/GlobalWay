@@ -27,6 +27,63 @@
    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 </head>
 <body>
+
+   <!-- Добавить в начало body в index.html -->
+<div id="cosmic-intro" class="cosmic-intro active">
+  <div class="stars-background"></div>
+  <div class="floating-elements">
+    
+    <div class="cosmic-card" data-topic="club">
+      <div class="card-glow"></div>
+      <h3>Клуб GlobalWay</h3>
+      <div class="particle-trail"></div>
+    </div>
+    
+    <div class="cosmic-card" data-topic="mission">
+      <div class="card-glow"></div>
+      <h3>Миссия Клуба</h3>
+      <div class="particle-trail"></div>
+    </div>
+    
+    <div class="cosmic-card" data-topic="goals">
+      <div class="card-glow"></div>
+      <h3>Цели клуба</h3>
+      <div class="particle-trail"></div>
+    </div>
+    
+    <div class="cosmic-card" data-topic="roadmap">
+      <div class="card-glow"></div>
+      <h3>Дорожная карта</h3>
+      <div class="particle-trail"></div>
+    </div>
+    
+    <div class="cosmic-card" data-topic="projects">
+      <div class="card-glow"></div>
+      <h3>Проекты</h3>
+      <div class="particle-trail"></div>
+    </div>
+    
+  </div>
+  
+  <div class="intro-controls">
+    <button id="skip-intro" class="skip-btn">Перейти к DApp</button>
+  </div>
+</div>
+
+<!-- Модальное окно для контента -->
+<div id="cosmic-modal" class="cosmic-modal">
+  <div class="modal-content">
+    <button class="modal-close">&times;</button>
+    <div class="modal-body">
+      <h2 id="modal-title"></h2>
+      <p id="modal-text"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="modal-back" class="modal-btn">Назад</button>
+    </div>
+  </div>
+</div>
+   
    <!-- Loading Screen -->
    <div id="loading-screen" class="loading-screen">
        <div class="cosmic-loader">
