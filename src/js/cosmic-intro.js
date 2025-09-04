@@ -8,7 +8,6 @@ class CosmicIntro {
   }
   
   getDefaultLanguage() {
-    // Английский по умолчанию
     const saved = localStorage.getItem('selectedLanguage');
     return saved || 'en';
   }
@@ -27,14 +26,45 @@ class CosmicIntro {
       mission: { title: 'Our Mission', text: 'Building fair economy for everyone...' },
       goals: { title: 'Club Goals', text: 'Creating personal income sources...' },
       roadmap: { title: 'Roadmap', text: '2025 — platform launch and 8 projects...' },
-      projects: { title: 'Our Projects', text: 'CardGift, GlobalTub, GlobalMarket...' }
+      projects: { title: 'Our Projects', text: 'CardGift, GlobalTub, GlobalMarket...' },
+      skipButton: { text: 'Go to DApp' }
     };
   }
   
   init() {
     this.createLanguageSelector();
+    this.updateButtonTexts(); // Обновляем тексты кнопок
     this.bindEvents();
     this.startAutoHideTimer();
+  }
+  
+  updateButtonTexts() {
+    // Обновляем тексты в карточках
+    const cards = [
+      { selector: '[data-topic="club"] h3', key: 'club' },
+      { selector: '[data-topic="mission"] h3', key: 'mission' },
+      { selector: '[data-topic="goals"] h3', key: 'goals' },
+      { selector: '[data-topic="roadmap"] h3', key: 'roadmap' },
+      { selector: '[data-topic="projects"] h3', key: 'projects' }
+    ];
+    
+    cards.forEach(card => {
+      const element = document.querySelector(card.selector);
+      if (element && this.introData[card.key]) {
+        element.textContent = this.introData[card.key].title;
+      }
+    });
+    
+    // Обновляем кнопку "Перейти к DApp"
+    const skipBtn = document.getElementById('skip-intro');
+    if (skipBtn) {
+      const buttonTexts = {
+        en: 'Go to DApp',
+        ru: 'Перейти к DApp',
+        uk: 'Перейти до DApp'
+      };
+      skipBtn.textContent = buttonTexts[this.currentLang] || buttonTexts.en;
+    }
   }
   
   createLanguageSelector() {
@@ -51,7 +81,6 @@ class CosmicIntro {
     
     intro.appendChild(langSelector);
     
-    // Привязываем события для кнопок языков
     langSelector.querySelectorAll('.intro-lang-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const newLang = e.target.dataset.lang;
@@ -64,13 +93,13 @@ class CosmicIntro {
     this.currentLang = newLang;
     localStorage.setItem('selectedLanguage', newLang);
     this.loadTranslations();
+    this.updateButtonTexts(); // Обновляем тексты кнопок
     
     // Обновляем активную кнопку
     document.querySelectorAll('.intro-lang-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.lang === newLang);
     });
     
-    // Если модальное окно открыто, обновляем его
     this.updateModalIfOpen();
   }
   
@@ -85,7 +114,6 @@ class CosmicIntro {
   }
   
   startAutoHideTimer() {
-    // Автоматически скрыть интро через 8 секунд если не взаимодействуют
     this.autoHideTimer = setTimeout(() => {
       this.hideIntro();
     }, 8000);
@@ -99,22 +127,19 @@ class CosmicIntro {
   }
   
   bindEvents() {
-    // Клики по космическим карточкам
     document.querySelectorAll('.cosmic-card').forEach(card => {
       card.addEventListener('click', (e) => {
-        this.clearAutoHideTimer(); // Останавливаем автоскрытие при взаимодействии
+        this.clearAutoHideTimer();
         const topic = e.currentTarget.dataset.topic;
         this.showModal(topic);
       });
     });
     
-    // Пропуск интро
     document.getElementById('skip-intro')?.addEventListener('click', () => {
       this.clearAutoHideTimer();
       this.hideIntro();
     });
     
-    // Закрытие модального окна
     document.querySelector('.modal-close')?.addEventListener('click', () => {
       this.hideModal();
     });
@@ -123,14 +148,12 @@ class CosmicIntro {
       this.hideModal();
     });
     
-    // Закрытие по клику вне модального окна
     document.getElementById('cosmic-modal')?.addEventListener('click', (e) => {
       if (e.target === e.currentTarget) {
         this.hideModal();
       }
     });
     
-    // Останавливаем автоскрытие при любом взаимодействии с интро
     document.getElementById('cosmic-intro')?.addEventListener('click', () => {
       this.clearAutoHideTimer();
     });
@@ -140,7 +163,7 @@ class CosmicIntro {
     const data = this.introData[topic];
     if (!data) return;
     
-    this.clearAutoHideTimer(); // Останавливаем автоскрытие
+    this.clearAutoHideTimer();
     
     const titleElement = document.getElementById('modal-title');
     const textElement = document.getElementById('modal-text');
@@ -160,8 +183,6 @@ class CosmicIntro {
       modalElement.classList.remove('active');
       delete modalElement.dataset.currentTopic;
     }
-    
-    // Возобновляем автоскрытие после закрытия модального окна
     this.startAutoHideTimer();
   }
   
@@ -173,20 +194,16 @@ class CosmicIntro {
       setTimeout(() => {
         intro.style.display = 'none';
         
-        // Показываем основное приложение и переходим на Dashboard
         const appContainer = document.querySelector('.app-container');
         if (appContainer) {
           appContainer.style.display = 'block';
         }
         
-        // Переключаемся на Dashboard
         if (window.globalWayApp) {
           window.globalWayApp.showPage('dashboard');
-        }
-        
-        // Обновляем язык в основном приложении
-        if (window.globalWayApp && window.globalWayApp.changeLanguage) {
-          window.globalWayApp.changeLanguage(this.currentLang);
+          if (window.globalWayApp.changeLanguage) {
+            window.globalWayApp.changeLanguage(this.currentLang);
+          }
         }
       }, 1000);
     }
