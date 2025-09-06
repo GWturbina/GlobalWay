@@ -177,12 +177,13 @@ class ContractManager {
   async waitForWeb3Manager() {
     return new Promise((resolve) => {
       const checkWeb3 = () => {
-        if (window.web3Manager && window.web3Manager.web3) {
+        // ИСПРАВЛЕНО: Проверяем что Web3Manager готов И web3 инициализирован
+        if (window.web3Manager && window.web3Manager.isInitialized) {
           console.log('✅ Web3Manager готов для контрактов');
           resolve();
         } else {
           console.log('⏳ Ожидание Web3Manager...');
-          setTimeout(checkWeb3, 300);
+          setTimeout(checkWeb3, 500); // Увеличил интервал
         }
       };
       checkWeb3();
