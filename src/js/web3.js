@@ -1219,6 +1219,50 @@ class Web3Manager {
     return info;
   }
 
+  // ==================== ДОПОЛНИТЕЛЬНЫЕ ГЕТТЕРЫ ====================
+
+getNetworkInfo() {
+  if (!this.isConnected || !this.networkId) {
+    return {
+      networkId: null,
+      networkName: 'Not Connected',
+      symbol: 'N/A',
+      isSupported: false
+    };
+  }
+
+  return {
+    networkId: this.networkId,
+    networkName: this.getNetworkName(this.networkId),
+    symbol: this.getNetworkSymbol(this.networkId),
+    isSupported: this.isValidNetwork(this.networkId),
+    chainId: '0x' + this.networkId.toString(16)
+  };
+}
+
+isCorrectNetwork() {
+  return this.networkId === 204; // opBNB
+}
+
+async getFormattedBalance(address = null) {
+  try {
+    const balance = await this.getBalance(address);
+    return {
+      ...balance,
+      symbol: this.getNetworkSymbol(this.networkId),
+      network: this.getNetworkName(this.networkId)
+    };
+  } catch (error) {
+    return {
+      wei: '0',
+      ether: '0',
+      formatted: '0.0000',
+      symbol: this.getNetworkSymbol(this.networkId) || 'BNB',
+      network: this.getNetworkName(this.networkId) || 'Unknown'
+    };
+  }
+}
+
   // ==================== ДЕСТРУКТОР ====================
 
   destroy() {
