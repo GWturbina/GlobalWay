@@ -11,6 +11,7 @@ class Web3Manager {
     this.retryCount = 0;
     this.maxRetries = 3;
     this.isInitializing = false;
+    this.isInitialized = false; // ← ДОБАВИТЬ ТОЛЬКО ЭТУ СТРОКУ
     this.supportedNetworks = {
       204: {  // opBNB - ОСНОВНАЯ СЕТЬ!
         name: 'opBNB Mainnet',
@@ -66,46 +67,53 @@ class Web3Manager {
     
     console.log('✅ Web3Manager инициализирован с приоритетом SafePal');
     this.isInitializing = false;
+    this.isInitialized = true;
   }
 
   async detectWalletProvider() {
-    console.log('🔍 Поиск кошелька SafePal...');
-    
-    // Ждем немного для полной загрузки расширения
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // ИСПРАВЛЕНО: Правильная проверка SafePal
-    if (window.safepalProvider) {
-      console.log('✅ SafePal (safepalProvider) обнаружен');
-      this.provider = window.safepalProvider;
-      this.providerType = 'SafePal';
-    } else if (window.safepal && window.safepal.ethereum) {
-      console.log('✅ SafePal (safepal.ethereum) обнаружен');
-      this.provider = window.safepal.ethereum;
-      this.providerType = 'SafePal';
-    } else if (window.ethereum && window.ethereum.isSafePal) {
-      console.log('✅ SafePal (ethereum.isSafePal) обнаружен');
-      this.provider = window.ethereum;
-      this.providerType = 'SafePal';
-    } else if (window.ethereum) {
-      console.log('✅ Ethereum provider найден, проверяем тип...');
-      this.provider = window.ethereum;
-      
-      if (window.ethereum.isMetaMask) {
-        this.providerType = 'MetaMask';
-      } else {
-        this.providerType = 'Unknown Wallet';
+  console.log('🔍 Поиск кошелька SafePal...');
+  
+  // Расширенная проверка SafePal
+  const safepalChecks = [
+    () => window.safepal,
+    () => window.ethereum && window.ethereum.isSafePal,
+    () => window.ethereum && window.ethereum.providers?.find(p => p.isSafePal),
+    () => window.ethereum && window.ethereum._metamask && window.ethereum.isSafePal
+  ];
+  
+  for (let check of safepalChecks) {
+    try {
+      const provider = check();
+      if (provider) {
+        console.log('✅ SafePal (safepalProvider) обнаружен');
+        this.provider = provider;
+        this.web3 = new Web3(provider);
+        return { 
+          provider, 
+          type: 'safepal',
+          name: 'SafePal'
+        };
       }
-    } else {
-      console.warn('❌ Кошелек не найден');
-      this.provider = null;
-      this.providerType = null;
-    }
-    
-    if (this.provider) {
-      this.web3 = new Web3(this.provider);
+    } catch (e) {
+      // Продолжаем поиск
     }
   }
+  
+  // Fallback на MetaMask или другие
+  if (window.ethereum) {
+    console.log('⚠️ SafePal не найден, используем MetaMask/другой кошелек');
+    return {
+      provider: window.ethereum,
+      type: 'metamask',
+      name: 'MetaMask'
+    };
+  }
+  
+  console.error('❌ Кошелек не найден');
+  this.provider = null;
+  this.web3 = null;
+  return null;
+}
 
   async connectWallet() {
     console.log('🔗 Попытка подключения к кошельку...');
