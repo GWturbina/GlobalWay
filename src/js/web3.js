@@ -11,7 +11,6 @@ class Web3Manager {
     this.retryCount = 0;
     this.maxRetries = 3;
     this.isInitializing = false;
-    this.isInitialized = false;
     this.supportedNetworks = {
       204: {  // opBNB - ОСНОВНАЯ СЕТЬ!
         name: 'opBNB Mainnet',
@@ -67,54 +66,45 @@ class Web3Manager {
     
     console.log('✅ Web3Manager инициализирован с приоритетом SafePal');
     this.isInitializing = false;
-    this.isInitialized = true;
   }
 
   async detectWalletProvider() {
     console.log('🔍 Поиск кошелька SafePal...');
     
-    // Расширенная проверка SafePal
-    const safepalChecks = [
-      () => window.safepal,
-      () => window.ethereum && window.ethereum.isSafePal,
-      () => window.ethereum && window.ethereum.providers?.find(p => p.isSafePal),
-      () => window.ethereum && window.ethereum._metamask && window.ethereum.isSafePal
-    ];
+    // Ждем немного для полной загрузки расширения
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    for (let check of safepalChecks) {
-      try {
-        const provider = check();
-        if (provider) {
-          console.log('✅ SafePal (safepalProvider) обнаружен');
-          this.provider = provider;
-          this.web3 = new Web3(provider);
-          return { 
-            provider, 
-            type: 'safepal',
-            name: 'SafePal'
-          };
-        }
-      } catch (e) {
-        // Продолжаем поиск
-      }
-    }
-    
-    // Fallback на MetaMask или другие
-    if (window.ethereum) {
-      console.log('⚠️ SafePal не найден, используем MetaMask/другой кошелек');
+    // ИСПРАВЛЕНО: Правильная проверка SafePal
+    if (window.safepalProvider) {
+      console.log('✅ SafePal (safepalProvider) обнаружен');
+      this.provider = window.safepalProvider;
+      this.providerType = 'SafePal';
+    } else if (window.safepal && window.safepal.ethereum) {
+      console.log('✅ SafePal (safepal.ethereum) обнаружен');
+      this.provider = window.safepal.ethereum;
+      this.providerType = 'SafePal';
+    } else if (window.ethereum && window.ethereum.isSafePal) {
+      console.log('✅ SafePal (ethereum.isSafePal) обнаружен');
       this.provider = window.ethereum;
-      this.web3 = new Web3(window.ethereum);
-      return {
-        provider: window.ethereum,
-        type: 'metamask',
-        name: 'MetaMask'
-      };
+      this.providerType = 'SafePal';
+    } else if (window.ethereum) {
+      console.log('✅ Ethereum provider найден, проверяем тип...');
+      this.provider = window.ethereum;
+      
+      if (window.ethereum.isMetaMask) {
+        this.providerType = 'MetaMask';
+      } else {
+        this.providerType = 'Unknown Wallet';
+      }
+    } else {
+      console.warn('❌ Кошелек не найден');
+      this.provider = null;
+      this.providerType = null;
     }
     
-    console.error('❌ Кошелек не найден');
-    this.provider = null;
-    this.web3 = null;
-    return null;
+    if (this.provider) {
+      this.web3 = new Web3(this.provider);
+    }
   }
 
   async connectWallet() {
@@ -128,15 +118,6 @@ class Web3Manager {
     // Десктопная версия - проверяем наличие кошелька
     if (!this.provider) {
       this.showWalletInstallPrompt();
-      return;
-    }
-
-    // Проверка поддержки request метода
-    if (typeof this.provider.request !== 'function') {
-      console.error('❌ Провайдер не поддерживает метод request');
-      if (window.globalWayApp) {
-        window.globalWayApp.showNotification('Кошелек не поддерживается', 'error');
-      }
       return;
     }
 
@@ -176,7 +157,7 @@ class Web3Manager {
         balance: this.web3.utils.fromWei(balance, 'ether') + ' ' + this.getNetworkSymbol(this.networkId)
       });
 
-      // Проверяем правильность сети (opBNB = 204)
+      // ИСПРАВЛЕНО: Проверяем правильность сети (opBNB = 204)
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неправильная сеть:', this.getNetworkName(this.networkId));
         
@@ -251,7 +232,7 @@ class Web3Manager {
             <p>Выберите ваш кошелек для подключения:</p>
             <div class="wallet-options">
               <button class="wallet-option safepal recommended" onclick="window.location.href='${walletLinks.safepal}'">
-                <div class="wallet-icon">🔒</div>
+                <div class="wallet-icon">🔐</div>
                 <div class="wallet-info">
                   <div class="wallet-name">SafePal <span class="recommended-badge">Рекомендуется</span></div>
                   <div class="wallet-desc">Открыть в SafePal браузере</div>
@@ -558,7 +539,7 @@ class Web3Manager {
             <button class="wallet-modal-close" onclick="this.closest('.install-wallet-modal').remove()">&times;</button>
           </div>
           <div class="wallet-modal-body">
-            <div class="install-icon">🔒</div>
+            <div class="install-icon">🔐</div>
             <p>${message}</p>
             <div class="install-buttons">
               <button class="install-btn primary" onclick="window.open('${actionUrl}', '_blank')">
@@ -689,7 +670,7 @@ class Web3Manager {
     });
   }
 
-  // Переключение на opBNB вместо BSC
+  // ИСПРАВЛЕНО: Переключение на opBNB вместо BSC
   async switchToOpBNB() {
     console.log('🔄 Переключение на opBNB сеть...');
     
@@ -799,18 +780,10 @@ class Web3Manager {
   }
 
   setupEventListeners() {
-    if (!this.provider) {
-      console.log('⚠️ Провайдер не найден, пропускаем установку слушателей');
-      return;
-    }
-
-    if (typeof this.provider.on !== 'function') {
-      console.log('⚠️ Провайдер не поддерживает события, пропускаем установку слушателей');
-      return;
-    }
+    if (!this.provider) return;
 
     console.log('🔗 Настройка обработчиков событий кошелька...');
-    
+
     // Изменение аккаунта
     this.provider.on('accountsChanged', (accounts) => {
       console.log('👤 Аккаунт изменен:', accounts);
@@ -858,7 +831,7 @@ class Web3Manager {
         networkName: this.getNetworkName(this.networkId)
       });
       
-      // Проверяем поддерживаемость сети (opBNB = 204)
+      // ИСПРАВЛЕНО: Проверяем поддерживаемость сети (opBNB = 204)
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неподдерживаемая сеть:', this.getNetworkName(this.networkId));
         if (window.globalWayApp) {
