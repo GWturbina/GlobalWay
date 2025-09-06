@@ -788,37 +788,45 @@ class Web3Manager {
   }
 
   setupEventListeners() {
-    if (!this.provider) return;
+  if (!this.provider) {
+    console.log('⚠️ Провайдер не найден, пропускаем установку слушателей');
+    return;
+  }
 
-    console.log('🔗 Настройка обработчиков событий кошелька...');
+  if (typeof this.provider.on !== 'function') {
+    console.log('⚠️ Провайдер не поддерживает события, пропускаем установку слушателей');
+    return;
+  }
 
-    // Изменение аккаунта
-    this.provider.on('accountsChanged', (accounts) => {
-      console.log('👤 Аккаунт изменен:', accounts);
+  console.log('🔗 Настройка обработчиков событий кошелька...');
+  
+  // Изменение аккаунта
+  this.provider.on('accountsChanged', (accounts) => {
+    console.log('👤 Аккаунт изменен:', accounts);
+    
+    if (accounts.length === 0) {
+      console.log('🔌 Кошелек отключен (нет аккаунтов)');
+      this.disconnectWallet();
+    } else if (accounts[0] !== this.account) {
+      const oldAccount = this.account;
+      this.account = accounts[0];
       
-      if (accounts.length === 0) {
-        console.log('🔌 Кошелек отключен (нет аккаунтов)');
-        this.disconnectWallet();
-      } else if (accounts[0] !== this.account) {
-        const oldAccount = this.account;
-        this.account = accounts[0];
-        
-        console.log('🔄 Переключение аккаунта:', {
-          from: oldAccount,
-          to: this.account
-        });
-        
-        this.emit('accountChanged', {
-          newAccount: this.account,
-          oldAccount: oldAccount
-        });
-        
-        // Обновляем данные пользователя
-        if (window.globalWayApp) {
-          window.globalWayApp.updateUserInfo();
-        }
+      console.log('🔄 Переключение аккаунта:', {
+        from: oldAccount,
+        to: this.account
+      });
+      
+      this.emit('accountChanged', {
+        newAccount: this.account,
+        oldAccount: oldAccount
+      });
+      
+      // Обновляем данные пользователя
+      if (window.globalWayApp) {
+        window.globalWayApp.updateUserInfo();
       }
-    });
+    }
+  });
 
     // Изменение сети
     this.provider.on('chainChanged', (chainId) => {
