@@ -9,13 +9,27 @@ class ContractManager {
       gwtToken: '0xd9145CCE52D386f254917e481eB44e9943F39138'
     };
     
-    // ABI из artifacts
+    // ИСПРАВЛЕНО: Правильные цены для opBNB (в wei)
+    this.levelPricesOpBNB = {
+      1: '562500000000000', // 0.0005625 opBNB
+      2: '1125000000000000', // 0.001125 opBNB  
+      3: '2250000000000000', // 0.00225 opBNB
+      4: '4500000000000000', // 0.0045 opBNB
+      5: '9000000000000000', // 0.009 opBNB
+      6: '18000000000000000', // 0.018 opBNB
+      7: '36000000000000000', // 0.036 opBNB
+      8: '72000000000000000', // 0.072 opBNB
+      9: '144000000000000000', // 0.144 opBNB
+      10: '288000000000000000', // 0.288 opBNB
+      11: '576000000000000000', // 0.576 opBNB
+      12: '1152000000000000000' // 1.152 opBNB
+    };
+    
     this.globalWayABI = [
       {
         "inputs": [{"internalType": "address", "name": "_gwtTokenAddress", "type": "address"}],
         "stateMutability": "nonpayable", "type": "constructor"
       },
-      // Основные функции для фронтенда
       {
         "inputs": [{"internalType": "address", "name": "_sponsor", "type": "address"}],
         "name": "register", "outputs": [], "stateMutability": "nonpayable", "type": "function"
@@ -57,7 +71,6 @@ class ContractManager {
         "name": "calculateBulkPrice", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
         "stateMutability": "view", "type": "function"
       },
-      // ИСПРАВЛЕНО: Добавлены недостающие методы
       {
         "inputs": [],
         "name": "owner", "outputs": [{"internalType": "address", "name": "", "type": "address"}],
@@ -72,7 +85,6 @@ class ContractManager {
         "inputs": [],
         "name": "payQuarterlyActivity", "outputs": [], "stateMutability": "payable", "type": "function"
       },
-      // ИСПРАВЛЕНО: Админ методы
       {
         "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
         "name": "freeRegistrationWithLevels", "outputs": [], "stateMutability": "nonpayable", "type": "function"
@@ -160,7 +172,6 @@ class ContractManager {
       }
     ];
 
-    // ИСПРАВЛЕНО: Добавлен GWT Token ABI
     this.gwtTokenABI = [
       {
         "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
@@ -188,12 +199,10 @@ class ContractManager {
   }
 
   async init() {
-    // Ждем готовности Web3Manager
     await this.waitForWeb3Manager();
     await this.setupContracts();
   }
 
-  // Добавь эту новую функцию ПЕРЕД функцией init:
   async waitForWeb3Manager() {
     return new Promise((resolve) => {
       const checkWeb3 = () => {
@@ -210,65 +219,60 @@ class ContractManager {
   }
 
   async setupContracts() {
-  // Ограничиваем количество попыток
-  if (!this.initAttempts) this.initAttempts = 0;
-  
-  if (!window.web3Manager || !window.web3Manager.web3) {
-    this.initAttempts++;
+    if (!this.initAttempts) this.initAttempts = 0;
     
-    if (this.initAttempts > 10) {
-      console.warn('❌ Web3Manager не готов после 10 попыток, работаем без контрактов');
-      this.initWithoutWeb3();
+    if (!window.web3Manager || !window.web3Manager.web3) {
+      this.initAttempts++;
+      
+      if (this.initAttempts > 10) {
+        console.warn('⌀ Web3Manager не готов после 10 попыток, работаем без контрактов');
+        this.initWithoutWeb3();
+        return;
+      }
+      
+      console.log(`⏳ Ожидание Web3Manager... попытка ${this.initAttempts}`);
+      setTimeout(() => this.setupContracts(), 1000);
       return;
     }
     
-    console.log(`⏳ Ожидание Web3Manager... попытка ${this.initAttempts}`);
-    setTimeout(() => this.setupContracts(), 1000);
-    return;
+    this.initAttempts = 0;
+    console.log('✅ Web3Manager готов, инициализируем контракты');
+
+    const web3 = window.web3Manager.web3;
+    try {
+      this.contracts.globalWay = new web3.eth.Contract(
+        this.globalWayABI, 
+        this.contractAddresses.globalWay
+      );
+      
+      this.contracts.globalWayStats = new web3.eth.Contract(
+        this.globalWayStatsABI, 
+        this.contractAddresses.globalWayStats
+      );
+      
+      this.contracts.gwtToken = new web3.eth.Contract(
+        this.gwtTokenABI, 
+        this.contractAddresses.gwtToken
+      );
+      
+      console.log('Contracts initialized successfully');
+    } catch (error) {
+      console.error('Error initializing contracts:', error);
+    }
   }
-  
-  // Сброс счетчика при успехе
-this.initAttempts = 0;
-console.log('✅ Web3Manager готов, инициализируем контракты');
 
-const web3 = window.web3Manager.web3;
-try {
-  // Создаем экземпляры контрактов
-  this.contracts.globalWay = new web3.eth.Contract(
-    this.globalWayABI, 
-    this.contractAddresses.globalWay
-  );
-  
-  this.contracts.globalWayStats = new web3.eth.Contract(
-    this.globalWayStatsABI, 
-    this.contractAddresses.globalWayStats
-  );
-  
-  this.contracts.gwtToken = new web3.eth.Contract(
-    this.gwtTokenABI, 
-    this.contractAddresses.gwtToken
-  );
-  
-  console.log('Contracts initialized successfully');
-} catch (error) {
-  console.error('Error initializing contracts:', error);
-}
-} // <- ДОБАВЛЕНА закрывающая скобка для функции setupContracts()
-
-// Добавь эту новую функцию:
-initWithoutWeb3() {
-  console.log('🔧 Инициализация в режиме просмотра без Web3');
-  
-  // Показываем матрицу в демо режиме
-  if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
-    this.showDemoMatrix();
+  initWithoutWeb3() {
+    console.log('🔧 Инициализация в режиме просмотра без Web3');
+    
+    if (window.globalWayApp && window.globalWayApp.currentPage === 'matrix') {
+      this.showDemoMatrix();
+    }
   }
-}
 
-showDemoMatrix() {
-  console.log('🎭 Показ демо матрицы');
-  // Здесь код для отображения демо матрицы
-}
+  showDemoMatrix() {
+    console.log('🎭 Показ демо матрицы');
+  }
+
   // ==================== ОСНОВНЫЕ МЕТОДЫ ====================
 
   async register(sponsor, fromAddress) {
@@ -306,7 +310,6 @@ showDemoMatrix() {
     }
   }
 
-  // ИСПРАВЛЕНО: Добавлен метод для квартальной активности
   async payQuarterlyActivity(fromAddress, value) {
     try {
       return await this.contracts.globalWay.methods.payQuarterlyActivity().send({
@@ -319,7 +322,6 @@ showDemoMatrix() {
     }
   }
 
-  // ИСПРАВЛЕНО: Добавлены админ методы
   async freeRegistrationWithLevels(userAddress, maxLevel, fromAddress) {
     try {
       return await this.contracts.globalWay.methods.freeRegistrationWithLevels(userAddress, maxLevel).send({
@@ -355,7 +357,27 @@ showDemoMatrix() {
 
   async getPackagePrice(userAddress, packageType) {
     try {
-      return await this.contracts.globalWayStats.methods.getPackagePrice(userAddress, packageType).call();
+      // ИСПРАВЛЕНО: Правильный расчет цены пакета с учетом уже активированных уровней
+      const userInfo = await this.getUserFullInfo(userAddress);
+      const activeLevels = userInfo.activeLevels || [];
+      
+      const packageLevels = {
+        1: [1, 2, 3, 4], // MiniAdmin (1-4)
+        2: [1, 2, 3, 4, 5, 6, 7], // Admin (1-7)
+        3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // SuperAdmin (1-10)
+        4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // Manager (1-12)
+      };
+
+      const targetLevels = packageLevels[packageType];
+      const levelsToActivate = targetLevels.filter(level => !activeLevels.includes(level));
+      
+      let totalPrice = '0';
+      for (const level of levelsToActivate) {
+        const levelPrice = this.levelPricesOpBNB[level];
+        totalPrice = (BigInt(totalPrice) + BigInt(levelPrice)).toString();
+      }
+      
+      return totalPrice;
     } catch (error) {
       console.error('Get package price error:', error);
       throw error;
@@ -404,26 +426,48 @@ showDemoMatrix() {
 
   async getLevelPrice(level) {
     try {
-      return await this.contracts.globalWay.methods.levelPrices(level).call();
+      // ИСПРАВЛЕНО: Возвращаем правильные цены для opBNB
+      return this.levelPricesOpBNB[level] || '0';
     } catch (error) {
       console.error('Get level price error:', error);
       throw error;
     }
   }
 
-  async calculateBulkPrice(maxLevel) {
+  async calculateBulkPrice(maxLevel, userAddress = null) {
     try {
-      return await this.contracts.globalWay.methods.calculateBulkPrice(maxLevel).call();
+      let totalPrice = '0';
+      
+      if (userAddress) {
+        // Учитываем уже активированные уровни
+        const userInfo = await this.getUserFullInfo(userAddress);
+        const activeLevels = userInfo.activeLevels || [];
+        
+        for (let level = 1; level <= maxLevel; level++) {
+          if (!activeLevels.includes(level)) {
+            const levelPrice = this.levelPricesOpBNB[level];
+            totalPrice = (BigInt(totalPrice) + BigInt(levelPrice)).toString();
+          }
+        }
+      } else {
+        // Полная стоимость всех уровней
+        for (let level = 1; level <= maxLevel; level++) {
+          const levelPrice = this.levelPricesOpBNB[level];
+          totalPrice = (BigInt(totalPrice) + BigInt(levelPrice)).toString();
+        }
+      }
+      
+      return totalPrice;
     } catch (error) {
       console.error('Calculate bulk price error:', error);
       throw error;
     }
   }
 
-  // ИСПРАВЛЕНО: Добавлен метод для получения квартальной платы
   async getQuarterlyFee() {
     try {
-      return await this.contracts.globalWay.methods.QUARTERLY_FEE().call();
+      // ИСПРАВЛЕНО: Возвращаем фиксированную квартальную плату для opBNB
+      return '2250000000000000'; // 0.00225 opBNB
     } catch (error) {
       console.error('Get quarterly fee error:', error);
       throw error;
@@ -441,7 +485,8 @@ showDemoMatrix() {
     }
   }
 
-  // ИСПРАВЛЕНО: Добавлены методы для GWT Token
+  // ==================== GWT TOKEN МЕТОДЫ ====================
+
   async getTokenBalance(userAddress) {
     try {
       return await this.contracts.gwtToken.methods.balanceOf(userAddress).call();
@@ -478,6 +523,153 @@ showDemoMatrix() {
       console.error('Transfer token error:', error);
       throw error;
     }
+  }
+
+  // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
+
+  reinitializeContracts() {
+    console.log('🔄 Переинициализация контрактов для новой сети...');
+    this.setupContracts();
+  }
+
+  // Получение информации о пакетах
+  getPackageInfo(packageType) {
+    const packageData = {
+      1: {
+        name: 'MiniAdmin',
+        levels: [1, 2, 3, 4],
+        description: 'Уровни 1-4'
+      },
+      2: {
+        name: 'Admin',
+        levels: [1, 2, 3, 4, 5, 6, 7],
+        description: 'Уровни 1-7'
+      },
+      3: {
+        name: 'SuperAdmin',
+        levels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        description: 'Уровни 1-10'
+      },
+      4: {
+        name: 'Manager',
+        levels: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        description: 'Уровни 1-12'
+      }
+    };
+
+    return packageData[packageType] || null;
+  }
+
+  // Проверка доступности контрактов
+  isContractsReady() {
+    return !!(this.contracts.globalWay && this.contracts.globalWayStats && this.contracts.gwtToken);
+  }
+
+  // Получение текущей сети
+  getCurrentNetwork() {
+    return window.web3Manager?.getNetworkId() || null;
+  }
+
+  // Форматирование адреса
+  formatAddress(address) {
+    if (!address) return '0x000...000';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  }
+
+  // Проверка валидности адреса
+  isValidAddress(address) {
+    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  }
+
+  // Конвертация в Wei
+  toWei(value) {
+    if (window.web3Manager?.web3) {
+      return window.web3Manager.web3.utils.toWei(value.toString(), 'ether');
+    }
+    return value;
+  }
+
+  // Конвертация из Wei
+  fromWei(value) {
+    if (window.web3Manager?.web3) {
+      return window.web3Manager.web3.utils.fromWei(value.toString(), 'ether');
+    }
+    return value;
+  }
+
+  // Обработка ошибок контрактов
+  handleContractError(error, operation = 'contract operation') {
+    console.error(`Contract error during ${operation}:`, error);
+    
+    let message = `Ошибка при ${operation}`;
+    
+    if (error.message?.includes('User denied')) {
+      message = 'Транзакция отклонена пользователем';
+    } else if (error.message?.includes('insufficient funds')) {
+      message = 'Недостаточно средств для выполнения операции';
+    } else if (error.message?.includes('execution reverted')) {
+      message = 'Транзакция отклонена смарт-контрактом';
+    } else if (error.message?.includes('network')) {
+      message = 'Ошибка сети. Проверьте подключение';
+    }
+    
+    return new Error(message);
+  }
+
+  // Получение газа для транзакции
+  async estimateGas(method, fromAddress, value = '0') {
+    try {
+      const gasEstimate = await method.estimateGas({
+        from: fromAddress,
+        value: value
+      });
+      
+      return Math.floor(gasEstimate * 1.2); // +20% запас
+    } catch (error) {
+      console.warn('Не удалось оценить газ:', error);
+      return 300000; // Дефолтное значение
+    }
+  }
+
+  // Мониторинг транзакций
+  async waitForTransaction(txHash, confirmations = 1) {
+    const web3 = window.web3Manager.web3;
+    if (!web3) throw new Error('Web3 недоступен');
+
+    return new Promise((resolve, reject) => {
+      const checkTransaction = async () => {
+        try {
+          const receipt = await web3.eth.getTransactionReceipt(txHash);
+          
+          if (receipt) {
+            if (receipt.status === false) {
+              reject(new Error('Транзакция отклонена сетью'));
+              return;
+            }
+            
+            const currentBlock = await web3.eth.getBlockNumber();
+            const confirmedBlocks = currentBlock - receipt.blockNumber;
+            
+            if (confirmedBlocks >= confirmations) {
+              resolve(receipt);
+              return;
+            }
+          }
+          
+          setTimeout(checkTransaction, 3000);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      checkTransaction();
+    });
+  }
+
+  // Очистка ресурсов
+  destroy() {
+    this.contracts = {};
+    console.log('ContractManager destroyed');
   }
 }
 
