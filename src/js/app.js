@@ -818,18 +818,17 @@ class GlobalWayApp {
       await this.updateUserInfo();
 
 } catch (error) {
-  // Убираем модальные наложения при ошибке  
-  if (window.web3Manager) {
+  // Убираем модальные наложения при ошибке
+  if (window.web3Manager && typeof window.web3Manager.removeModalOverlays === 'function') {
     window.web3Manager.removeModalOverlays();
   }
   this.handleError(error, 'активации пакета');
-    }
-  }
+} // <- метод выше закрыт. БОЛЬШЕ СКОБОК ЗДЕСЬ НЕ ДОБАВЛЯТЬ.
 
-  async registerUser() {
+async registerUser() {
   if (!this.checkWeb3Connection()) return;
 
-  try {
+  try { // <-- это твоя строка ~827
     let sponsor = localStorage.getItem('globalway_referrer');
     if (!sponsor) {
       sponsor = this.getUrlParameter('ref');
@@ -842,14 +841,20 @@ class GlobalWayApp {
 
     this.showNotification('Регистрация пользователя...', 'info');
     const tx = await window.contractManager.register(sponsor, this.userAccount);
-   
+
     this.showNotification('Регистрация успешна!', 'success');
     await this.updateUserInfo();
+    return tx;
 
   } catch (error) {
     this.handleError(error, 'регистрации');
+  } finally {
+    if (window.web3Manager && typeof window.web3Manager.removeModalOverlays === 'function') {
+      window.web3Manager.removeModalOverlays();
+    }
   }
 }
+
 
   // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
 
