@@ -11,7 +11,7 @@ class Web3Manager {
     this.retryCount = 0;
     this.maxRetries = 3;
     this.isInitializing = false;
-    this.isInitialized = false; // ← ДОБАВИТЬ ТОЛЬКО ЭТУ СТРОКУ
+    this.isInitialized = false;
     this.supportedNetworks = {
       204: {  // opBNB - ОСНОВНАЯ СЕТЬ!
         name: 'opBNB Mainnet',
@@ -71,49 +71,51 @@ class Web3Manager {
   }
 
   async detectWalletProvider() {
-  console.log('🔍 Поиск кошелька SafePal...');
-  
-  // Расширенная проверка SafePal
-  const safepalChecks = [
-    () => window.safepal,
-    () => window.ethereum && window.ethereum.isSafePal,
-    () => window.ethereum && window.ethereum.providers?.find(p => p.isSafePal),
-    () => window.ethereum && window.ethereum._metamask && window.ethereum.isSafePal
-  ];
-  
-  for (let check of safepalChecks) {
-    try {
-      const provider = check();
-      if (provider) {
-        console.log('✅ SafePal (safepalProvider) обнаружен');
-        this.provider = provider;
-        this.web3 = new Web3(provider);
-        return { 
-          provider, 
-          type: 'safepal',
-          name: 'SafePal'
-        };
+    console.log('🔍 Поиск кошелька SafePal...');
+    
+    // Расширенная проверка SafePal
+    const safepalChecks = [
+      () => window.safepal,
+      () => window.ethereum && window.ethereum.isSafePal,
+      () => window.ethereum && window.ethereum.providers?.find(p => p.isSafePal),
+      () => window.ethereum && window.ethereum._metamask && window.ethereum.isSafePal
+    ];
+    
+    for (let check of safepalChecks) {
+      try {
+        const provider = check();
+        if (provider) {
+          console.log('✅ SafePal (safepalProvider) обнаружен');
+          this.provider = provider;
+          this.web3 = new Web3(provider);
+          return { 
+            provider, 
+            type: 'safepal',
+            name: 'SafePal'
+          };
+        }
+      } catch (e) {
+        // Продолжаем поиск
       }
-    } catch (e) {
-      // Продолжаем поиск
     }
+    
+    // Fallback на MetaMask или другие
+    if (window.ethereum) {
+      console.log('⚠️ SafePal не найден, используем MetaMask/другой кошелек');
+      this.provider = window.ethereum;
+      this.web3 = new Web3(window.ethereum);
+      return {
+        provider: window.ethereum,
+        type: 'metamask',
+        name: 'MetaMask'
+      };
+    }
+    
+    console.error('❌ Кошелек не найден');
+    this.provider = null;
+    this.web3 = null;
+    return null;
   }
-  
-  // Fallback на MetaMask или другие
-  if (window.ethereum) {
-    console.log('⚠️ SafePal не найден, используем MetaMask/другой кошелек');
-    return {
-      provider: window.ethereum,
-      type: 'metamask',
-      name: 'MetaMask'
-    };
-  }
-  
-  console.error('❌ Кошелек не найден');
-  this.provider = null;
-  this.web3 = null;
-  return null;
-}
 
   async connectWallet() {
     console.log('🔗 Попытка подключения к кошельку...');
@@ -129,7 +131,7 @@ class Web3Manager {
       return;
     }
 
-    // ДОБАВИТЬ ЭТУ ПРОВЕРКУ:
+    // Проверка поддержки request метода
     if (typeof this.provider.request !== 'function') {
       console.error('❌ Провайдер не поддерживает метод request');
       if (window.globalWayApp) {
@@ -174,7 +176,7 @@ class Web3Manager {
         balance: this.web3.utils.fromWei(balance, 'ether') + ' ' + this.getNetworkSymbol(this.networkId)
       });
 
-      // ИСПРАВЛЕНО: Проверяем правильность сети (opBNB = 204)
+      // Проверяем правильность сети (opBNB = 204)
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неправильная сеть:', this.getNetworkName(this.networkId));
         
@@ -249,7 +251,7 @@ class Web3Manager {
             <p>Выберите ваш кошелек для подключения:</p>
             <div class="wallet-options">
               <button class="wallet-option safepal recommended" onclick="window.location.href='${walletLinks.safepal}'">
-                <div class="wallet-icon">🔐</div>
+                <div class="wallet-icon">🔒</div>
                 <div class="wallet-info">
                   <div class="wallet-name">SafePal <span class="recommended-badge">Рекомендуется</span></div>
                   <div class="wallet-desc">Открыть в SafePal браузере</div>
@@ -556,7 +558,7 @@ class Web3Manager {
             <button class="wallet-modal-close" onclick="this.closest('.install-wallet-modal').remove()">&times;</button>
           </div>
           <div class="wallet-modal-body">
-            <div class="install-icon">🔐</div>
+            <div class="install-icon">🔒</div>
             <p>${message}</p>
             <div class="install-buttons">
               <button class="install-btn primary" onclick="window.open('${actionUrl}', '_blank')">
@@ -687,7 +689,7 @@ class Web3Manager {
     });
   }
 
-  // ИСПРАВЛЕНО: Переключение на opBNB вместо BSC
+  // Переключение на opBNB вместо BSC
   async switchToOpBNB() {
     console.log('🔄 Переключение на opBNB сеть...');
     
@@ -796,46 +798,46 @@ class Web3Manager {
     }
   }
 
-setupEventListeners() {
-  if (!this.provider) {
-    console.log('⚠️ Провайдер не найден, пропускаем установку слушателей');
-    return;
-  }
-
-  if (typeof this.provider.on !== 'function') {
-    console.log('⚠️ Провайдер не поддерживает события, пропускаем установку слушателей');
-    return;
-  }
-
-  console.log('🔗 Настройка обработчиков событий кошелька...');
-  
-  // Изменение аккаунта
-  this.provider.on('accountsChanged', (accounts) => {
-    console.log('👤 Аккаунт изменен:', accounts);
-    
-    if (accounts.length === 0) {
-      console.log('🔌 Кошелек отключен (нет аккаунтов)');
-      this.disconnectWallet();
-    } else if (accounts[0] !== this.account) {
-      const oldAccount = this.account;
-      this.account = accounts[0];
-      
-      console.log('🔄 Переключение аккаунта:', {
-        from: oldAccount,
-        to: this.account
-      });
-      
-      this.emit('accountChanged', {
-        newAccount: this.account,
-        oldAccount: oldAccount
-      });
-      
-      // Обновляем данные пользователя
-      if (window.globalWayApp) {
-        window.globalWayApp.updateUserInfo();
-      }
+  setupEventListeners() {
+    if (!this.provider) {
+      console.log('⚠️ Провайдер не найден, пропускаем установку слушателей');
+      return;
     }
-  });
+
+    if (typeof this.provider.on !== 'function') {
+      console.log('⚠️ Провайдер не поддерживает события, пропускаем установку слушателей');
+      return;
+    }
+
+    console.log('🔗 Настройка обработчиков событий кошелька...');
+    
+    // Изменение аккаунта
+    this.provider.on('accountsChanged', (accounts) => {
+      console.log('👤 Аккаунт изменен:', accounts);
+      
+      if (accounts.length === 0) {
+        console.log('🔌 Кошелек отключен (нет аккаунтов)');
+        this.disconnectWallet();
+      } else if (accounts[0] !== this.account) {
+        const oldAccount = this.account;
+        this.account = accounts[0];
+        
+        console.log('🔄 Переключение аккаунта:', {
+          from: oldAccount,
+          to: this.account
+        });
+        
+        this.emit('accountChanged', {
+          newAccount: this.account,
+          oldAccount: oldAccount
+        });
+        
+        // Обновляем данные пользователя
+        if (window.globalWayApp) {
+          window.globalWayApp.updateUserInfo();
+        }
+      }
+    });
 
     // Изменение сети
     this.provider.on('chainChanged', (chainId) => {
@@ -856,7 +858,7 @@ setupEventListeners() {
         networkName: this.getNetworkName(this.networkId)
       });
       
-      // ИСПРАВЛЕНО: Проверяем поддерживаемость сети (opBNB = 204)
+      // Проверяем поддерживаемость сети (opBNB = 204)
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неподдерживаемая сеть:', this.getNetworkName(this.networkId));
         if (window.globalWayApp) {
