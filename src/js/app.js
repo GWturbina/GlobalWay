@@ -751,6 +751,10 @@ class GlobalWayApp {
     if (!this.checkWeb3Connection()) return;
     try {
   // Убираем все зависшие модальные окна перед началом
+  // Убираем все зависшие модальные окна перед началом
+  if (window.web3Manager) {
+    window.web3Manager.removeModalOverlays();
+  }
   if (window.web3Manager) {
     window.web3Manager.removeModalOverlays();
   }
@@ -824,11 +828,6 @@ if (window.web3Manager) {
 
   async registerUser() {
     if (!this.checkWeb3Connection()) return;
-    try {
-  // Убираем все зависшие модальные окна перед началом
-  if (window.web3Manager) {
-    window.web3Manager.removeModalOverlays();
-  }
 
     try {
       let sponsor = localStorage.getItem('globalway_referrer');
