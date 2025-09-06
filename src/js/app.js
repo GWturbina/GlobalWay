@@ -817,44 +817,39 @@ class GlobalWayApp {
       this.showNotification('Пакет успешно активирован!', 'success');
       await this.updateUserInfo();
 
-} catch (error) {
-  // Убираем модальные наложения при ошибке
-  if (window.web3Manager && typeof window.web3Manager.removeModalOverlays === 'function') {
-    window.web3Manager.removeModalOverlays();
-  }
-  this.handleError(error, 'активации пакета');
-} // <- метод выше закрыт. БОЛЬШЕ СКОБОК ЗДЕСЬ НЕ ДОБАВЛЯТЬ.
-
-async registerUser() {
-  if (!this.checkWeb3Connection()) return;
-
-  try { // <-- это твоя строка ~827
-    let sponsor = localStorage.getItem('globalway_referrer');
-    if (!sponsor) {
-      sponsor = this.getUrlParameter('ref');
-    }
-
-    if (!sponsor || !this.isValidAddress(sponsor)) {
-      this.showNotification('Некорректная реферальная ссылка', 'error');
-      return;
-    }
-
-    this.showNotification('Регистрация пользователя...', 'info');
-    const tx = await window.contractManager.register(sponsor, this.userAccount);
-
-    this.showNotification('Регистрация успешна!', 'success');
-    await this.updateUserInfo();
-    return tx;
-
-  } catch (error) {
-    this.handleError(error, 'регистрации');
-  } finally {
-    if (window.web3Manager && typeof window.web3Manager.removeModalOverlays === 'function') {
-      window.web3Manager.removeModalOverlays();
-    }
-  }
+ } catch (error) {
+      // Убираем модальные наложения при ошибке  
+if (window.web3Manager) {
+  window.web3Manager.removeModalOverlays();
 }
+      this.handleError(error, 'активации пакета');
+    }
+  }
 
+  async registerUser() {
+    if (!this.checkWeb3Connection()) return;
+
+    try {
+      let sponsor = localStorage.getItem('globalway_referrer');
+      if (!sponsor) {
+        sponsor = this.getUrlParameter('ref');
+      }
+
+      if (!sponsor || !this.isValidAddress(sponsor)) {
+        this.showNotification('Некорректная реферальная ссылка', 'error');
+        return;
+      }
+
+      this.showNotification('Регистрация пользователя...', 'info');
+      const tx = await window.contractManager.register(sponsor, this.userAccount);
+     
+      this.showNotification('Регистрация успешна!', 'success');
+      await this.updateUserInfo();
+
+    } catch (error) {
+      this.handleError(error, 'регистрации');
+    }
+  }
 
   // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
 
