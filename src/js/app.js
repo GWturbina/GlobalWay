@@ -824,8 +824,9 @@ class GlobalWayApp {
   }
   this.handleError(error, 'активации пакета');
   }
+ }
 }
-    
+  
 async registerUser() {
   if (!this.checkWeb3Connection()) return;
 
