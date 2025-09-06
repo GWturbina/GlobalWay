@@ -199,16 +199,18 @@ class CosmicIntro {
           appContainer.style.display = 'block';
         }
         
-        if (window.globalWayApp) {
-          window.globalWayApp.showPage('dashboard');
-          if (window.globalWayApp.changeLanguage) {
-            window.globalWayApp.changeLanguage(this.currentLang);
-          }
+        // ИСПРАВЛЕНО: Используем правильный метод
+        if (window.globalWayApp && window.globalWayApp.navigateToPage) {
+         window.globalWayApp.navigateToPage('dashboard');
+        }
+        
+        // ИСПРАВЛЕНО: Обновляем язык в основном приложении
+        if (window.globalWayApp && window.globalWayApp.switchLanguage) {
+          window.globalWayApp.switchLanguage(this.currentLang);
         }
       }, 1000);
     }
   }
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('cosmic-intro')) {
