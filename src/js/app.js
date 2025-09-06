@@ -712,6 +712,10 @@ class GlobalWayApp {
       await this.updateUserInfo();
 
     } catch (error) {
+      // Убираем модальные наложения при ошибке
+    if (window.web3Manager) {
+      window.web3Manager.removeModalOverlays();
+    }
       this.handleError(error, 'покупке уровня');
     }
   }
@@ -745,6 +749,11 @@ class GlobalWayApp {
 
   async activatePackage(packageType) {
     if (!this.checkWeb3Connection()) return;
+    try {
+  // Убираем все зависшие модальные окна перед началом
+  if (window.web3Manager) {
+    window.web3Manager.removeModalOverlays();
+  }
 
     try {
       // ИСПРАВЛЕНО: Убран Client пакет, теперь только 4 пакета
@@ -805,12 +814,21 @@ class GlobalWayApp {
       await this.updateUserInfo();
 
     } catch (error) {
+      // Убираем модальные наложения при ошибке  
+if (window.web3Manager) {
+  window.web3Manager.removeModalOverlays();
+}
       this.handleError(error, 'активации пакета');
     }
   }
 
   async registerUser() {
     if (!this.checkWeb3Connection()) return;
+    try {
+  // Убираем все зависшие модальные окна перед началом
+  if (window.web3Manager) {
+    window.web3Manager.removeModalOverlays();
+  }
 
     try {
       let sponsor = localStorage.getItem('globalway_referrer');
@@ -1005,21 +1023,35 @@ class GlobalWayApp {
 
   // Обновление реферальной ссылки
   updateReferralLink() {
-    if (this.userAccount) {
-      const referralId = this.getUserReferralId();
-      const link = `${window.location.origin}?ref=${referralId}`;
-      const referralLink = document.getElementById('referralLink');
-      if (referralLink) {
-        referralLink.value = link;
-      }
-      
-      // Обновляем отображение ID в интерфейсе
-      const referralIdDisplay = document.getElementById('referralIdDisplay');
-      if (referralIdDisplay) {
-        referralIdDisplay.textContent = `ID: ${referralId}`;
-      }
+  if (this.userAccount) {
+    const referralId = this.getUserReferralId();
+    const link = `${window.location.origin}?ref=${referralId}`;
+    
+    // Обновляем поле ссылки
+    const referralLink = document.getElementById('referralLink');
+    if (referralLink) {
+      referralLink.value = link;
     }
+    
+    // Обновляем отображение ID в интерфейсе
+    const referralIdDisplay = document.getElementById('referralIdDisplay');
+    if (referralIdDisplay) {
+      referralIdDisplay.textContent = `ID: ${referralId}`;
+    }
+    
+    // ИСПРАВЛЕНО: Обновляем все элементы с реферальными ссылками
+    const allRefLinks = document.querySelectorAll('.referral-link-display, #partnerRefLink');
+    allRefLinks.forEach(element => {
+      if (element.tagName === 'INPUT') {
+        element.value = link;
+      } else {
+        element.textContent = link;
+      }
+    });
+    
+    console.log('Реферальная ссылка обновлена:', link);
   }
+}
 
   // Получение адреса кошелька по реферальному ID
   getWalletByReferralId(referralId) {
@@ -1169,9 +1201,29 @@ class GlobalWayApp {
       if (walletInfo) walletInfo.classList.add('hidden');
     }
 
-    if (window.uiManager && this.isConnected) {
-      window.uiManager.toggleAdminFeatures(this.isOwner);
-    }
+    // ИСПРАВЛЕНО: Показываем админку для владельца
+if (this.isConnected && this.isOwner) {
+  // Показываем админку в навигации
+  const adminNavBtn = document.querySelector('[data-page="admin"]');
+  if (adminNavBtn) {
+    adminNavBtn.style.display = 'block';
+  }
+  
+  // Обновляем UI Manager если есть
+  if (window.uiManager) {
+    window.uiManager.toggleAdminFeatures(true);
+  }
+} else {
+  // Скрываем админку
+  const adminNavBtn = document.querySelector('[data-page="admin"]');
+  if (adminNavBtn) {
+    adminNavBtn.style.display = 'none';
+  }
+  
+  if (window.uiManager) {
+    window.uiManager.toggleAdminFeatures(false);
+  }
+}
 
     this.updateTranslations();
   }
