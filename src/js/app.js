@@ -823,11 +823,10 @@ class GlobalWayApp {
     window.web3Manager.removeModalOverlays();
   }
   this.handleError(error, 'активации пакета');
+    }
   }
- }
-}
-  
-async registerUser() {
+
+  async registerUser() {
   if (!this.checkWeb3Connection()) return;
 
   try {
