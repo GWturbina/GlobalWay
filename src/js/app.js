@@ -824,7 +824,6 @@ if (window.web3Manager) {
 }
       this.handleError(error, 'активации пакета');
     }
-  }
 
   async registerUser() {
     if (!this.checkWeb3Connection()) return;
