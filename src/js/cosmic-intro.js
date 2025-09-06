@@ -211,7 +211,8 @@ class CosmicIntro {
       }, 1000);
     }
   }
-
+}
+  
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('cosmic-intro')) {
     window.cosmicIntro = new CosmicIntro();
