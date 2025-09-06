@@ -9,7 +9,24 @@ class GlobalWayApp {
     this.userAccount = null;
     this.userData = null;
     this.updateInterval = null;
-    this.isOwner = false; // НОВОЕ: Статус владельца контракта
+    this.isOwner = false;
+    this.ownershipCheckInProgress = false; // Предотвращение множественных проверок
+    
+    // ИСПРАВЛЕНО: Правильные цены для opBNB
+    this.levelPrices = {
+      1: "0.00015",   // 0.00015 opBNB
+      2: "0.0003",    // 0.0003 opBNB  
+      3: "0.0006",    // 0.0006 opBNB
+      4: "0.00225",   // 0.00225 opBNB (сумма 1-4)
+      5: "0.0045",    // 0.0045 opBNB
+      6: "0.009",     // 0.009 opBNB
+      7: "0.018",     // 0.018 opBNB
+      8: "0.036",     // 0.036 opBNB
+      9: "0.072",     // 0.072 opBNB
+      10: "0.144",    // 0.144 opBNB
+      11: "0.288",    // 0.288 opBNB
+      12: "0.576"     // 0.576 opBNB
+    };
     
     this.init();
   }
@@ -35,14 +52,12 @@ class GlobalWayApp {
     
     await this.navigateToPage('dashboard');
     
-    // ИСПРАВЛЕНО: Убираем загрузочный экран после полной инициализации
     this.hideLoadingScreen();
     
     console.log('🌌 GlobalWay App initialized');
   }
 
   hideLoadingScreen() {
-    // ИСПРАВЛЕНО: Убран setTimeout, экран исчезает сразу после инициализации
     const loadingScreen = document.getElementById('loading-screen');
     if (loadingScreen) {
       loadingScreen.classList.add('hidden');
@@ -56,7 +71,7 @@ class GlobalWayApp {
     try {
       const languages = ['en', 'uk', 'ru'];
       for (const lang of languages) {
-        const response = await fetch(`translations/${lang}.json`);
+        const response = await fetch(`src/translations/${lang}.json`);
         if (response.ok) {
           this.translations[lang] = await response.json();
         } else {
@@ -85,6 +100,11 @@ class GlobalWayApp {
         this.navigateToPage(page);
       });
     });
+  }
+
+  // ИСПРАВЛЕНО: Добавлен метод showPage для космического интро
+  showPage(page) {
+    this.navigateToPage(page);
   }
 
   async navigateToPage(page) {
@@ -155,7 +175,7 @@ class GlobalWayApp {
       case 'projects':
         this.initProjects();
         break;
-      case 'admin': // НОВОЕ: Инициализация админки
+      case 'admin':
         this.initAdmin();
         break;
     }
@@ -168,11 +188,10 @@ class GlobalWayApp {
     this.setupLevelButtons();
     this.setupQuickBuy();
     this.setupWithdrawal();
-    this.setupQuarterlyActivity(); // НОВОЕ: Квартальная активность
+    this.setupQuarterlyActivity();
     this.startDataUpdates();
   }
 
-  // НОВАЯ ФУНКЦИЯ: Инициализация админ панели
   initAdmin() {
     if (!this.isConnected) {
       this.showNotification('🔗 Подключите кошелек для доступа к админ-панели', 'warning');
@@ -183,9 +202,13 @@ class GlobalWayApp {
     this.setupAdminUI();
   }
 
-  // НОВАЯ ФУНКЦИЯ: Проверка владельца контракта
+  // ИСПРАВЛЕНО: Предотвращение множественных проверок владельца
   async checkOwnership() {
+    if (this.ownershipCheckInProgress) return;
+    
     try {
+      this.ownershipCheckInProgress = true;
+      
       if (!window.contractManager?.contracts?.globalWay) {
         console.warn('Контракт не загружен');
         return;
@@ -206,10 +229,11 @@ class GlobalWayApp {
       console.error('Ошибка проверки владельца:', error);
       this.isOwner = false;
       this.updateOwnerStatus();
+    } finally {
+      this.ownershipCheckInProgress = false;
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Обновление статуса владельца в UI
   updateOwnerStatus() {
     const elements = {
       currentAccount: document.getElementById('currentAccount'),
@@ -243,33 +267,27 @@ class GlobalWayApp {
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Настройка админ UI
   setupAdminUI() {
     if (!this.isOwner) return;
 
-    // Активация пользователя
     const activateBtn = document.getElementById('activateUserBtn');
     if (activateBtn) {
       activateBtn.addEventListener('click', () => this.adminActivateUser());
     }
 
-    // Массовая активация
     const batchBtn = document.getElementById('batchActivateBtn');
     if (batchBtn) {
       batchBtn.addEventListener('click', () => this.adminBatchActivate());
     }
 
-    // Обновление статистики
     const refreshBtn = document.getElementById('refreshAdminStats');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => this.refreshAdminStats());
     }
 
-    // Загружаем начальную статистику
     this.refreshAdminStats();
   }
 
-  // НОВАЯ ФУНКЦИЯ: Админ активация пользователя
   async adminActivateUser() {
     const userAddress = document.getElementById('freeUserAddress').value.trim();
     const sponsorAddress = document.getElementById('freeUserSponsor').value.trim();
@@ -289,7 +307,6 @@ class GlobalWayApp {
 
       if (!confirmed) return;
 
-      // ИСПРАВЛЕНО: Используем правильный метод контракта
       const tx = await window.contractManager.freeRegistrationWithLevels(
         userAddress, 
         maxLevel, 
@@ -298,7 +315,6 @@ class GlobalWayApp {
       
       this.showNotification('✅ Пользователь успешно активирован!', 'success');
       
-      // Очищаем поля
       document.getElementById('freeUserAddress').value = '';
       document.getElementById('freeUserSponsor').value = '';
       
@@ -307,7 +323,6 @@ class GlobalWayApp {
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Массовая активация
   async adminBatchActivate() {
     const membersText = document.getElementById('teamMembers').value.trim();
     const sponsorsText = document.getElementById('teamSponsors').value.trim();
@@ -336,7 +351,6 @@ class GlobalWayApp {
 
       if (!confirmed) return;
 
-      // ИСПРАВЛЕНО: Используем правильный метод для массовой активации
       for (let i = 0; i < members.length; i++) {
         await window.contractManager.freeRegistrationWithLevels(
           members[i], 
@@ -347,7 +361,6 @@ class GlobalWayApp {
       
       this.showNotification(`✅ Массовая активация завершена! Активировано: ${members.length} участников`, 'success');
       
-      // Очищаем поля
       document.getElementById('teamMembers').value = '';
       document.getElementById('teamSponsors').value = '';
       document.getElementById('teamLevels').value = '';
@@ -357,7 +370,6 @@ class GlobalWayApp {
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Обновление админ статистики
   async refreshAdminStats() {
     try {
       if (window.contractManager?.contracts?.globalWayStats) {
@@ -388,7 +400,6 @@ class GlobalWayApp {
     }
   }
 
-  // ДОБАВЛЕНА ФУНКЦИЯ: Настройка квартальной активности
   setupQuarterlyActivity() {
     const payQuarterlyBtn = document.getElementById('payQuarterlyBtn');
     if (payQuarterlyBtn) {
@@ -399,7 +410,6 @@ class GlobalWayApp {
     this.updateQuarterlyStatus();
   }
 
-  // ИСПРАВЛЕННАЯ ФУНКЦИЯ: Обновление статуса квартальной активности
   async updateQuarterlyStatus() {
     if (!this.isConnected) return;
     
@@ -407,17 +417,20 @@ class GlobalWayApp {
       const user = await window.contractManager.contracts.globalWay.methods
         .users(this.userAccount).call();
         
-      const quarterlyFee = await window.contractManager.getQuarterlyFee();
+      // ИСПРАВЛЕНО: Проверяем существование метода перед вызовом
+      let quarterlyFee;
+      try {
+        quarterlyFee = await window.contractManager.getQuarterlyFee();
+      } catch (error) {
+        console.warn('Квартальная плата не поддерживается контрактом:', error);
+        quarterlyFee = '0';
+      }
+      
       const now = Math.floor(Date.now() / 1000);
-      
-      // ИСПРАВЛЕНО: Правильная логика - всегда от registrationTime
       const daysSinceRegistration = Math.floor((now - user.registrationTime) / (24 * 60 * 60));
-      
-      // Следующий платеж должен быть на: quarterlyCounter * 90 дней от регистрации  
       const nextPaymentDay = user.quarterlyCounter * 90;
       const canPayQuarterly = daysSinceRegistration >= nextPaymentDay;
 
-      // Обновляем UI
       const elements = {
         quarterNumber: document.getElementById('quarterNumber'),
         lastQuarterlyPayment: document.getElementById('lastQuarterlyPayment'),
@@ -468,7 +481,6 @@ class GlobalWayApp {
     }
   }
 
-  // ИСПРАВЛЕНО: Функция оплаты квартальной активности
   async payQuarterlyActivity() {
     if (!this.checkWeb3Connection()) return;
 
@@ -485,12 +497,10 @@ class GlobalWayApp {
 
       this.showNotification('Обрабатывается транзакция...', 'info');
 
-      // ИСПРАВЛЕНО: Используем правильный метод из contracts.js
       const tx = await window.contractManager.payQuarterlyActivity(this.userAccount, quarterlyFee);
       
       this.showNotification('✅ Квартальная активность оплачена!', 'success');
       
-      // Обновляем статус
       await this.updateQuarterlyStatus();
       await this.updateUserInfo();
 
@@ -520,17 +530,14 @@ class GlobalWayApp {
     this.setupTokenInteractions();
   }
 
-  // ИСПРАВЛЕНО: Новая функция обновления информации о токенах
   async updateTokenInfo() {
     if (!this.isConnected || !this.userAccount) return;
 
     try {
-      // Получаем баланс токенов пользователя
       const tokenBalance = await window.contractManager.getTokenBalance(this.userAccount);
       const tokenPrice = await window.contractManager.getTokenCurrentPrice();
       const totalSupply = await window.contractManager.getTokenTotalSupply();
 
-      // Обновляем UI токенов
       const elements = {
         tokenBalance: document.getElementById('tokenBalance'),
         tokenBalanceDisplay: document.getElementById('tokenBalanceDisplay'),
@@ -560,7 +567,6 @@ class GlobalWayApp {
         elements.totalSupply.textContent = this.formatLargeNumber(totalSupply);
       }
 
-      // Рассчитываем стоимость токенов пользователя
       const userTokenValue = (parseFloat(formattedBalance) * parseFloat(formattedPrice)).toFixed(2);
       if (elements.tokenValue) {
         elements.tokenValue.textContent = `≈ $${userTokenValue}`;
@@ -594,19 +600,16 @@ class GlobalWayApp {
     if (!this.isConnected || !this.userAccount) return;
 
     try {
-      // Получаем полную информацию о пользователе
       if (window.contractManager?.contracts?.globalWayStats) {
         this.userData = await window.contractManager.getUserFullInfo(this.userAccount);
         this.displayUserData();
       }
 
-      // Получаем данные из основного контракта
       if (window.contractManager?.contracts?.globalWay) {
         const userData = await window.contractManager.getUserData(this.userAccount);
         this.displayBasicUserData(userData);
       }
 
-      // ИСПРАВЛЕНО: Обновляем информацию о токенах при обновлении пользователя
       if (this.currentPage === 'tokens') {
         await this.updateTokenInfo();
       }
@@ -619,7 +622,6 @@ class GlobalWayApp {
   displayUserData() {
     if (!this.userData) return;
 
-    // Обновляем элементы интерфейса
     const elements = {
       userBalance: document.getElementById('userBalance'),
       totalEarned: document.getElementById('totalEarned'),
@@ -645,11 +647,9 @@ class GlobalWayApp {
       elements.registrationTime.textContent = new Date(this.userData.registrationTime * 1000).toLocaleDateString();
     }
 
-    // Обновляем статус активных уровней
     this.updateActiveLevelsDisplay();
   }
 
-  // ИСПРАВЛЕНО: Отображение базовых данных пользователя
   displayBasicUserData(userData) {
     if (!userData) return;
 
@@ -660,8 +660,12 @@ class GlobalWayApp {
     };
 
     if (elements.userId) {
-      // ID пользователя - это индекс в массиве пользователей
-      elements.userId.textContent = userData.personalInvites || '---';
+      // ИСПРАВЛЕНО: Генерация случайного 7-значного ID
+      if (!localStorage.getItem(`user_id_${this.userAccount}`)) {
+        const randomId = Math.floor(1000000 + Math.random() * 9000000);
+        localStorage.setItem(`user_id_${this.userAccount}`, randomId.toString());
+      }
+      elements.userId.textContent = localStorage.getItem(`user_id_${this.userAccount}`);
     }
 
     if (elements.userRank) {
@@ -681,12 +685,14 @@ class GlobalWayApp {
       if (levelBtn) {
         if (this.userData.activeLevels.includes(i)) {
           levelBtn.classList.add('active');
-          levelBtn.classList.remove('inactive');
-          levelBtn.querySelector('.level-status').textContent = 'Active';
+          levelBtn.classList.remove('inactive', 'disabled');
+          const statusEl = levelBtn.querySelector('.level-status');
+          if (statusEl) statusEl.textContent = 'Active';
         } else {
           levelBtn.classList.remove('active');
           levelBtn.classList.add('inactive');
-          levelBtn.querySelector('.level-status').textContent = 'Available';
+          const statusEl = levelBtn.querySelector('.level-status');
+          if (statusEl) statusEl.textContent = 'Available';
         }
       }
     }
@@ -702,17 +708,36 @@ class GlobalWayApp {
     });
   }
 
+  // ИСПРАВЛЕНО: Логика покупки уровней с проверкой предыдущих
   async buyLevel(level) {
     if (!this.checkWeb3Connection()) return;
 
     try {
-      // Получаем цену уровня
-      const price = await window.contractManager.getLevelPrice(level);
+      // Проверяем активные уровни пользователя
+      const userData = await window.contractManager.getUserFullInfo(this.userAccount);
+      const activeLevels = userData.activeLevels || [];
       
-      // Показываем модальное окно подтверждения
+      // Проверяем, что все предыдущие уровни активированы
+      for (let i = 1; i < level; i++) {
+        if (!activeLevels.includes(i)) {
+          this.showNotification(`❌ Сначала активируйте уровень ${i}`, 'error');
+          return;
+        }
+      }
+
+      // Проверяем, что уровень еще не активирован
+      if (activeLevels.includes(level)) {
+        this.showNotification(`❌ Уровень ${level} уже активирован`, 'warning');
+        return;
+      }
+
+      // Получаем цену уровня
+      const price = this.levelPrices[level];
+      const priceWei = window.web3Manager.web3.utils.toWei(price, 'ether');
+      
       const confirmed = await this.showConfirmModal(
         `Купить уровень ${level}`,
-        `Цена: ${this.formatBNB(price)} BNB`,
+        `Цена: ${price} opBNB`,
         'Подтвердить покупку'
       );
 
@@ -720,12 +745,10 @@ class GlobalWayApp {
 
       this.showNotification('Обрабатывается транзакция...', 'info');
 
-      // Выполняем покупку
-      const tx = await window.contractManager.buyLevel(level, this.userAccount, price);
+      const tx = await window.contractManager.buyLevel(level, this.userAccount, priceWei);
       
       this.showNotification('Уровень успешно куплен!', 'success');
       
-      // Обновляем данные пользователя
       await this.updateUserInfo();
 
     } catch (error) {
@@ -743,24 +766,54 @@ class GlobalWayApp {
     });
   }
 
+  // ИСПРАВЛЕНО: Логика покупки пакетов с правильным расчетом цен
   async activatePackage(packageType) {
     if (!this.checkWeb3Connection()) return;
 
     try {
-      // Получаем цену пакета
-      const price = await window.contractManager.getPackagePrice(this.userAccount, packageType);
+      // Получаем активные уровни пользователя
+      const userData = await window.contractManager.getUserFullInfo(this.userAccount);
+      const activeLevels = userData.activeLevels || [];
       
+      // Определяем какие уровни включает пакет (ИСПРАВЛЕНО: убран Client 1-3)
+      const packageLevels = {
+        1: [1, 2, 3, 4],     // MiniAdmin (1-4)
+        2: [1, 2, 3, 4, 5, 6, 7], // Admin (1-7)
+        3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // SuperAdmin (1-10)
+        4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // Manager (1-12)
+      };
+
+      const levelsToActivate = packageLevels[packageType];
+      
+      if (!levelsToActivate) {
+        this.showNotification('❌ Неверный тип пакета', 'error');
+        return;
+      }
+
+      // Определяем какие уровни нужно доплатить
+      const levelsToPayFor = levelsToActivate.filter(level => !activeLevels.includes(level));
+      
+      if (levelsToPayFor.length === 0) {
+        this.showNotification('✅ Все уровни этого пакета уже активированы', 'info');
+        return;
+      }
+
+      // Рассчитываем общую стоимость недостающих уровней
+      let totalPrice = 0;
+      levelsToPayFor.forEach(level => {
+        totalPrice += parseFloat(this.levelPrices[level]);
+      });
+
       const packageNames = {
-        1: 'Client (1-3)',
-        2: 'MiniAdmin (1-4)', 
-        3: 'Admin (1-7)',
-        4: 'SuperAdmin (1-10)',
-        5: 'Manager (1-12)'
+        1: 'MiniAdmin (1-4)',
+        2: 'Admin (1-7)', 
+        3: 'SuperAdmin (1-10)',
+        4: 'Manager (1-12)'
       };
 
       const confirmed = await this.showConfirmModal(
         `Активировать пакет ${packageNames[packageType]}`,
-        `Цена: ${this.formatBNB(price)} BNB`,
+        `Доплата за уровни ${levelsToPayFor.join(', ')}: ${totalPrice.toFixed(5)} opBNB`,
         'Активировать пакет'
       );
 
@@ -768,7 +821,8 @@ class GlobalWayApp {
 
       this.showNotification('Активация пакета...', 'info');
 
-      const tx = await window.contractManager.activatePackage(packageType, this.userAccount, price);
+      const priceWei = window.web3Manager.web3.utils.toWei(totalPrice.toString(), 'ether');
+      const tx = await window.contractManager.activatePackage(packageType, this.userAccount, priceWei);
       
       this.showNotification('Пакет успешно активирован!', 'success');
       await this.updateUserInfo();
@@ -782,7 +836,6 @@ class GlobalWayApp {
     if (!this.checkWeb3Connection()) return;
 
     try {
-      // Получаем рефереера из localStorage или URL
       let sponsor = localStorage.getItem('globalway_referrer');
       if (!sponsor) {
         sponsor = this.getUrlParameter('ref');
@@ -807,7 +860,6 @@ class GlobalWayApp {
  // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
 
  startDataUpdates() {
-   // Обновляем данные каждые 30 секунд
    if (this.updateInterval) {
      clearInterval(this.updateInterval);
    }
@@ -860,7 +912,6 @@ class GlobalWayApp {
 
  async showConfirmModal(title, message, confirmText) {
    return new Promise((resolve) => {
-     // Создаем модальное окно
      const modal = document.createElement('div');
      modal.className = 'cosmic-modal-overlay';
      modal.innerHTML = `
@@ -881,7 +932,6 @@ class GlobalWayApp {
 
      document.body.appendChild(modal);
 
-     // Обработчики событий
      modal.querySelector('.confirm-btn').addEventListener('click', () => {
        modal.remove();
        resolve(true);
@@ -904,14 +954,12 @@ class GlobalWayApp {
    return bnbValue.toFixed(decimals);
  }
 
- // ИСПРАВЛЕНО: Добавлена функция форматирования токенов
  formatTokens(value, decimals = 2) {
    if (!value) return '0';
    const tokenValue = parseFloat(window.web3Manager?.web3?.utils?.fromWei(value.toString(), 'ether') || value);
    return tokenValue.toFixed(decimals);
  }
 
- // ИСПРАВЛЕНО: Добавлена функция форматирования больших чисел
  formatLargeNumber(value) {
    if (!value) return '0';
    const num = parseFloat(window.web3Manager?.web3?.utils?.fromWei(value.toString(), 'ether') || value);
@@ -932,11 +980,7 @@ class GlobalWayApp {
      return false;
    }
    
-   // Проверяем владельца при каждом подключении
-   if (this.isConnected) {
-     this.checkOwnership();
-   }
-
+   // ИСПРАВЛЕНО: Убрана множественная проверка владельца
    return true;
  }
 
@@ -975,6 +1019,11 @@ class GlobalWayApp {
    this.updateTranslations();
  }
 
+ // ИСПРАВЛЕНО: Добавлен метод changeLanguage для интеграции с космическим интро
+ changeLanguage(language) {
+   this.switchLanguage(language);
+ }
+
  updateTranslations() {
    const elements = document.querySelectorAll('[data-translate]');
    elements.forEach(element => {
@@ -991,7 +1040,6 @@ class GlobalWayApp {
  }
 
  setupEventListeners() {
-   // Подключение кошелька
    const connectButton = document.getElementById('connectWallet');
    if (connectButton) {
      connectButton.addEventListener('click', () => {
@@ -1003,7 +1051,6 @@ class GlobalWayApp {
      });
    }
 
-   // Переключение языка
    const languageSelect = document.getElementById('languageSelect');
    if (languageSelect) {
      languageSelect.addEventListener('change', (e) => {
@@ -1018,7 +1065,6 @@ class GlobalWayApp {
      });
    }
 
-   // Копирование реферальной ссылки
    const copyRefLink = document.getElementById('copyRefLink');
    if (copyRefLink) {
      copyRefLink.addEventListener('click', () => {
@@ -1026,14 +1072,14 @@ class GlobalWayApp {
      });
    }
 
-   // Обработка событий Web3
    if (window.web3Manager) {
      window.web3Manager.on('connected', (data) => {
        this.isConnected = true;
        this.userAccount = data.account;
        this.updateUI();
        this.updateUserInfo();
-       this.checkOwnership();
+       // ИСПРАВЛЕНО: Проверка владельца только при подключении
+       setTimeout(() => this.checkOwnership(), 1000);
        this.showNotification('Кошелек подключен!', 'success');
      });
 
@@ -1041,6 +1087,7 @@ class GlobalWayApp {
        this.isConnected = false;
        this.userAccount = null;
        this.userData = null;
+       this.isOwner = false; // Сброс статуса владельца
        if (this.updateInterval) {
          clearInterval(this.updateInterval);
        }
@@ -1071,7 +1118,6 @@ class GlobalWayApp {
      if (walletInfo) walletInfo.classList.add('hidden');
    }
 
-   // НОВОЕ: Переключаем админ функции
    if (window.uiManager && this.isConnected) {
      window.uiManager.toggleAdminFeatures(this.isOwner);
    }
@@ -1086,7 +1132,17 @@ class GlobalWayApp {
 
  updateReferralLink() {
    if (this.userAccount) {
-     const link = `${window.location.origin}?ref=${this.userAccount}`;
+     // ИСПРАВЛЕНО: Генерация реферальной ссылки с случайным ID
+     let userRefId = localStorage.getItem(`user_ref_id_${this.userAccount}`);
+     if (!userRefId) {
+       const randomId = Math.floor(1000000 + Math.random() * 9000000);
+       userRefId = `GW${randomId}`;
+       localStorage.setItem(`user_ref_id_${this.userAccount}`, userRefId);
+       // Сохраняем обратную связь ID -> адрес
+       localStorage.setItem(`ref_id_${userRefId}`, this.userAccount);
+     }
+     
+     const link = `${window.location.origin}?ref=${userRefId}`;
      const referralLink = document.getElementById('referralLink');
      if (referralLink) {
        referralLink.value = link;
@@ -1139,7 +1195,7 @@ class GlobalWayApp {
    });
  }
 
- // Остальные методы без изменений...
+ // Остальные методы остаются без изменений...
  setupWithdrawal() {
    const withdrawBtn = document.getElementById('withdrawBtn');
    if (withdrawBtn) {
@@ -1449,9 +1505,20 @@ class GlobalWayApp {
 
  handleReferral() {
    const ref = this.getUrlParameter('ref');
-   if (ref && this.isValidAddress(ref)) {
-     localStorage.setItem('globalway_referrer', ref);
-     this.showNotification('Реферальная ссылка сохранена!', 'success');
+   if (ref) {
+     // ИСПРАВЛЕНО: Обработка реферальных ссылок с ID
+     if (ref.startsWith('GW') && ref.length === 9) {
+       // Получаем адрес по ID
+       const referrerAddress = localStorage.getItem(`ref_id_${ref}`);
+       if (referrerAddress && this.isValidAddress(referrerAddress)) {
+         localStorage.setItem('globalway_referrer', referrerAddress);
+         this.showNotification('Реферальная ссылка сохранена!', 'success');
+       }
+     } else if (this.isValidAddress(ref)) {
+       // Старый формат с адресом
+       localStorage.setItem('globalway_referrer', ref);
+       this.showNotification('Реферальная ссылка сохранена!', 'success');
+     }
    }
  }
 
@@ -1550,7 +1617,8 @@ class GlobalWayApp {
 
  generateQRCode() {
    if (this.userAccount) {
-     const link = `${window.location.origin}?ref=${this.userAccount}`;
+     const userRefId = localStorage.getItem(`user_ref_id_${this.userAccount}`) || this.userAccount;
+     const link = `${window.location.origin}?ref=${userRefId}`;
      this.showNotification('QR код будет добавлен в следующих обновлениях', 'info');
    } else {
      this.showNotification('Подключите кошелек для генерации QR кода', 'warning');
@@ -1559,7 +1627,8 @@ class GlobalWayApp {
 
  shareToTelegram() {
    if (this.userAccount) {
-     const link = `${window.location.origin}?ref=${this.userAccount}`;
+     const userRefId = localStorage.getItem(`user_ref_id_${this.userAccount}`) || this.userAccount;
+     const link = `${window.location.origin}?ref=${userRefId}`;
      const text = encodeURIComponent('Join GlobalWay - Your Global Path to Success!');
      const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
      window.open(telegramUrl, '_blank');
@@ -1570,7 +1639,8 @@ class GlobalWayApp {
 
  shareToTwitter() {
    if (this.userAccount) {
-     const link = `${window.location.origin}?ref=${this.userAccount}`;
+     const userRefId = localStorage.getItem(`user_ref_id_${this.userAccount}`) || this.userAccount;
+     const link = `${window.location.origin}?ref=${userRefId}`;
      const text = encodeURIComponent('Join GlobalWay - Your Global Path to Success!');
      const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(link)}`;
      window.open(twitterUrl, '_blank');
@@ -1581,7 +1651,8 @@ class GlobalWayApp {
 
  shareToWhatsApp() {
    if (this.userAccount) {
-     const link = `${window.location.origin}?ref=${this.userAccount}`;
+     const userRefId = localStorage.getItem(`user_ref_id_${this.userAccount}`) || this.userAccount;
+     const link = `${window.location.origin}?ref=${userRefId}`;
      const text = encodeURIComponent('Join GlobalWay - Your Global Path to Success! ' + link);
      const whatsappUrl = `https://wa.me/?text=${text}`;
      window.open(whatsappUrl, '_blank');
@@ -1643,7 +1714,6 @@ class GlobalWayApp {
    if (viewBscscanBtn) viewBscscanBtn.addEventListener('click', () => this.viewOnBscscan());
    if (addToWalletBtn) addToWalletBtn.addEventListener('click', () => this.addTokenToWallet());
 
-   // Обработчики для расчета стоимости
    const buyAmountInput = document.getElementById('buyTokenAmount');
    const sellAmountInput = document.getElementById('sellTokenAmount');
    
@@ -1674,7 +1744,7 @@ class GlobalWayApp {
 
  viewOnBscscan() {
    const address = '0xd9145CCE52D386f254917e481eB44e9943F39138';
-   window.open(`https://bscscan.com/token/${address}`, '_blank');
+   window.open(`https://opbnbscan.com/token/${address}`, '_blank');
  }
 
  async addTokenToWallet() {
@@ -1708,9 +1778,8 @@ class GlobalWayApp {
      return;
    }
    
-   // Примерная цена токена
-   const tokenPrice = 0.01; // BNB
-   const commission = 0.1; // 10%
+   const tokenPrice = 0.01;
+   const commission = 0.1;
    const cost = (amount * tokenPrice * (1 + commission)).toFixed(6);
    
    document.getElementById('buyTokenCost').value = `${cost} BNB`;
@@ -1722,16 +1791,14 @@ class GlobalWayApp {
      return;
    }
    
-   // Примерная цена токена
-   const tokenPrice = 0.01; // BNB
-   const commission = 0.1; // 10%
+   const tokenPrice = 0.01;
+   const commission = 0.1;
    const receive = (amount * tokenPrice * (1 - commission)).toFixed(6);
    
    document.getElementById('sellTokenReceive').value = `${receive} BNB`;
  }
 
  setupSettingsInteractions() {
-   // Основные кнопки
    const changeWalletBtn = document.getElementById('changeWallet');
    const copyMainBtn = document.getElementById('copyMainContract');
    const copyTokenBtn = document.getElementById('copyTokenContract');
@@ -1740,7 +1807,6 @@ class GlobalWayApp {
    const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
    const clearCacheBtn = document.getElementById('clearCacheBtn');
    
-   // Ссылки поддержки
    const whitepaperBtn = document.getElementById('openWhitepaperBtn');
    const docsBtn = document.getElementById('openDocumentationBtn');
    const faqBtn = document.getElementById('openFAQBtn');
@@ -1748,7 +1814,6 @@ class GlobalWayApp {
    const telegramBtn = document.getElementById('openTelegramBtn');
    const twitterBtn = document.getElementById('openTwitterBtn');
    
-   // Управление данными
    const exportBtn = document.getElementById('exportDataBtn');
    const importBtn = document.getElementById('importDataBtn');
    const backupBtn = document.getElementById('createBackupBtn');
@@ -1756,7 +1821,6 @@ class GlobalWayApp {
    const resetBtn = document.getElementById('resetSettingsBtn');
    const clearDataBtn = document.getElementById('clearAllDataBtn');
 
-   // Обработчики событий
    if (changeWalletBtn) changeWalletBtn.addEventListener('click', () => this.changeWallet());
    if (copyMainBtn) copyMainBtn.addEventListener('click', () => this.copyMainContract());
    if (copyTokenBtn) copyTokenBtn.addEventListener('click', () => this.copyTokenContract());
@@ -1790,7 +1854,7 @@ class GlobalWayApp {
  }
 
  copyMainContract() {
-   const address = '0x000...000'; // Замени на реальный адрес
+   const address = '0x64De05a0c818a925711EA0874FD972Bdc2edb2aA';
    navigator.clipboard.writeText(address).then(() => {
      this.showNotification('Адрес основного контракта скопирован!', 'success');
    });
@@ -1894,7 +1958,7 @@ class GlobalWayApp {
    };
    
    if (this.isConnected) {
-     if (elements.connectedWallet) elements.connectedWallet.textContent = 'MetaMask';
+     if (elements.connectedWallet) elements.connectedWallet.textContent = 'SafePal';
      if (elements.connectionStatus) {
        elements.connectionStatus.textContent = 'Connected';
        elements.connectionStatus.className = 'value connected';
@@ -1914,7 +1978,15 @@ class GlobalWayApp {
    }
  }
 
- // Деструктор для очистки ресурсов
+ // ИСПРАВЛЕНО: Добавлен метод для интеграции с космическим интро
+ afterIntroHidden() {
+   console.log('Космическое интро скрыто, приложение готово к работе');
+   // Дополнительная инициализация после скрытия интро
+   if (this.isConnected) {
+     this.updateUserInfo();
+   }
+ }
+
  destroy() {
    document.removeEventListener('DOMContentLoaded', this.init);
    
@@ -1931,7 +2003,6 @@ class GlobalWayApp {
 // ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ====================
 
 document.addEventListener('DOMContentLoaded', () => {
- // Проверяем, что Web3 загружен
  if (typeof Web3 === 'undefined') {
    console.error('Web3 не загружен!');
    document.body.innerHTML = `
@@ -1964,33 +2035,26 @@ document.addEventListener('DOMContentLoaded', () => {
    return;
  }
 
- // Создаем глобальный экземпляр приложения
  window.globalWayApp = new GlobalWayApp();
 
- // Загружаем первую страницу после инициализации
  setTimeout(() => {
    if (window.globalWayApp) {
      window.globalWayApp.navigateToPage('dashboard');
    }
  }, 200);
 
- // Обработка реферальных ссылок
  window.globalWayApp.handleReferral();
-
- // Восстановление состояния
  window.globalWayApp.restoreAppState();
 
  console.log('GlobalWay DApp loaded successfully!');
 });
 
-// Обработка закрытия страницы
 window.addEventListener('beforeunload', () => {
  if (window.globalWayApp) {
    window.globalWayApp.destroy();
  }
 });
 
-// Экспорт для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {
  module.exports = GlobalWayApp;
 }
