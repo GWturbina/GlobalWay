@@ -51,7 +51,6 @@ class Web3Manager {
     
     console.log('🔍 Инициализация Web3Manager...');
     
-    // Детекция мобильного устройства
     this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     this.isAndroid = /Android/.test(navigator.userAgent);
@@ -71,10 +70,8 @@ class Web3Manager {
   async detectWalletProvider() {
     console.log('🔍 Поиск кошелька SafePal...');
     
-    // Ждем немного для полной загрузки расширения
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // ИСПРАВЛЕНО: Правильная проверка SafePal
     if (window.safepalProvider) {
       console.log('✅ SafePal (safepalProvider) обнаружен');
       this.provider = window.safepalProvider;
@@ -97,7 +94,7 @@ class Web3Manager {
         this.providerType = 'Unknown Wallet';
       }
     } else {
-      console.warn('❌ Кошелек не найден');
+      console.warn('⌀ Кошелек не найден');
       this.provider = null;
       this.providerType = null;
     }
@@ -110,24 +107,20 @@ class Web3Manager {
   async connectWallet() {
     console.log('🔗 Попытка подключения к кошельку...');
     
-    // Мобильная версия - показываем опции
     if (this.isMobile && !this.provider) {
       return this.showMobileWalletOptions();
     }
     
-    // Десктопная версия - проверяем наличие кошелька
     if (!this.provider) {
       this.showWalletInstallPrompt();
       return;
     }
 
     try {
-      // Показываем тип подключаемого кошелька
       if (window.globalWayApp) {
         window.globalWayApp.showNotification(`Подключение ${this.providerType}...`, 'info');
       }
 
-      // Запрос разрешения на подключение
       const accounts = await this.provider.request({
         method: 'eth_requestAccounts'
       });
@@ -139,14 +132,12 @@ class Web3Manager {
       this.account = accounts[0];
       this.isConnected = true;
 
-      // Получаем информацию о сети
       const networkId = await this.provider.request({
         method: 'net_version'
       });
       
       this.networkId = parseInt(networkId);
       
-      // Получаем баланс
       const balance = await this.web3.eth.getBalance(this.account);
       
       console.log('✅ Кошелек подключен:', {
@@ -157,7 +148,6 @@ class Web3Manager {
         balance: this.web3.utils.fromWei(balance, 'ether') + ' ' + this.getNetworkSymbol(this.networkId)
       });
 
-      // ИСПРАВЛЕНО: Проверяем правильность сети (opBNB = 204)
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неправильная сеть:', this.getNetworkName(this.networkId));
         
@@ -165,7 +155,6 @@ class Web3Manager {
           window.globalWayApp.showNotification('Требуется переключение на opBNB сеть', 'warning');
         }
         
-        // Предлагаем переключиться
         const shouldSwitch = await this.showNetworkSwitchPrompt();
         if (shouldSwitch) {
           await this.switchToOpBNB();
@@ -176,7 +165,6 @@ class Web3Manager {
         }
       }
 
-      // Сохраняем статус подключения
       localStorage.setItem('wallet_connected', 'true');
       localStorage.setItem('wallet_type', this.providerType);
 
@@ -190,7 +178,10 @@ class Web3Manager {
       return this.account;
 
     } catch (error) {
-      console.error('❌ Ошибка подключения к кошельку:', error);
+      console.error('⌀ Ошибка подключения к кошельку:', error);
+      
+      // ИСПРАВЛЕНО: Убираем модальные наложения при ошибке
+      this.removeModalOverlays();
       
       if (error.code === 4001) {
         throw new Error('Пользователь отклонил подключение');
@@ -204,14 +195,27 @@ class Web3Manager {
     }
   }
 
+  // НОВАЯ ФУНКЦИЯ: Удаление модальных наложений
+  removeModalOverlays() {
+    const overlays = document.querySelectorAll('.cosmic-modal-overlay, .wallet-modal-overlay, .loading-overlay, .network-switch-modal, .install-wallet-modal, .mobile-wallet-modal');
+    overlays.forEach(overlay => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    });
+    
+    // Убираем blur эффект с body
+    document.body.style.filter = '';
+    document.body.style.pointerEvents = '';
+    document.body.style.overflow = '';
+  }
+
   showMobileWalletOptions() {
     console.log('📱 Показ опций мобильных кошельков...');
     
-    // Получаем текущий URL
     const currentUrl = window.location.href;
     const encodedUrl = encodeURIComponent(currentUrl);
     
-    // Deep links для различных кошельков
     const walletLinks = {
       safepal: `https://link.safepal.io/browser?url=${encodedUrl}`,
       trust: `https://link.trustwallet.com/open_url?coin_id=20000714&url=${encodedUrl}`,
@@ -279,10 +283,18 @@ class Web3Manager {
       </div>
     `;
 
-    // Добавляем расширенные стили
+    this.addModalStyles();
+    document.body.appendChild(modal);
+  }
+
+  // НОВАЯ ФУНКЦИЯ: Добавление стилей для модальных окон
+  addModalStyles() {
+    if (document.getElementById('web3-modal-styles')) return;
+    
     const style = document.createElement('style');
+    style.id = 'web3-modal-styles';
     style.textContent = `
-      .mobile-wallet-modal {
+      .mobile-wallet-modal, .install-wallet-modal, .network-switch-modal {
         position: fixed;
         top: 0;
         left: 0;
@@ -303,13 +315,13 @@ class Web3Manager {
       }
       
       .wallet-modal-content {
-        background: var(--card-bg);
+        background: var(--card-bg, #1a1a2e);
         border-radius: 20px;
         max-width: 450px;
         width: 100%;
         max-height: 90vh;
         overflow-y: auto;
-        border: 2px solid var(--accent-gold);
+        border: 2px solid var(--accent-gold, #FFD700);
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
       }
       
@@ -323,7 +335,7 @@ class Web3Manager {
       }
       
       .wallet-modal-header h3 {
-        color: var(--accent-gold);
+        color: var(--accent-gold, #FFD700);
         margin: 0;
         font-size: 20px;
       }
@@ -331,7 +343,7 @@ class Web3Manager {
       .wallet-modal-close {
         background: none;
         border: none;
-        color: var(--text-secondary);
+        color: var(--text-secondary, #ccc);
         font-size: 28px;
         cursor: pointer;
         width: 40px;
@@ -345,18 +357,11 @@ class Web3Manager {
       
       .wallet-modal-close:hover {
         background: rgba(255, 255, 255, 0.1);
-        color: var(--accent-gold);
+        color: var(--accent-gold, #FFD700);
       }
       
       .wallet-modal-body {
         padding: 25px;
-      }
-      
-      .wallet-modal-body p {
-        color: var(--text-secondary);
-        margin-bottom: 25px;
-        text-align: center;
-        font-size: 16px;
       }
       
       .wallet-options {
@@ -382,43 +387,18 @@ class Web3Manager {
       
       .wallet-option:hover {
         background: rgba(255, 215, 0, 0.1);
-        border-color: var(--accent-gold);
+        border-color: var(--accent-gold, #FFD700);
         transform: translateY(-2px);
         box-shadow: 0 5px 20px rgba(255, 215, 0, 0.2);
       }
       
       .wallet-option.recommended {
-        border-color: var(--accent-gold);
+        border-color: var(--accent-gold, #FFD700);
         background: rgba(255, 215, 0, 0.08);
       }
       
-      .wallet-icon {
-        font-size: 28px;
-        width: 45px;
-        height: 45px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-      }
-      
-      .wallet-info {
-        flex: 1;
-      }
-      
-      .wallet-name {
-        color: var(--text-primary);
-        font-weight: 700;
-        margin-bottom: 5px;
-        font-size: 16px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      
       .recommended-badge {
-        background: var(--accent-gold);
+        background: var(--accent-gold, #FFD700);
         color: #000;
         padding: 2px 8px;
         border-radius: 20px;
@@ -427,33 +407,11 @@ class Web3Manager {
         text-transform: uppercase;
       }
       
-      .wallet-desc {
-        color: var(--text-secondary);
-        font-size: 13px;
-      }
-      
       .wallet-instructions {
         background: rgba(255, 215, 0, 0.08);
         border-radius: 15px;
         padding: 20px;
-        border-left: 4px solid var(--accent-gold);
-      }
-      
-      .wallet-instructions h4 {
-        color: var(--accent-gold);
-        margin: 0 0 15px 0;
-        font-size: 16px;
-      }
-      
-      .wallet-instructions ol {
-        color: var(--text-secondary);
-        font-size: 14px;
-        margin: 0 0 15px 0;
-        padding-left: 20px;
-      }
-      
-      .wallet-instructions li {
-        margin-bottom: 8px;
+        border-left: 4px solid var(--accent-gold, #FFD700);
       }
       
       .install-note {
@@ -461,47 +419,38 @@ class Web3Manager {
         padding: 12px;
         border-radius: 10px;
         font-size: 13px;
-        color: var(--text-secondary);
+        margin-top: 15px;
       }
       
-      .install-note strong {
-        color: var(--accent-gold);
+      .network-buttons, .install-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin: 25px 0;
       }
       
-      .install-note a {
-        color: var(--accent-gold);
-        text-decoration: none;
+      .network-btn, .install-btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
       }
       
-      .install-note a:hover {
-        text-decoration: underline;
+      .network-btn.primary, .install-btn.primary {
+        background: var(--accent-gold, #FFD700);
+        color: #000;
       }
       
-      @media (max-width: 480px) {
-        .wallet-modal-content {
-          margin: 10px;
-          width: calc(100% - 20px);
-        }
-        
-        .wallet-modal-header,
-        .wallet-modal-body {
-          padding: 20px;
-        }
-        
-        .wallet-option {
-          padding: 15px;
-        }
-        
-        .wallet-icon {
-          font-size: 24px;
-          width: 40px;
-          height: 40px;
-        }
+      .network-btn.secondary, .install-btn.secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary, #ccc);
+        border: 1px solid rgba(255, 255, 255, 0.3);
       }
     `;
 
     document.head.appendChild(style);
-    document.body.appendChild(modal);
   }
 
   showWalletInstallPrompt() {
@@ -518,13 +467,12 @@ class Web3Manager {
         : 'https://play.google.com/store/apps/details?id=io.safepal.wallet';
     }
     
-    console.warn('❌', message);
+    console.warn('⌀', message);
     
     if (window.globalWayApp) {
       window.globalWayApp.showNotification(message, 'warning');
     }
 
-    // Показываем модальное окно установки
     this.showInstallModal(message, actionUrl);
   }
 
@@ -557,74 +505,7 @@ class Web3Manager {
       </div>
     `;
 
-    // Стили для модального окна установки
-    const style = document.createElement('style');
-    style.textContent = `
-      .install-wallet-modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 10000;
-      }
-      
-      .install-icon {
-        font-size: 64px;
-        text-align: center;
-        margin-bottom: 20px;
-      }
-      
-      .install-buttons {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        margin: 25px 0;
-      }
-      
-      .install-btn {
-        padding: 12px 24px;
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-      
-      .install-btn.primary {
-        background: var(--accent-gold);
-        color: #000;
-      }
-      
-      .install-btn.primary:hover {
-        background: var(--accent-gold-hover);
-        transform: translateY(-2px);
-      }
-      
-      .install-btn.secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: var(--text-secondary);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-      }
-      
-      .install-btn.secondary:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: var(--text-primary);
-      }
-      
-      .install-help {
-        text-align: center;
-        margin-top: 20px;
-      }
-      
-      .install-help p {
-        font-size: 13px;
-        color: var(--text-secondary);
-        font-style: italic;
-      }
-    `;
-
-    document.head.appendChild(style);
+    this.addModalStyles();
     document.body.appendChild(modal);
   }
 
@@ -643,10 +524,10 @@ class Web3Manager {
               <p>Для корректной работы требуется сеть opBNB Mainnet</p>
               <p>Текущая сеть: <strong>${this.getNetworkName(this.networkId)}</strong></p>
               <div class="network-buttons">
-                <button class="network-btn primary" onclick="document.querySelector('.network-switch-modal').remove(); resolve(true);">
+                <button class="network-btn primary" id="switchToOpBNB">
                   Переключить на opBNB
                 </button>
-                <button class="network-btn secondary" onclick="document.querySelector('.network-switch-modal').remove(); resolve(false);">
+                <button class="network-btn secondary" id="continueWithCurrent">
                   Продолжить с текущей
                 </button>
               </div>
@@ -655,27 +536,25 @@ class Web3Manager {
         </div>
       `;
 
-      // Привязываем resolve к кнопкам
-      modal.querySelector('.network-btn.primary').onclick = () => {
+      modal.querySelector('#switchToOpBNB').onclick = () => {
         modal.remove();
         resolve(true);
       };
       
-      modal.querySelector('.network-btn.secondary').onclick = () => {
+      modal.querySelector('#continueWithCurrent').onclick = () => {
         modal.remove();
         resolve(false);
       };
 
+      this.addModalStyles();
       document.body.appendChild(modal);
     });
   }
 
-  // ИСПРАВЛЕНО: Переключение на opBNB вместо BSC
   async switchToOpBNB() {
     console.log('🔄 Переключение на opBNB сеть...');
     
     try {
-      // Пытаемся переключиться на opBNB
       await this.provider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: '0xCC' }], // opBNB = 204 = 0xCC
@@ -691,7 +570,6 @@ class Web3Manager {
     } catch (switchError) {
       console.log('Ошибка переключения, код:', switchError.code);
       
-      // Если сеть не добавлена, добавляем её
       if (switchError.code === 4902) {
         try {
           await this.provider.request({
@@ -717,7 +595,7 @@ class Web3Manager {
           }
           
         } catch (addError) {
-          console.error('❌ Ошибка добавления opBNB сети:', addError);
+          console.error('⌀ Ошибка добавления opBNB сети:', addError);
           
           if (window.globalWayApp) {
             window.globalWayApp.showNotification('Не удалось добавить opBNB сеть', 'error');
@@ -736,55 +614,11 @@ class Web3Manager {
     }
   }
 
-  async switchToNetwork(chainId) {
-    const networkInfo = this.supportedNetworks[chainId];
-    if (!networkInfo) {
-      throw new Error(`Неподдерживаемая сеть: ${chainId}`);
-    }
-
-    console.log(`🔄 Переключение на сеть ${networkInfo.name}...`);
-
-    try {
-      await this.provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: networkInfo.chainId }],
-      });
-
-      this.networkId = chainId;
-      console.log(`✅ Переключено на ${networkInfo.name}`);
-
-    } catch (switchError) {
-      if (switchError.code === 4902) {
-        // Добавляем сеть если она не найдена
-        await this.provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: networkInfo.chainId,
-            chainName: networkInfo.name,
-            nativeCurrency: {
-              name: networkInfo.symbol,
-              symbol: networkInfo.symbol,
-              decimals: 18
-            },
-            rpcUrls: networkInfo.rpcUrls,
-            blockExplorerUrls: networkInfo.blockExplorerUrls
-          }]
-        });
-
-        this.networkId = chainId;
-        console.log(`✅ ${networkInfo.name} добавлена и активирована`);
-      } else {
-        throw switchError;
-      }
-    }
-  }
-
   setupEventListeners() {
     if (!this.provider) return;
 
     console.log('🔗 Настройка обработчиков событий кошелька...');
 
-    // Изменение аккаунта
     this.provider.on('accountsChanged', (accounts) => {
       console.log('👤 Аккаунт изменен:', accounts);
       
@@ -805,14 +639,12 @@ class Web3Manager {
           oldAccount: oldAccount
         });
         
-        // Обновляем данные пользователя
         if (window.globalWayApp) {
           window.globalWayApp.updateUserInfo();
         }
       }
     });
 
-    // Изменение сети
     this.provider.on('chainChanged', (chainId) => {
       const newNetworkId = parseInt(chainId, 16);
       const oldNetworkId = this.networkId;
@@ -831,7 +663,6 @@ class Web3Manager {
         networkName: this.getNetworkName(this.networkId)
       });
       
-      // ИСПРАВЛЕНО: Проверяем поддерживаемость сети (opBNB = 204)
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неподдерживаемая сеть:', this.getNetworkName(this.networkId));
         if (window.globalWayApp) {
@@ -846,13 +677,11 @@ class Web3Manager {
         }
       }
       
-      // Перезагружаем контракты для новой сети
       if (window.contractManager) {
         window.contractManager.reinitializeContracts();
       }
     });
 
-    // Подключение/отключение
     this.provider.on('connect', (connectInfo) => {
       console.log('🔗 Кошелек подключен:', connectInfo);
       this.networkId = parseInt(connectInfo.chainId, 16);
@@ -863,27 +692,25 @@ class Web3Manager {
       });
     });
 
-    // Отключение
     this.provider.on('disconnect', (error) => {
-      console.log('❌ Кошелек отключен:', error);
+      console.log('⌀ Кошелек отключен:', error);
       this.disconnectWallet();
     });
 
-    // Обработка ошибок провайдера (для некоторых кошельков)
+    // ИСПРАВЛЕНО: Улучшенная обработка ошибок
     if (this.provider.on) {
       this.provider.on('error', (error) => {
         console.error('🚨 Ошибка провайдера:', error);
         this.handleProviderError(error);
+        this.removeModalOverlays(); // Убираем зависшие модальные окна
       });
     }
   }
 
   setupNetworkMonitoring() {
-    // Периодическая проверка состояния подключения
     setInterval(async () => {
       if (this.isConnected && this.provider) {
         try {
-          // Проверяем доступность провайдера
           const isConnected = await this.provider.request({
             method: 'eth_accounts'
           });
@@ -899,30 +726,29 @@ class Web3Manager {
           }
         }
       }
-    }, 30000); // Проверка каждые 30 секунд
+    }, 30000);
   }
 
   handleProviderError(error) {
     console.error('Ошибка провайдера:', error);
     
+    // Убираем все модальные наложения при ошибке
+    this.removeModalOverlays();
+    
     switch(error.code) {
       case 4001:
-        // Пользователь отклонил запрос
         if (window.globalWayApp) {
           window.globalWayApp.showNotification('Запрос отклонен пользователем', 'warning');
         }
         break;
       case 4100:
-        // Провайдер недоступен
         console.warn('Провайдер недоступен, переподключение...');
         this.reconnect();
         break;
       case 4200:
-        // Метод не поддерживается
         console.warn('Метод не поддерживается провайдером');
         break;
       case 4900:
-        // Провайдер отключен
         this.disconnectWallet();
         break;
       default:
@@ -936,7 +762,7 @@ class Web3Manager {
 
   async reconnect() {
     if (this.retryCount >= this.maxRetries) {
-      console.error('❌ Превышено количество попыток переподключения');
+      console.error('⌀ Превышено количество попыток переподключения');
       this.disconnectWallet();
       return;
     }
@@ -948,11 +774,11 @@ class Web3Manager {
       await this.init();
       if (this.provider) {
         await this.connectWallet();
-        this.retryCount = 0; // Сброс счетчика при успешном подключении
+        this.retryCount = 0;
       }
     } catch (error) {
       console.error('Ошибка переподключения:', error);
-      setTimeout(() => this.reconnect(), 2000 * this.retryCount); // Экспоненциальная задержка
+      setTimeout(() => this.reconnect(), 2000 * this.retryCount);
     }
   }
 
@@ -966,10 +792,12 @@ class Web3Manager {
     this.networkId = null;
     this.retryCount = 0;
     
-    // Очищаем сохраненное состояние
     localStorage.removeItem('wallet_connected');
     localStorage.removeItem('wallet_type');
     localStorage.removeItem('wallet_account');
+    
+    // Убираем все модальные наложения
+    this.removeModalOverlays();
     
     if (wasConnected) {
       this.emit('disconnected');
@@ -980,7 +808,8 @@ class Web3Manager {
     }
   }
 
-  // Методы для работы с транзакциями
+  // ==================== ТРАНЗАКЦИИ ====================
+
   async sendTransaction(transactionParams) {
     if (!this.isConnected) {
       throw new Error('Кошелек не подключен');
@@ -989,23 +818,23 @@ class Web3Manager {
     try {
       console.log('📤 Отправка транзакции:', transactionParams);
       
-      // Добавляем from если не указан
       if (!transactionParams.from) {
         transactionParams.from = this.account;
       }
       
-      // Оценка газа
+      // ИСПРАВЛЕНО: Улучшенная оценка газа для opBNB
       if (!transactionParams.gas && !transactionParams.gasLimit) {
         try {
           const gasEstimate = await this.web3.eth.estimateGas(transactionParams);
-          transactionParams.gas = Math.floor(gasEstimate * 1.2); // +20% запас
+          transactionParams.gas = Math.floor(gasEstimate * 1.2);
           console.log('⛽ Оценка газа:', gasEstimate, '→', transactionParams.gas);
         } catch (gasError) {
           console.warn('Не удалось оценить газ:', gasError);
+          // Для opBNB устанавливаем меньший лимит газа
+          transactionParams.gas = 200000;
         }
       }
       
-      // Получение цены газа
       if (!transactionParams.gasPrice) {
         try {
           const gasPrice = await this.web3.eth.getGasPrice();
@@ -1013,6 +842,8 @@ class Web3Manager {
           console.log('💰 Цена газа:', this.web3.utils.fromWei(gasPrice, 'gwei'), 'Gwei');
         } catch (gasPriceError) {
           console.warn('Не удалось получить цену газа:', gasPriceError);
+          // Для opBNB устанавливаем низкую цену газа
+          transactionParams.gasPrice = '1000000000'; // 1 Gwei
         }
       }
       
@@ -1023,7 +854,6 @@ class Web3Manager {
       
       console.log('✅ Транзакция отправлена:', txHash);
       
-      // Ожидание подтверждения
       const receipt = await this.waitForTransaction(txHash);
       
       return {
@@ -1032,7 +862,8 @@ class Web3Manager {
       };
       
     } catch (error) {
-      console.error('❌ Ошибка отправки транзакции:', error);
+      console.error('⌀ Ошибка отправки транзакции:', error);
+      this.removeModalOverlays(); // Убираем зависшие модальные окна
       throw this.formatTransactionError(error);
     }
   }
@@ -1066,13 +897,12 @@ class Web3Manager {
             console.log(`⏳ Подтверждения: ${confirmedBlocks}/${confirmations}`);
           }
           
-          // Проверка таймаута
           if (Date.now() - startTime > timeout) {
             reject(new Error('Таймаут ожидания транзакции'));
             return;
           }
           
-          setTimeout(checkTransaction, 3000); // Проверка каждые 3 секунды
+          setTimeout(checkTransaction, 3000);
           
         } catch (error) {
           reject(error);
@@ -1099,7 +929,8 @@ class Web3Manager {
     }
   }
 
-  // Подписание сообщений
+  // ==================== ПОДПИСАНИЕ ====================
+
   async signMessage(message) {
     if (!this.isConnected) {
       throw new Error('Кошелек не подключен');
@@ -1117,7 +948,8 @@ class Web3Manager {
       return signature;
       
     } catch (error) {
-      console.error('❌ Ошибка подписания:', error);
+      console.error('⌀ Ошибка подписания:', error);
+      this.removeModalOverlays();
       throw error;
     }
   }
@@ -1139,12 +971,14 @@ class Web3Manager {
       return signature;
       
     } catch (error) {
-      console.error('❌ Ошибка подписания структурированных данных:', error);
+      console.error('⌀ Ошибка подписания структурированных данных:', error);
+      this.removeModalOverlays();
       throw error;
     }
   }
 
-  // Утилиты для работы с адресами и балансами
+  // ==================== БАЛАНСЫ И УТИЛИТЫ ====================
+
   async getBalance(address = null) {
     if (!this.web3) {
       throw new Error('Web3 не инициализирован');
@@ -1179,7 +1013,6 @@ class Web3Manager {
     }
     
     try {
-      // Минимальный ERC20 ABI для balanceOf
       const minABI = [{
         constant: true,
         inputs: [{ name: "_owner", type: "address" }],
@@ -1202,7 +1035,8 @@ class Web3Manager {
     }
   }
 
-  // Утилиты
+  // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
+
   isValidAddress(address) {
     return this.web3 ? this.web3.utils.isAddress(address) : /^0x[a-fA-F0-9]{40}$/.test(address);
   }
@@ -1214,7 +1048,7 @@ class Web3Manager {
 
   getNetworkName(networkId) {
     const networks = {
-      204: 'opBNB Mainnet',  // ОСНОВНАЯ СЕТЬ!
+      204: 'opBNB Mainnet',
       56: 'Binance Smart Chain',
       1: 'Ethereum Mainnet',
       137: 'Polygon',
@@ -1231,7 +1065,7 @@ class Web3Manager {
 
   getNetworkSymbol(networkId) {
     const symbols = {
-      204: 'BNB',  // opBNB использует BNB
+      204: 'BNB',
       56: 'BNB',
       1: 'ETH',
       137: 'MATIC',
@@ -1250,7 +1084,13 @@ class Web3Manager {
     return Object.keys(this.supportedNetworks).includes(networkId.toString());
   }
 
-  // Event emitter методы
+  // ИСПРАВЛЕНО: Добавлен недостающий метод getWalletType
+  getWalletType() {
+    return this.providerType || 'Unknown';
+  }
+
+  // ==================== EVENT EMITTER ====================
+
   on(event, callback) {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
@@ -1276,7 +1116,8 @@ class Web3Manager {
     }
   }
 
-  // Методы состояния
+  // ==================== ГЕТТЕРЫ ====================
+
   isWalletConnected() {
     return this.isConnected && this.account;
   }
@@ -1301,7 +1142,8 @@ class Web3Manager {
     return this.provider;
   }
 
-  // Методы для сохранения/восстановления состояния
+  // ==================== СОСТОЯНИЕ ====================
+
   saveState() {
     if (this.isConnected) {
       const state = {
@@ -1324,7 +1166,6 @@ class Web3Manager {
       if (savedState && wasConnected) {
         const state = JSON.parse(savedState);
         
-        // Проверяем, что состояние не устарело (24 часа)
         if (Date.now() - state.timestamp < 24 * 60 * 60 * 1000) {
           return state;
         }
@@ -1343,7 +1184,8 @@ class Web3Manager {
     localStorage.removeItem('wallet_account');
   }
 
-  // Методы диагностики
+  // ==================== ДИАГНОСТИКА ====================
+
   async getProviderInfo() {
     if (!this.provider) {
       return { error: 'Провайдер не найден' };
@@ -1377,35 +1219,32 @@ class Web3Manager {
     return info;
   }
 
-  // Деструктор
+  // ==================== ДЕСТРУКТОР ====================
+
   destroy() {
     console.log('🗑️ Уничтожение Web3Manager...');
     
-    // Отключаем все слушатели
     if (this.provider && this.provider.removeAllListeners) {
       this.provider.removeAllListeners();
     }
     
-    // Очищаем таймеры
     clearInterval(this.networkMonitoringInterval);
     
-    // Сохраняем состояние перед уничтожением
     this.saveState();
+    this.removeModalOverlays();
     
-    // Очищаем ссылки
     this.listeners = {};
     this.web3 = null;
     this.provider = null;
   }
 }
 
-// Инициализация Web3Manager
+// ==================== ИНИЦИАЛИЗАЦИЯ ====================
+
 document.addEventListener('DOMContentLoaded', async () => {
-  // Проверяем загрузку Web3
   if (typeof Web3 === 'undefined') {
-    console.error('❌ Web3 библиотека не загружена');
+    console.error('⌀ Web3 библиотека не загружена');
     
-    // Показываем ошибку пользователю
     if (document.body) {
       const errorDiv = document.createElement('div');
       errorDiv.style.cssText = `
@@ -1429,10 +1268,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   console.log('🚀 Запуск Web3Manager...');
   
-  // Создаем глобальный экземпляр
   window.web3Manager = new Web3Manager();
   
-  // Попытка автоподключения
+  // ИСПРАВЛЕНО: Улучшенное автоподключение
   const savedState = window.web3Manager.loadState();
   if (savedState) {
     console.log('🔄 Попытка автоподключения...');
@@ -1448,7 +1286,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1000);
   }
   
-  // Обработчик закрытия страницы
   window.addEventListener('beforeunload', () => {
     if (window.web3Manager) {
       window.web3Manager.destroy();
@@ -1458,7 +1295,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('✅ Web3Manager готов к работе');
 });
 
-// Экспорт для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = Web3Manager;
 }
