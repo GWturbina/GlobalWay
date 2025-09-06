@@ -488,42 +488,49 @@ class ContractManager {
   // ==================== GWT TOKEN МЕТОДЫ ====================
 
   async getTokenBalance(userAddress) {
-    try {
-      return await this.contracts.gwtToken.methods.balanceOf(userAddress).call();
-    } catch (error) {
-      console.error('Get token balance error:', error);
+  try {
+    if (!this.contracts.gwtToken) {
+      console.warn('GWT Token contract not initialized');
       return '0';
     }
+    
+    const balance = await this.contracts.gwtToken.methods.balanceOf(userAddress).call();
+    return balance;
+  } catch (error) {
+    console.error('Get token balance error:', error);
+    return '0';
   }
+}
 
-  async getTokenTotalSupply() {
-    try {
-      return await this.contracts.gwtToken.methods.totalSupply().call();
-    } catch (error) {
-      console.error('Get token total supply error:', error);
-      return '0';
+async getTokenTotalSupply() {
+  try {
+    if (!this.contracts.gwtToken) {
+      console.warn('GWT Token contract not initialized');
+      return '1000000000000000000000000';
     }
+    
+    const supply = await this.contracts.gwtToken.methods.totalSupply().call();
+    return supply;
+  } catch (error) {
+    console.error('Get token total supply error:', error);
+    return '1000000000000000000000000';
   }
+}
 
-  async getTokenCurrentPrice() {
-    try {
-      return await this.contracts.gwtToken.methods.getCurrentPrice().call();
-    } catch (error) {
-      console.error('Get token price error:', error);
-      return '0';
+async getTokenCurrentPrice() {
+  try {
+    if (!this.contracts.gwtToken) {
+      console.warn('GWT Token contract not initialized');
+      return '10000000000000000';
     }
+    
+    const price = await this.contracts.gwtToken.methods.getCurrentPrice().call();
+    return price;
+  } catch (error) {
+    console.error('Get token price error:', error);
+    return '10000000000000000';
   }
-
-  async transferToken(to, amount, fromAddress) {
-    try {
-      return await this.contracts.gwtToken.methods.transfer(to, amount).send({
-        from: fromAddress
-      });
-    } catch (error) {
-      console.error('Transfer token error:', error);
-      throw error;
-    }
-  }
+}
 
   // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
 
