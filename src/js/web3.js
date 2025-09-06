@@ -129,6 +129,15 @@ class Web3Manager {
       return;
     }
 
+    // ДОБАВИТЬ ЭТУ ПРОВЕРКУ:
+    if (typeof this.provider.request !== 'function') {
+      console.error('❌ Провайдер не поддерживает метод request');
+      if (window.globalWayApp) {
+        window.globalWayApp.showNotification('Кошелек не поддерживается', 'error');
+      }
+      return;
+    }
+
     try {
       // Показываем тип подключаемого кошелька
       if (window.globalWayApp) {
@@ -787,7 +796,7 @@ class Web3Manager {
     }
   }
 
-  setupEventListeners() {
+setupEventListeners() {
   if (!this.provider) {
     console.log('⚠️ Провайдер не найден, пропускаем установку слушателей');
     return;
