@@ -404,7 +404,7 @@ class GlobalWayApp {
       const quarterlyFee = await window.contractManager.getQuarterlyFee();
       const now = Math.floor(Date.now() / 1000);
       
-      const daysSinceRegistration = Math.floor((now - user.registrationTime) / (24 * 60 * 60));
+      const daysSinceRegistration = Math.floor((now - parseInt(user.registrationTime)) / (24 * 60 * 60));
       
       const nextPaymentDay = user.quarterlyCounter * 90;
       const canPayQuarterly = daysSinceRegistration >= nextPaymentDay;
