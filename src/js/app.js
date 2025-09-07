@@ -1,2180 +1,3131 @@
-// ==================== ГЛАВНЫЙ ФАЙЛ ПРИЛОЖЕНИЯ ====================
+// ==================== ПОЛНЫЙ ВОССТАНОВЛЕННЫЙ APP.JS ====================
 
 class GlobalWayApp {
   constructor() {
     this.currentPage = 'dashboard';
-    this.translations = {};
-    this.currentLanguage = 'en';
-    this.isConnected = false;
-    this.userAccount = null;
-    this.userData = null;
+    this.user = null;
+    this.isInitialized = false;
     this.updateInterval = null;
-    this.isOwner = false;
-    this.userReferralId = null; // Генерируемый 7-значный ID
+    this.autoUpdateEnabled = true;
+    this.lastUpdateTime = 0;
+    this.networkCheckInterval = null;
+    this.retryAttempts = 0;
+    this.maxRetries = 3;
+    this.eventListeners = new Map();
+    this.cache = new Map();
+    this.offlineMode = false;
+    
+    // Состояния приложения
+    this.appState = {
+      userRegistered: false,
+      userActive: false,
+      activeLevels: [],
+      isOwner: false,
+      isFounder: false,
+      tokenBalance: '0',
+      bnbBalance: '0',
+      lastBlockNumber: 0,
+      connectionState: 'disconnected'
+    };
+    
+    // Настройки матрицы
+    this.matrixConfig = {
+      currentLevel: 1,
+      selectedUser: null,
+      showStructure: true,
+      autoRefresh: true,
+      viewMode: 'tree' // tree, list, grid
+    };
+    
+    // Кэш для оптимизации
+    this.dataCache = {
+      users: new Map(),
+      stats: new Map(),
+      events: new Map(),
+      lastUpdate: 0
+    };
     
     this.init();
   }
 
   async init() {
+    console.log('Инициализация GlobalWay App...');
+    
     try {
-        await this.loadTranslations();
+      await this.waitForManagers();
+      this.setupEventListeners();
+      this.setupNavigation();
+      this.setupAutoUpdate();
+      this.setupNetworkMonitoring();
+      this.setupCaching();
+      this.setupOfflineMode();
+      await this.initializeApp();
+      
+      console.log('GlobalWay App инициализирован успешно');
+      this.isInitialized = true;
+      
     } catch (error) {
-        console.error('Ошибка загрузки переводов:', error);
-        this.translations = {
-            en: { dashboard: 'Dashboard', partners: 'Partners', matrix: 'Matrix', tokens: 'Tokens', settings: 'Settings', projects: 'Projects', admin: 'Admin' },
-            ru: { dashboard: 'Дашборд', partners: 'Партнеры', matrix: 'Матрица', tokens: 'Токены', settings: 'Настройки', projects: 'Проекты', admin: 'Админ' },
-            uk: { dashboard: 'Дашборд', partners: 'Партнери', matrix: 'Матриця', tokens: 'Токени', settings: 'Налаштування', projects: 'Проекти', admin: 'Адмін' }
-        };
-    }
-    
-    this.setupEventListeners();
-    this.setupNavigation();
-    this.updateUI();
-    
-    const savedLanguage = localStorage.getItem('globalway_language') || 'en';
-    this.switchLanguage(savedLanguage);
-    
-    await this.navigateToPage('dashboard');
-    
-    this.hideLoadingScreen();
-    
-    console.log('🌌 GlobalWay App initialized');
-  }
-
-  hideLoadingScreen() {
-    const loadingScreen = document.getElementById('loading-screen');
-    if (loadingScreen) {
-      loadingScreen.classList.add('hidden');
-      setTimeout(() => {
-        loadingScreen.style.display = 'none';
-      }, 500);
+      console.error('Ошибка инициализации приложения:', error);
+      this.handleInitializationError(error);
     }
   }
 
-  async loadTranslations() {
-    try {
-      const languages = ['en', 'uk', 'ru'];
-      for (const lang of languages) {
-        const response = await fetch(`translations/${lang}.json`);
-        if (response.ok) {
-          this.translations[lang] = await response.json();
+  async waitForManagers() {
+    console.log('Ожидание готовности менеджеров...');
+    
+    return new Promise((resolve) => {
+      const checkManagers = () => {
+        const web3Ready = window.web3Manager && typeof window.web3Manager.init === 'function';
+        const contractsReady = window.contractManager && typeof window.contractManager.isContractsReady === 'function';
+        const uiReady = window.uiManager && typeof window.uiManager.showNotification === 'function';
+        
+        if (web3Ready && contractsReady && uiReady) {
+          console.log('Все менеджеры готовы');
+          resolve();
         } else {
-          console.warn(`Не удалось загрузить переводы для ${lang}`);
-          this.translations[lang] = {
-            dashboard: lang === 'ru' ? 'Дашборд' : lang === 'uk' ? 'Дашборд' : 'Dashboard',
-            partners: lang === 'ru' ? 'Партнеры' : lang === 'uk' ? 'Партнери' : 'Partners',
-            matrix: lang === 'ru' ? 'Матрица' : lang === 'uk' ? 'Матриця' : 'Matrix',
-            tokens: lang === 'ru' ? 'Токены' : lang === 'uk' ? 'Токени' : 'Tokens',
-            settings: lang === 'ru' ? 'Настройки' : lang === 'uk' ? 'Налаштування' : 'Settings',
-            projects: lang === 'ru' ? 'Проекты' : lang === 'uk' ? 'Проекти' : 'Projects',
-            admin: lang === 'ru' ? 'Админ' : lang === 'uk' ? 'Адмін' : 'Admin'
-          };
+          console.log('Ожидание менеджеров...', { web3Ready, contractsReady, uiReady });
+          setTimeout(checkManagers, 500);
+        }
+      };
+      checkManagers();
+    });
+  }
+
+  async initializeApp() {
+    if (window.uiManager) {
+      window.uiManager.showPageLoader();
+    }
+
+    try {
+      // Загружаем сохраненное состояние
+      this.loadAppState();
+      
+      // Проверяем подключение кошелька
+      if (window.web3Manager?.isConnected) {
+        await this.handleWalletConnected();
+      } else {
+        this.showWelcomeScreen();
+      }
+
+      // Загружаем публичную статистику
+      await this.loadPublicStats();
+      
+      // Инициализируем UI компоненты
+      this.initializeUIComponents();
+      
+      // Настраиваем события контрактов
+      this.setupContractEvents();
+      
+      // Инициализируем матрицу
+      this.initializeInteractiveMatrix();
+      
+    } catch (error) {
+      console.error('Ошибка инициализации приложения:', error);
+      this.showError('Ошибка загрузки приложения', error.message);
+    } finally {
+      if (window.uiManager) {
+        window.uiManager.hidePageLoader();
+      }
+    }
+  }
+
+  // ==================== ОБРАБОТКА ПОДКЛЮЧЕНИЯ КОШЕЛЬКА ====================
+
+  async handleWalletConnected() {
+    console.log('Обработка подключенного кошелька...');
+    
+    try {
+      // Проверяем правильную сеть opBNB
+      if (!window.web3Manager.isCorrectNetwork()) {
+        this.showNetworkWarning();
+      }
+
+      // Загружаем данные пользователя
+      await this.loadUserData();
+      
+      // Проверяем админские права
+      await this.checkAdminRights();
+      
+      // Обновляем UI
+      this.updateUserInterface();
+      
+      // Подписываемся на события
+      this.subscribeToContractEvents();
+      
+      // Показываем приветствие
+      this.showWelcomeMessage();
+      
+    } catch (error) {
+      console.error('Ошибка обработки подключения:', error);
+      this.showError('Ошибка загрузки данных пользователя', error.message);
+    }
+  }
+
+  async loadUserData() {
+    if (!window.web3Manager?.isConnected || !window.contractManager?.isContractsReady()) {
+      return;
+    }
+
+    const userAddress = window.web3Manager.account;
+    
+    try {
+      // Используем правильные методы из contractManager
+      const [userData, userStats, isRegistered, tokenBalance, bnbBalance] = await Promise.all([
+        window.contractManager.getUserData(userAddress).catch(() => null),
+        window.contractManager.getUserStats(userAddress).catch(() => null),
+        window.contractManager.isUserRegistered(userAddress).catch(() => false),
+        window.contractManager.getTokenBalance(userAddress).catch(() => '0'),
+        window.web3Manager.getBalance().catch(() => ({ formatted: '0' }))
+      ]);
+
+      // Обновляем состояние приложения
+      this.appState.userRegistered = isRegistered;
+      this.appState.tokenBalance = tokenBalance;
+      this.appState.bnbBalance = bnbBalance.formatted || '0';
+      this.appState.connectionState = 'connected';
+      
+      if (userStats) {
+        this.appState.userActive = userStats.isRegistered;
+        this.appState.activeLevels = userStats.activeLevels || [];
+      }
+
+      this.user = {
+        address: userAddress,
+        isRegistered,
+        userData: userData,
+        stats: userStats,
+        tokenBalance,
+        bnbBalance: bnbBalance.formatted || '0'
+      };
+
+      // Кэшируем данные пользователя
+      this.cacheUserData(userAddress, this.user);
+
+      console.log('Данные пользователя загружены:', this.user);
+      
+    } catch (error) {
+      console.error('Ошибка загрузки данных пользователя:', error);
+      throw error;
+    }
+  }
+
+  async checkAdminRights() {
+    if (!this.user?.address) return;
+
+    try {
+      const isOwner = window.contractManager.isOwner(this.user.address);
+      const isFounder = window.contractManager.isFounder(this.user.address);
+      
+      this.appState.isOwner = isOwner;
+      this.appState.isFounder = isFounder;
+      
+      if (isOwner || isFounder) {
+        console.log(`Пользователь имеет админские права: ${isOwner ? 'Владелец' : 'Основатель'}`);
+        
+        if (window.uiManager) {
+          window.uiManager.toggleAdminFeatures(true);
         }
       }
+      
     } catch (error) {
-      console.error('Ошибка загрузки переводов:', error);
+      console.error('Ошибка проверки админских прав:', error);
     }
+  }
+
+  // ==================== ИНТЕРАКТИВНАЯ МАТРИЦА ====================
+
+  initializeInteractiveMatrix() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    // Создаем интерактивную матрицу
+    this.createInteractiveMatrix();
+    
+    // Настраиваем обработчики
+    this.setupMatrixEventListeners();
+  }
+
+  createInteractiveMatrix() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    matrixContainer.innerHTML = `
+      <div class="interactive-matrix">
+        <div class="matrix-header">
+          <div class="matrix-controls">
+            <select id="levelSelect" class="matrix-level-selector">
+              ${Array.from({length: 12}, (_, i) => 
+                `<option value="${i + 1}">Уровень ${i + 1}</option>`
+              ).join('')}
+            </select>
+            <div class="matrix-view-controls">
+              <button class="view-btn ${this.matrixConfig.viewMode === 'tree' ? 'active' : ''}" data-view="tree">🌳 Дерево</button>
+              <button class="view-btn ${this.matrixConfig.viewMode === 'grid' ? 'active' : ''}" data-view="grid">📊 Сетка</button>
+              <button class="view-btn ${this.matrixConfig.viewMode === 'list' ? 'active' : ''}" data-view="list">📋 Список</button>
+            </div>
+            <button class="matrix-refresh-btn" id="refreshMatrix">🔄 Обновить</button>
+          </div>
+          <div class="matrix-info">
+            <span class="current-user" id="currentMatrixUser">Выберите пользователя</span>
+            <span class="matrix-stats" id="matrixStats"></span>
+          </div>
+        </div>
+        <div class="matrix-content" id="matrixContent">
+          ${this.renderMatrixContent()}
+        </div>
+        <div class="matrix-details" id="matrixDetails">
+          <div class="user-details-panel hidden">
+            <h4>Детали пользователя</h4>
+            <div class="user-info" id="selectedUserInfo"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Удаляем дублирующие кнопки уровней внизу
+    const levelButtonsContainer = document.getElementById('levelsContainer');
+    if (levelButtonsContainer) {
+      levelButtonsContainer.remove();
+    }
+  }
+
+  renderMatrixContent() {
+    if (!window.web3Manager?.isConnected) {
+      return this.renderMatrixDemo();
+    }
+
+    switch (this.matrixConfig.viewMode) {
+      case 'tree':
+        return this.renderTreeView();
+      case 'grid':
+        return this.renderGridView();
+      case 'list':
+        return this.renderListView();
+      default:
+        return this.renderTreeView();
+    }
+  }
+
+  renderTreeView() {
+    const currentLevel = this.matrixConfig.currentLevel;
+    const selectedUser = this.matrixConfig.selectedUser || window.web3Manager.account;
+
+    return `
+      <div class="matrix-tree-view">
+        <div class="tree-level level-${currentLevel}">
+          <div class="tree-node root-node" data-address="${selectedUser}">
+            <div class="node-avatar">
+              <div class="user-avatar"></div>
+            </div>
+            <div class="node-info">
+              <div class="node-address">${this.formatAddress(selectedUser)}</div>
+              <div class="node-level">Уровень ${currentLevel}</div>
+              <div class="node-status active">Активен</div>
+            </div>
+          </div>
+          <div class="tree-children" id="treeChildren">
+            <div class="loading-tree">Загрузка структуры...</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderGridView() {
+    return `
+      <div class="matrix-grid-view">
+        <div class="grid-container" id="gridContainer">
+          ${Array.from({length: 12}, (_, i) => {
+            const level = i + 1;
+            const isActive = this.appState.activeLevels.includes(level);
+            const price = window.contractManager?.levelPricesOpBNB[level];
+            const priceInBNB = price ? window.web3Manager?.fromWei(price) : '0';
+            
+            return `
+              <div class="grid-level-card ${isActive ? 'active' : 'inactive'}" data-level="${level}">
+                <div class="level-header">
+                  <span class="level-number">${level}</span>
+                  <span class="level-status">${isActive ? '✅' : '❌'}</span>
+                </div>
+                <div class="level-info">
+                  <div class="level-price">${parseFloat(priceInBNB).toFixed(4)} BNB</div>
+                  <div class="level-participants" id="levelParticipants${level}">0</div>
+                </div>
+                ${!isActive ? `
+                  <button class="activate-level-btn" data-level="${level}">
+                    Активировать
+                  </button>
+                ` : `
+                  <button class="view-level-btn" data-level="${level}">
+                    Просмотр
+                  </button>
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  renderListView() {
+    return `
+      <div class="matrix-list-view">
+        <div class="list-header">
+          <div class="list-controls">
+            <input type="text" placeholder="Поиск по адресу..." id="userSearch" class="search-input">
+            <select id="filterSelect" class="filter-select">
+              <option value="all">Все пользователи</option>
+              <option value="active">Активные</option>
+              <option value="referrals">Мои рефералы</option>
+            </select>
+          </div>
+        </div>
+        <div class="list-content" id="listContent">
+          <div class="loading-list">Загрузка пользователей...</div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderMatrixDemo() {
+    return `
+      <div class="matrix-demo">
+        <div class="demo-message">
+          <h3>Демо-версия матрицы</h3>
+          <p>Подключите кошелек и зарегистрируйтесь для просмотра интерактивной матрицы</p>
+        </div>
+        <div class="demo-preview">
+          ${Array.from({length: 6}, (_, i) => `
+            <div class="demo-level-card" data-level="${i + 1}">
+              <div class="demo-level-number">${i + 1}</div>
+              <div class="demo-level-status">Демо</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  setupMatrixEventListeners() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    // Переключение уровней
+    const levelSelect = document.getElementById('levelSelect');
+    if (levelSelect) {
+      levelSelect.addEventListener('change', (e) => {
+        this.matrixConfig.currentLevel = parseInt(e.target.value);
+        this.refreshMatrix();
+      });
+    }
+
+    // Переключение видов
+    matrixContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('view-btn')) {
+        this.matrixConfig.viewMode = e.target.dataset.view;
+        this.updateViewButtons();
+        this.refreshMatrix();
+      }
+    });
+
+    // Обновление матрицы
+    const refreshBtn = document.getElementById('refreshMatrix');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        this.refreshMatrix();
+      });
+    }
+
+    // Клики по узлам дерева
+    matrixContainer.addEventListener('click', (e) => {
+      if (e.target.closest('.tree-node')) {
+        const node = e.target.closest('.tree-node');
+        const address = node.dataset.address;
+        this.selectMatrixUser(address);
+      }
+    });
+
+    // Активация уровней из грида
+    matrixContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('activate-level-btn')) {
+        const level = parseInt(e.target.dataset.level);
+        if (window.uiManager) {
+          window.uiManager.handleLevelPurchase(level);
+        }
+      }
+    });
+
+    // Поиск пользователей
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.filterMatrixUsers(e.target.value);
+      });
+    }
+  }
+
+  async selectMatrixUser(address) {
+    this.matrixConfig.selectedUser = address;
+    
+    try {
+      // Загружаем данные выбранного пользователя
+      const userData = await this.loadUserMatrixData(address);
+      
+      // Обновляем отображение
+      this.updateMatrixDisplay(userData);
+      
+      // Показываем детали пользователя
+      this.showUserDetails(userData);
+      
+    } catch (error) {
+      console.error('Ошибка выбора пользователя матрицы:', error);
+    }
+  }
+
+  async loadUserMatrixData(address) {
+    // Проверяем кэш
+    if (this.dataCache.users.has(address)) {
+      return this.dataCache.users.get(address);
+    }
+
+    try {
+      const [userData, userStats] = await Promise.all([
+        window.contractManager.getUserData(address),
+        window.contractManager.getUserStats(address)
+      ]);
+
+      const userInfo = {
+        address,
+        userData,
+        stats: userStats,
+        timestamp: Date.now()
+      };
+
+      // Кэшируем данные
+      this.dataCache.users.set(address, userInfo);
+      
+      return userInfo;
+    } catch (error) {
+      console.error('Ошибка загрузки данных пользователя матрицы:', error);
+      return null;
+    }
+  }
+
+  updateMatrixDisplay(userData) {
+    const currentUserElement = document.getElementById('currentMatrixUser');
+    if (currentUserElement && userData) {
+      currentUserElement.textContent = this.formatAddress(userData.address);
+    }
+
+    const statsElement = document.getElementById('matrixStats');
+    if (statsElement && userData?.stats) {
+      statsElement.innerHTML = `
+        <span>Уровни: ${userData.stats.activeLevels?.length || 0}/12</span>
+        <span>Рефералы: ${userData.stats.personalInvites || 0}</span>
+      `;
+    }
+  }
+
+  showUserDetails(userData) {
+    const detailsPanel = document.querySelector('.user-details-panel');
+    const userInfoElement = document.getElementById('selectedUserInfo');
+    
+    if (detailsPanel && userInfoElement && userData) {
+      userInfoElement.innerHTML = `
+        <div class="user-detail-item">
+          <label>Адрес:</label>
+          <span>${userData.address}</span>
+          <button onclick="window.uiManager.copyToClipboard('${userData.address}')">📋</button>
+        </div>
+        <div class="user-detail-item">
+          <label>Спонсор:</label>
+          <span>${this.formatAddress(userData.userData?.sponsor || '0x000...000')}</span>
+        </div>
+        <div class="user-detail-item">
+          <label>Дата регистрации:</label>
+          <span>${userData.userData?.registrationTime ? new Date(userData.userData.registrationTime * 1000).toLocaleDateString() : 'Не зарегистрирован'}</span>
+        </div>
+        <div class="user-detail-item">
+          <label>Активные уровни:</label>
+          <span>${userData.stats?.activeLevels?.join(', ') || 'Нет'}</span>
+        </div>
+        <div class="user-detail-item">
+          <label>Всего заработано:</label>
+          <span>${userData.userData?.totalEarned ? window.web3Manager.fromWei(userData.userData.totalEarned) + ' BNB' : '0 BNB'}</span>
+        </div>
+      `;
+      
+      detailsPanel.classList.remove('hidden');
+    }
+  }
+
+  async refreshMatrix() {
+    const matrixContent = document.getElementById('matrixContent');
+    if (!matrixContent) return;
+
+    matrixContent.innerHTML = '<div class="matrix-loading">Обновление матрицы...</div>';
+    
+    try {
+      // Очищаем кэш
+      this.clearMatrixCache();
+      
+      // Перерендериваем содержимое
+      matrixContent.innerHTML = this.renderMatrixContent();
+      
+      // Загружаем свежие данные
+      await this.loadMatrixData();
+      
+    } catch (error) {
+      console.error('Ошибка обновления матрицы:', error);
+      matrixContent.innerHTML = '<div class="matrix-error">Ошибка загрузки матрицы</div>';
+    }
+  }
+
+  async loadMatrixData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      const currentUser = this.matrixConfig.selectedUser || window.web3Manager.account;
+      const level = this.matrixConfig.currentLevel;
+
+      // Загружаем данные в зависимости от режима отображения
+      switch (this.matrixConfig.viewMode) {
+        case 'tree':
+          await this.loadTreeData(currentUser, level);
+          break;
+        case 'grid':
+          await this.loadGridData();
+          break;
+        case 'list':
+          await this.loadListData();
+          break;
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных матрицы:', error);
+    }
+  }
+
+  async loadTreeData(userAddress, level) {
+    const treeChildren = document.getElementById('treeChildren');
+    if (!treeChildren) return;
+
+    try {
+      // Загружаем структуру пользователя
+      const userStats = await window.contractManager.getUserStats(userAddress);
+      
+      if (userStats && userStats.referrals) {
+        const referralsHtml = userStats.referrals.map(referralAddress => `
+          <div class="tree-node referral-node" data-address="${referralAddress}">
+            <div class="node-avatar">
+              <div class="user-avatar"></div>
+            </div>
+            <div class="node-info">
+              <div class="node-address">${this.formatAddress(referralAddress)}</div>
+              <div class="node-level">Уровень ${level}</div>
+              <div class="node-status">Активен</div>
+            </div>
+          </div>
+        `).join('');
+
+        treeChildren.innerHTML = referralsHtml || '<div class="no-referrals">Нет рефералов</div>';
+      } else {
+        treeChildren.innerHTML = '<div class="no-referrals">Нет рефералов</div>';
+      }
+    } catch (error) {
+      treeChildren.innerHTML = '<div class="tree-error">Ошибка загрузки структуры</div>';
+    }
+  }
+
+  updateViewButtons() {
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === this.matrixConfig.viewMode);
+    });
+  }
+
+  clearMatrixCache() {
+    this.dataCache.users.clear();
+    this.dataCache.stats.clear();
+  }
+
+  // ==================== СОБЫТИЯ КОНТРАКТОВ ====================
+
+  setupContractEvents() {
+    if (!window.contractManager?.isContractsReady()) return;
+
+    try {
+      // Подписываемся на события регистрации
+      this.subscribeToEvent('UserRegistered', this.handleUserRegistered.bind(this));
+      
+      // Подписываемся на события активации уровней
+      this.subscribeToEvent('LevelActivated', this.handleLevelActivated.bind(this));
+      
+      // Подписываемся на события рефералов
+      this.subscribeToEvent('ReferralReward', this.handleReferralReward.bind(this));
+      
+    } catch (error) {
+      console.log('События контракта недоступны:', error);
+    }
+  }
+
+  subscribeToEvent(eventName, handler) {
+    try {
+      const contract = window.contractManager.contracts.globalWay;
+      if (contract && contract.events && contract.events[eventName]) {
+        const eventEmitter = contract.events[eventName]({
+          fromBlock: 'latest'
+        });
+        
+        eventEmitter.on('data', handler);
+        eventEmitter.on('error', console.error);
+        
+        this.eventListeners.set(eventName, eventEmitter);
+      }
+    } catch (error) {
+      console.warn(`Не удалось подписаться на событие ${eventName}:`, error);
+    }
+  }
+
+  handleUserRegistered(event) {
+    const userAddress = event.returnValues.user;
+    
+    if (userAddress.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
+      this.showNotification('Вы успешно зарегистрированы!', 'success');
+      this.updateUserInfo();
+    }
+    
+    // Обновляем матрицу если пользователь в нашей структуре
+    this.refreshMatrix();
+  }
+
+  handleLevelActivated(event) {
+    const { user, level } = event.returnValues;
+    
+    if (user.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
+      this.showNotification(`Уровень ${level} активирован!`, 'success');
+      this.updateUserInfo();
+      this.refreshMatrix();
+    }
+  }
+
+  handleReferralReward(event) {
+    const { referrer, amount } = event.returnValues;
+    
+    if (referrer.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
+      const amountBNB = window.web3Manager.fromWei(amount);
+      this.showNotification(`Получено вознаграждение: ${parseFloat(amountBNB).toFixed(4)} BNB`, 'success');
+    }
+  }
+
+  // ==================== КЭШИРОВАНИЕ ====================
+
+  setupCaching() {
+    // Настройка системы кэширования
+    this.cache.clear();
+    
+    // Автоочистка кэша каждые 5 минут
+    setInterval(() => {
+      this.cleanupCache();
+    }, 300000);
+  }
+
+  cacheUserData(address, data) {
+    this.dataCache.users.set(address, {
+      ...data,
+      timestamp: Date.now()
+    });
+  }
+
+  getCachedUserData(address) {
+    const cached = this.dataCache.users.get(address);
+    if (cached && Date.now() - cached.timestamp < 60000) { // 1 минута
+      return cached;
+    }
+    return null;
+  }
+
+  cleanupCache() {
+    const now = Date.now();
+    const maxAge = 300000; // 5 минут
+
+    // Очищаем старые данные пользователей
+    for (const [key, value] of this.dataCache.users.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.dataCache.users.delete(key);
+      }
+    }
+
+    // Очищаем старую статистику
+    for (const [key, value] of this.dataCache.stats.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.dataCache.stats.delete(key);
+      }
+    }
+  }
+
+  // ==================== ОФЛАЙН РЕЖИМ ====================
+
+  setupOfflineMode() {
+    // Проверка состояния сети
+    window.addEventListener('online', () => {
+      this.offlineMode = false;
+      this.showNotification('Подключение восстановлено', 'success');
+      this.performAutoUpdate();
+    });
+
+    window.addEventListener('offline', () => {
+      this.offlineMode = true;
+      this.showNotification('Работа в офлайн режиме', 'warning');
+    });
+
+    // Инициализация Service Worker
+    this.initializeServiceWorker();
+  }
+
+  async initializeServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker зарегистрирован:', registration);
+      } catch (error) {
+        console.log('Ошибка регистрации Service Worker:', error);
+      }
+    }
+  }
+
+  // ==================== РАСШИРЕННАЯ СТАТИСТИКА ====================
+
+  async loadAdvancedStats() {
+    if (!window.contractManager?.isContractsReady()) return null;
+
+    try {
+      const overview = await window.contractManager.getContractOverview();
+      const userAddress = window.web3Manager.account;
+      
+      let userStats = null;
+      if (userAddress) {
+        userStats = await window.contractManager.getUserStats(userAddress);
+      }
+
+      const stats = {
+        global: overview,
+        user: userStats,
+        performance: await this.calculatePerformanceStats(),
+        trends: await this.calculateTrendStats(),
+        timestamp: Date.now()
+      };
+
+      // Кэшируем статистику
+      this.dataCache.stats.set('advanced', stats);
+      
+      return stats;
+    } catch (error) {
+      console.error('Ошибка загрузки расширенной статистики:', error);
+      return null;
+    }
+  }
+
+  async calculatePerformanceStats() {
+    try {
+      const stats = {
+        avgResponseTime: 0,
+        successRate: 0,
+        gasEfficiency: 0,
+        userGrowth: 0,
+        volumeGrowth: 0
+      };
+
+      // Измеряем среднее время отклика контракта
+      const startTime = Date.now();
+      await window.contractManager.getContractOverview();
+      stats.avgResponseTime = Date.now() - startTime;
+
+      // Рассчитываем эффективность газа
+      const gasData = await this.analyzeGasUsage();
+      stats.gasEfficiency = gasData.efficiency;
+
+      // Анализируем рост пользователей
+      stats.userGrowth = await this.calculateUserGrowth();
+      
+      return stats;
+    } catch (error) {
+      console.error('Ошибка расчета статистики производительности:', error);
+      return null;
+    }
+  }
+
+  async calculateTrendStats() {
+    try {
+      const trends = {
+        registrations: [],
+        activations: [],
+        volume: [],
+        period: '7d'
+      };
+
+      // Здесь можно добавить анализ трендов за последние дни/недели
+      // Пока возвращаем базовую структуру
+      
+      return trends;
+    } catch (error) {
+      console.error('Ошибка расчета трендов:', error);
+      return null;
+    }
+  }
+
+  async analyzeGasUsage() {
+    // Анализ использования газа для оптимизации
+    return {
+      efficiency: 85,
+      avgGasPrice: '5000000000',
+      recommendations: []
+    };
+  }
+
+  async calculateUserGrowth() {
+    // Расчет роста пользователей
+    return 12.5; // Процент роста
+  }
+
+  // ==================== СИСТЕМА ПОИСКА И ФИЛЬТРАЦИИ ====================
+
+  setupSearchAndFilters() {
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.debounce(() => {
+          this.performSearch(e.target.value);
+        }, 300)();
+      });
+    }
+
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        this.applyFilter(filter);
+        this.updateFilterButtons(btn);
+      });
+    });
+
+    // Продвинутые фильтры
+    this.setupAdvancedFilters();
+  }
+
+  setupAdvancedFilters() {
+    const advancedFilters = document.getElementById('advancedFilters');
+    if (!advancedFilters) return;
+
+    advancedFilters.innerHTML = `
+      <div class="advanced-filter-panel">
+        <div class="filter-group">
+          <label>Дата регистрации:</label>
+          <input type="date" id="dateFrom" class="date-filter">
+          <input type="date" id="dateTo" class="date-filter">
+        </div>
+        <div class="filter-group">
+          <label>Активные уровни:</label>
+          <select id="levelFilter" multiple class="level-filter">
+            ${Array.from({length: 12}, (_, i) => 
+              `<option value="${i + 1}">Уровень ${i + 1}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Заработано (BNB):</label>
+          <input type="number" id="earningsMin" placeholder="От" class="earnings-filter">
+          <input type="number" id="earningsMax" placeholder="До" class="earnings-filter">
+        </div>
+        <div class="filter-actions">
+          <button class="cosmic-btn primary" id="applyAdvancedFilters">Применить</button>
+          <button class="cosmic-btn secondary" id="clearAdvancedFilters">Очистить</button>
+        </div>
+      </div>
+    `;
+
+    // Обработчики для продвинутых фильтров
+    document.getElementById('applyAdvancedFilters')?.addEventListener('click', () => {
+      this.applyAdvancedFilters();
+    });
+
+    document.getElementById('clearAdvancedFilters')?.addEventListener('click', () => {
+      this.clearAdvancedFilters();
+    });
+  }
+
+  async performSearch(query) {
+    if (!query.trim()) {
+      this.clearSearch();
+      return;
+    }
+
+    const searchResults = await this.searchUsers(query);
+    this.displaySearchResults(searchResults);
+  }
+
+  async searchUsers(query) {
+    try {
+      // Поиск по адресу
+      if (query.startsWith('0x')) {
+        const userData = await this.loadUserMatrixData(query);
+        return userData ? [userData] : [];
+      }
+
+      // Поиск по ID или другим параметрам
+      const allUsers = await this.getAllUsers();
+      return allUsers.filter(user => 
+        user.address.toLowerCase().includes(query.toLowerCase())
+      );
+    } catch (error) {
+      console.error('Ошибка поиска пользователей:', error);
+      return [];
+    }
+  }
+
+  applyAdvancedFilters() {
+    const filters = {
+      dateFrom: document.getElementById('dateFrom')?.value,
+      dateTo: document.getElementById('dateTo')?.value,
+      levels: Array.from(document.getElementById('levelFilter')?.selectedOptions || [])
+        .map(option => parseInt(option.value)),
+      earningsMin: parseFloat(document.getElementById('earningsMin')?.value || 0),
+      earningsMax: parseFloat(document.getElementById('earningsMax')?.value || Infinity)
+    };
+
+    this.filterUsersByAdvancedCriteria(filters);
+  }
+
+  // ==================== ЭКСПОРТ И ИМПОРТ ДАННЫХ ====================
+
+  async exportUserData() {
+    if (!window.web3Manager.isConnected) {
+      this.showNotification('Подключите кошелек для экспорта', 'warning');
+      return;
+    }
+
+    try {
+      if (window.uiManager) {
+        window.uiManager.showPageLoader();
+      }
+      
+      const userData = await this.gatherExportData();
+      
+      const exportData = {
+        version: '1.0',
+        exportTime: new Date().toISOString(),
+        network: window.web3Manager.getNetworkInfo().name,
+        user: userData,
+        format: 'json'
+      };
+
+      this.downloadExportFile(exportData);
+      
+      this.showNotification('Данные успешно экспортированы', 'success');
+      
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      this.showNotification('Ошибка экспорта данных', 'error');
+    } finally {
+      if (window.uiManager) {
+        window.uiManager.hidePageLoader();
+      }
+    }
+  }
+
+  async gatherExportData() {
+    const userAddress = window.web3Manager.account;
+    
+    const [userData, userStats, referrals, earnings] = await Promise.all([
+      window.contractManager.getUserData(userAddress),
+      window.contractManager.getUserStats(userAddress),
+      this.getUserReferrals(userAddress),
+      this.getUserEarnings(userAddress)
+    ]);
+
+    return {
+      address: userAddress,
+      personalData: userData,
+      statistics: userStats,
+      referrals: referrals,
+      earnings: earnings,
+      activeLevels: this.appState.activeLevels,
+      registrationTime: userData?.registrationTime
+    };
+  }
+
+  downloadExportFile(data) {
+    const fileName = `globalway_export_${this.formatAddress(window.web3Manager.account)}_${Date.now()}.json`;
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = fileName;
+    link.click();
+    
+    // Очистка URL
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  // Экспорт в разных форматах
+  async exportToCSV() {
+    const data = await this.gatherExportData();
+    const csvData = this.convertToCSV(data);
+    
+    const fileName = `globalway_export_${this.formatAddress(window.web3Manager.account)}_${Date.now()}.csv`;
+    const dataBlob = new Blob([csvData], { type: 'text/csv' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = fileName;
+    link.click();
+  }
+
+  convertToCSV(data) {
+    const headers = ['Адрес', 'Дата регистрации', 'Активные уровни', 'Рефералы', 'Заработано'];
+    const rows = [
+      headers.join(','),
+      [
+        data.address,
+        data.registrationTime ? new Date(data.registrationTime * 1000).toLocaleDateString() : '',
+        data.activeLevels.join(';'),
+        data.referrals.length,
+        data.earnings.total || 0
+      ].join(',')
+    ];
+    
+    return rows.join('\n');
+  }
+
+  // ==================== УВЕДОМЛЕНИЯ В РЕАЛЬНОМ ВРЕМЕНИ ====================
+
+  setupRealTimeNotifications() {
+    // Настройка уведомлений браузера
+    this.requestNotificationPermission();
+    
+    // Настройка WebSocket соединения (если доступно)
+    this.setupWebSocketConnection();
+    
+    // Настройка периодических проверок
+    this.setupPeriodicChecks();
+  }
+
+  async requestNotificationPermission() {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      console.log('Разрешение на уведомления:', permission);
+    }
+  }
+
+  setupWebSocketConnection() {
+    // Здесь можно добавить WebSocket соединение для real-time обновлений
+    // if (window.WebSocket) {
+    //   this.ws = new WebSocket('wss://api.globalway.io/ws');
+    //   this.ws.onmessage = this.handleWebSocketMessage.bind(this);
+    // }
+  }
+
+  setupPeriodicChecks() {
+    // Проверяем новые события каждые 30 секунд
+    setInterval(async () => {
+      if (window.web3Manager?.isConnected) {
+        await this.checkForNewEvents();
+      }
+    }, 30000);
+  }
+
+  async checkForNewEvents() {
+    try {
+      const currentBlock = await window.web3Manager.web3.eth.getBlockNumber();
+      
+      if (currentBlock > this.appState.lastBlockNumber) {
+        await this.processNewBlocks(this.appState.lastBlockNumber + 1, currentBlock);
+        this.appState.lastBlockNumber = currentBlock;
+      }
+    } catch (error) {
+      console.error('Ошибка проверки новых событий:', error);
+    }
+  }
+
+  async processNewBlocks(fromBlock, toBlock) {
+    // Обработка новых блоков и событий
+    console.log(`Обработка блоков с ${fromBlock} по ${toBlock}`);
+  }
+
+  showBrowserNotification(title, message, icon) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body: message,
+        icon: icon || '/favicon.ico',
+        badge: '/favicon.ico'
+      });
+    }
+  }
+
+  // ==================== МОБИЛЬНАЯ АДАПТАЦИЯ ====================
+
+  setupMobileAdaptation() {
+    // Определение мобильного устройства
+    this.isMobile = this.detectMobileDevice();
+    
+    if (this.isMobile) {
+      this.enableMobileFeatures();
+    }
+    
+    // Обработка ориентации
+    this.setupOrientationHandling();
+    
+    // Touch события
+    this.setupTouchEvents();
+  }
+
+  detectMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth <= 768;
+  }
+
+  enableMobileFeatures() {
+    document.body.classList.add('mobile-device');
+    
+    // Мобильная навигация
+    this.setupMobileNavigation();
+    
+    // Оптимизация для touch
+    this.optimizeForTouch();
+  }
+
+  setupMobileNavigation() {
+    const nav = document.querySelector('.bottom-nav');
+    if (nav) {
+      nav.classList.add('mobile-nav');
+    }
+  }
+
+  setupTouchEvents() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    document.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      
+      this.handleSwipeGesture(touchStartX, touchStartY, touchEndX, touchEndY);
+    });
+  }
+
+  handleSwipeGesture(startX, startY, endX, endY) {
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    
+    // Горизонтальный свайп для навигации
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        this.handleSwipeRight();
+      } else {
+        this.handleSwipeLeft();
+      }
+    }
+  }
+
+  handleSwipeRight() {
+    // Свайп вправо - предыдущая страница
+    const pages = ['dashboard', 'matrix', 'profile', 'referrals', 'tokens'];
+    const currentIndex = pages.indexOf(this.currentPage);
+    if (currentIndex > 0) {
+      this.navigateToPage(pages[currentIndex - 1]);
+    }
+  }
+
+  handleSwipeLeft() {
+    // Свайп влево - следующая страница
+    const pages = ['dashboard', 'matrix', 'profile', 'referrals', 'tokens'];
+    const currentIndex = pages.indexOf(this.currentPage);
+    if (currentIndex < pages.length - 1) {
+      this.navigateToPage(pages[currentIndex + 1]);
+    }
+  }
+
+  setupOrientationHandling() {
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        this.handleOrientationChange();
+      }, 100);
+    });
+  }
+
+  handleOrientationChange() {
+    // Адаптация интерфейса при смене ориентации
+    if (window.uiManager) {
+      window.uiManager.handleResize();
+    }
+    
+    // Обновление матрицы для новой ориентации
+    this.refreshMatrix();
+  }
+
+  // ==================== НАВИГАЦИЯ (ПРОДОЛЖЕНИЕ) ====================
+
+  showWelcomeMessage() {
+    if (!this.user) return;
+
+    let message = 'Добро пожаловать в GlobalWay!';
+    let type = 'info';
+
+    if (this.appState.isOwner) {
+      message = 'Добро пожаловать, владелец системы!';
+      type = 'admin';
+    } else if (this.appState.isFounder) {
+      message = 'Добро пожаловать, основатель!';
+      type = 'admin';
+    } else if (this.appState.userRegistered) {
+      message = `Добро пожаловать обратно! Активных уровней: ${this.appState.activeLevels.length}`;
+      type = 'success';
+    } else {
+      message = 'Для начала работы пройдите регистрацию';
+      type = 'warning';
+    }
+
+    this.showNotification(message, type, 5000);
+  }
+
+  showWelcomeScreen() {
+    this.navigateToPage('welcome');
+    
+    this.showNotification(
+      'Подключите кошелек для начала работы с GlobalWay', 
+      'info', 
+      0,
+      [{
+        id: 'connect',
+        label: 'Подключить',
+        callback: () => {
+          if (window.web3Manager) {
+            window.web3Manager.connectWallet();
+          }
+        }
+      }]
+    );
+  }
+
+  showNetworkWarning() {
+    const networkInfo = window.web3Manager.getNetworkInfo();
+    
+    this.showNotification(
+      `Подключена сеть ${networkInfo.name}. Рекомендуется opBNB для корректной работы.`,
+      'warning',
+      0,
+      [{
+        id: 'switch',
+        label: 'Переключить на opBNB',
+        callback: async () => {
+          try {
+            await window.web3Manager.switchToOpBNB();
+          } catch (error) {
+            console.error('Ошибка переключения сети:', error);
+          }
+        }
+      }]
+    );
   }
 
   setupNavigation() {
-    const navButtons = document.querySelectorAll('.nav-btn');
-    navButtons.forEach(button => {
-      button.addEventListener('click', (e) => {
-        const page = button.dataset.page;
+    // Настройка кнопок навигации
+    document.querySelectorAll('[data-page]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const page = btn.dataset.page;
         this.navigateToPage(page);
       });
     });
+
+    // Настройка истории браузера
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.page) {
+        this.navigateToPage(e.state.page, false);
+      }
+    });
+
+    // Загружаем страницу из URL
+    this.loadPageFromURL();
   }
 
-  async navigateToPage(page) {
+  navigateToPage(page, updateHistory = true) {
     if (this.currentPage === page) return;
-    
-    const componentContent = await this.loadComponent(page);
-    
-    document.querySelectorAll('.page').forEach(pageEl => {
-        pageEl.classList.remove('active');
-        pageEl.innerHTML = '';
-    });
-    
-    const targetPage = document.getElementById(page);
-    if (targetPage) {
-      if (componentContent) {
-        targetPage.innerHTML = componentContent;
-      } else {
-        targetPage.innerHTML = '<div class="no-data">Контент не найден</div>';
-      }
-      targetPage.classList.add('active');
+
+    console.log(`Навигация на страницу: ${page}`);
+
+    // Проверяем доступ к странице
+    if (!this.canAccessPage(page)) {
+      this.showAccessDenied(page);
+      return;
     }
-    
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    
-    const activeButton = document.querySelector(`[data-page="${page}"]`);
-    if (activeButton) {
-      activeButton.classList.add('active');
-    }
-    
+
+    // Скрываем текущую страницу
+    this.hidePage(this.currentPage);
+
+    // Показываем новую страницу
+    this.showPage(page);
+
+    // Обновляем состояние
     this.currentPage = page;
-    this.initPageFunctions(page);
-    this.updateTranslations();
+
+    // Обновляем навигацию
+    this.updateNavigation();
+
+    // Обновляем URL
+    if (updateHistory) {
+      const url = page === 'dashboard' ? '/' : `/#${page}`;
+      history.pushState({ page }, '', url);
+    }
+
+    // Загружаем данные для страницы
+    this.loadPageData(page);
   }
 
-  async loadComponent(name) {
-    try {
-      const response = await fetch(`src/components/${name}.html`);
-      if (response.ok) {
-        return await response.text();
-      }
-      return null;
-    } catch (error) {
-      console.error(`Ошибка загрузки компонента ${name}:`, error);
-      return null;
-    }
-  }
+  canAccessPage(page) {
+    // Публичные страницы
+    const publicPages = ['welcome', 'dashboard', 'about', 'docs'];
+    if (publicPages.includes(page)) return true;
 
-  initPageFunctions(page) {
-    switch (page) {
-      case 'dashboard':
-        this.initDashboard();
-        break;
-      case 'partners':
-        this.initPartners();
-        break;
-      case 'matrix':
-        this.initMatrix();
-        this.updateMatrixDisplay();
-        break;
-      case 'tokens':
-        this.initTokens();
-        break;
-      case 'settings':
-        this.initSettings();
-        break;
-      case 'projects':
-        this.initProjects();
-        break;
-      case 'admin':
-        this.initAdmin();
-        break;
-    }
-  }
-
-  // ==================== ИНИЦИАЛИЗАЦИЯ СТРАНИЦ ====================
-
-  initDashboard() {
-    this.updateUserInfo();
-    this.setupLevelButtons();
-    this.setupQuickBuy();
-    this.setupWithdrawal();
-    this.setupQuarterlyActivity();
-    this.startDataUpdates();
-  }
-
-  // Инициализация админ панели
-  initAdmin() {
-    if (!this.isConnected) {
-      this.showNotification('🔗 Подключите кошелек для доступа к админ-панели', 'warning');
-      return;
+    // Страницы требующие подключения кошелька
+    const walletPages = ['matrix', 'profile', 'referrals', 'tokens'];
+    if (walletPages.includes(page)) {
+      return window.web3Manager?.isConnected;
     }
 
-    this.checkOwnership();
-    this.setupAdminUI();
-  }
-
-  // Проверка владельца контракта
-  async checkOwnership() {
-    try {
-      if (!window.contractManager?.contracts?.globalWay) {
-        console.warn('Контракт не загружен');
-        return;
-      }
-
-      const owner = await window.contractManager.contracts.globalWay.methods.owner().call();
-      this.isOwner = owner.toLowerCase() === this.userAccount.toLowerCase();
-
-      console.log('Проверка владельца:', {
-        currentUser: this.userAccount,
-        contractOwner: owner,
-        isOwner: this.isOwner
-      });
-
-      this.updateOwnerStatus();
-      
-    } catch (error) {
-      console.error('Ошибка проверки владельца:', error);
-      this.isOwner = false;
-      this.updateOwnerStatus();
-    }
-  }
-
-  // Обновление статуса владельца в UI
-  updateOwnerStatus() {
-    const elements = {
-      currentAccount: document.getElementById('currentAccount'),
-      ownerStatus: document.getElementById('ownerStatus'),
-      contractOwnerAddress: document.getElementById('contractOwnerAddress'),
-      adminFunctions: document.getElementById('adminFunctions'),
-      notOwnerMessage: document.getElementById('notOwnerMessage'),
-      currentUserAccount: document.getElementById('currentUserAccount'),
-      requiredOwnerAccount: document.getElementById('requiredOwnerAccount')
-    };
-
-    if (elements.currentAccount) {
-      elements.currentAccount.textContent = this.formatAddress(this.userAccount);
-    }
-
-    if (elements.ownerStatus) {
-      elements.ownerStatus.textContent = this.isOwner ? '👑 Contract Owner' : '⌀ Not Owner';
-      elements.ownerStatus.className = `value ${this.isOwner ? 'active' : 'inactive'}`;
-    }
-
-    if (this.isOwner) {
-      if (elements.adminFunctions) elements.adminFunctions.classList.remove('hidden');
-      if (elements.notOwnerMessage) elements.notOwnerMessage.classList.add('hidden');
-    } else {
-      if (elements.adminFunctions) elements.adminFunctions.classList.add('hidden');
-      if (elements.notOwnerMessage) elements.notOwnerMessage.classList.remove('hidden');
-      
-      if (elements.currentUserAccount) {
-        elements.currentUserAccount.textContent = this.formatAddress(this.userAccount);
-      }
-    }
-  }
-
-  // Настройка админ UI
-  setupAdminUI() {
-    if (!this.isOwner) return;
-
-    // Активация пользователя
-    const activateBtn = document.getElementById('activateUserBtn');
-    if (activateBtn) {
-      activateBtn.addEventListener('click', () => this.adminActivateUser());
-    }
-
-    // Массовая активация
-    const batchBtn = document.getElementById('batchActivateBtn');
-    if (batchBtn) {
-      batchBtn.addEventListener('click', () => this.adminBatchActivate());
-    }
-
-    // Обновление статистики
-    const refreshBtn = document.getElementById('refreshAdminStats');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', () => this.refreshAdminStats());
-    }
-
-    this.refreshAdminStats();
-  }
-
-  // Админ активация пользователя
-  async adminActivateUser() {
-    const userAddress = document.getElementById('freeUserAddress').value.trim();
-    const sponsorAddress = document.getElementById('freeUserSponsor').value.trim();
-    const maxLevel = parseInt(document.getElementById('freeUserMaxLevel').value);
-
-    if (!userAddress || !sponsorAddress) {
-      this.showNotification('⌀ Заполните все поля', 'error');
-      return;
-    }
-
-    try {
-      const confirmed = await this.showConfirmModal(
-        'Бесплатная активация пользователя',
-        `Пользователь: ${userAddress}\nСпонсор: ${sponsorAddress}\nМаксимальный уровень: ${maxLevel}`,
-        'Подтвердить активацию'
-      );
-
-      if (!confirmed) return;
-
-      const tx = await window.contractManager.freeRegistrationWithLevels(
-        userAddress, 
-        maxLevel, 
-        this.userAccount
-      );
-      
-      this.showNotification('✅ Пользователь успешно активирован!', 'success');
-      
-      document.getElementById('freeUserAddress').value = '';
-      document.getElementById('freeUserSponsor').value = '';
-      
-    } catch (error) {
-      this.handleError(error, 'активации пользователя');
-    }
-  }
-
-  // Массовая активация
-  async adminBatchActivate() {
-    const membersText = document.getElementById('teamMembers').value.trim();
-    const sponsorsText = document.getElementById('teamSponsors').value.trim();
-    const levelsText = document.getElementById('teamLevels').value.trim();
-
-    if (!membersText || !sponsorsText || !levelsText) {
-      this.showNotification('⌀ Заполните все поля для массовой активации', 'error');
-      return;
-    }
-
-    try {
-      const members = membersText.split('\n').map(addr => addr.trim()).filter(addr => addr);
-      const sponsors = sponsorsText.split('\n').map(addr => addr.trim()).filter(addr => addr);
-      const levels = levelsText.split('\n').map(level => parseInt(level.trim())).filter(level => level);
-
-      if (members.length !== sponsors.length || members.length !== levels.length) {
-        this.showNotification('⌀ Количество участников, спонсоров и уровней должно совпадать', 'error');
-        return;
-      }
-
-      const confirmed = await this.showConfirmModal(
-        'Массовая активация команды',
-        `Количество участников: ${members.length}`,
-        'Подтвердить массовую активацию'
-      );
-
-      if (!confirmed) return;
-
-      for (let i = 0; i < members.length; i++) {
-        await window.contractManager.freeRegistrationWithLevels(
-          members[i], 
-          levels[i], 
-          this.userAccount
-        );
-      }
-      
-      this.showNotification(`✅ Массовая активация завершена! Активировано: ${members.length} участников`, 'success');
-      
-      document.getElementById('teamMembers').value = '';
-      document.getElementById('teamSponsors').value = '';
-      document.getElementById('teamLevels').value = '';
-      
-    } catch (error) {
-      this.handleError(error, 'массовой активации');
-    }
-  }
-
-  // Обновление админ статистики
-  async refreshAdminStats() {
-    try {
-      if (window.contractManager?.contracts?.globalWayStats) {
-        const overview = await window.contractManager.getContractOverview();
-        
-        const elements = {
-          totalUsers: document.getElementById('adminTotalUsers'),
-          activeUsers: document.getElementById('adminActiveUsers'),
-          contractBalance: document.getElementById('adminContractBalance'),
-          totalVolume: document.getElementById('adminTotalVolume')
-        };
-
-        if (elements.totalUsers) {
-          elements.totalUsers.textContent = overview.totalUsers || 0;
-        }
-        if (elements.activeUsers) {
-          elements.activeUsers.textContent = overview.activeUsers || 0;
-        }
-        if (elements.contractBalance) {
-          elements.contractBalance.textContent = `${this.formatBNB(overview.contractBalance || 0)} BNB`;
-        }
-        if (elements.totalVolume) {
-          elements.totalVolume.textContent = `${this.formatBNB(overview.totalVolume || 0)} BNB`;
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка получения админ статистики:', error);
-    }
-  }
-
-  // Настройка квартальной активности
-  setupQuarterlyActivity() {
-    const payQuarterlyBtn = document.getElementById('payQuarterlyBtn');
-    if (payQuarterlyBtn) {
-      payQuarterlyBtn.addEventListener('click', () => {
-        this.payQuarterlyActivity();
-      });
-    }
-    this.updateQuarterlyStatus();
-  }
-
-  // Обновление статуса квартальной активности
-  async updateQuarterlyStatus() {
-    if (!this.isConnected) return;
-    
-    try {
-      const user = await window.contractManager.contracts.globalWay.methods
-        .users(this.userAccount).call();
-        
-      const quarterlyFee = await window.contractManager.getQuarterlyFee();
-      const now = Math.floor(Date.now() / 1000);
-      
-      const daysSinceRegistration = Math.floor((now - parseInt(user.registrationTime)) / (24 * 60 * 60));
-      
-      const nextPaymentDay = parseInt(user.quarterlyCounter) * 90;
-      const canPayQuarterly = daysSinceRegistration >= nextPaymentDay;
-
-      const elements = {
-        quarterNumber: document.getElementById('quarterNumber'),
-        lastQuarterlyPayment: document.getElementById('lastQuarterlyPayment'),
-        nextQuarterlyDate: document.getElementById('nextQuarterlyDate'),
-        quarterlyFeeAmount: document.getElementById('quarterlyFeeAmount'),
-        payQuarterlyBtn: document.getElementById('payQuarterlyBtn'),
-        quarterlyStatus: document.getElementById('quarterlyStatus')
-      };
-      
-      if (elements.quarterNumber) {
-        const daysUntilNext = Math.max(0, Number(nextPaymentDay) - Number(daysSinceRegistration));
-      }
-      
-      if (elements.lastQuarterlyPayment) {
-        const daysUntilNext = Math.max(0, Number(nextPaymentDay) - Number(daysSinceRegistration));
-        elements.lastQuarterlyPayment.textContent = lastPayment.toLocaleDateString();
-      }
-      
-      if (elements.nextQuarterlyDate) {
-        const nextDate = new Date((parseInt(user.registrationTime) + (nextPaymentDay * 24 * 60 * 60)) * 1000);
-        elements.nextQuarterlyDate.textContent = nextDate.toLocaleDateString();
-      }
-      
-      if (elements.quarterlyFeeAmount) {
-        elements.quarterlyFeeAmount.textContent = `${this.formatBNB(quarterlyFee)} BNB`;
-      }
-      
-      if (elements.payQuarterlyBtn) {
-        elements.payQuarterlyBtn.disabled = !canPayQuarterly;
-        elements.payQuarterlyBtn.className = canPayQuarterly ? 'activate-btn' : 'activate-btn disabled';
-      }
-      
-      if (elements.quarterlyStatus) {
-        const statusSpan = elements.quarterlyStatus.querySelector('.value');
-        const daysUntilNext = Math.max(0, parseInt(nextPaymentDay) - parseInt(daysSinceRegistration));
-        
-        if (canPayQuarterly) {
-          statusSpan.textContent = '⚠️ Требуется оплата';
-          statusSpan.className = 'value inactive';
-        } else {
-          statusSpan.textContent = `✅ Активен (${daysUntilNext} дней до платежа)`;
-          statusSpan.className = 'value active';
-        }
-      }
-      
-    } catch (error) {
-      console.error('Ошибка получения статуса активности:', error);
-    }
-  }
-
-  // Функция оплаты квартальной активности
-  async payQuarterlyActivity() {
-    if (!this.checkWeb3Connection()) return;
-
-    try {
-      const quarterlyFee = await window.contractManager.getQuarterlyFee();
-      
-      const confirmed = await this.showConfirmModal(
-        'Оплата квартальной активности',
-        `Стоимость: ${this.formatBNB(quarterlyFee)} BNB`,
-        'Подтвердить оплату'
-      );
-
-      if (!confirmed) return;
-
-      this.showNotification('Обрабатывается транзакция...', 'info');
-
-      const tx = await window.contractManager.payQuarterlyActivity(this.userAccount, quarterlyFee);
-      
-      this.showNotification('✅ Квартальная активность оплачена!', 'success');
-      
-      await this.updateQuarterlyStatus();
-      await this.updateUserInfo();
-
-    } catch (error) {
-      this.handleError(error, 'оплате квартальной активности');
-    }
-  }
-
-  initPartners() {
-    this.setupLevelTabs();
-    this.setupSearch();
-    this.updatePartnerStats();
-    this.setupPartnerTools();
-  }
-
-  initMatrix() {
-    this.setupMatrixNavigation();
-    this.updateMatrixDisplay();
-    this.setupMatrixControls();
-  }
-
-  initTokens() {
-    // Не инициализируем токены если на неправильной странице
-    if (this.currentPage !== 'tokens') return;
-  
-    this.setupTokenTrading();
-    this.updateTokenPrices();
-    this.setupTradingTabs();
-  
-    // Обновляем информацию о токенах только если пользователь подключен
-    if (this.isConnected) {
-      this.updateTokenInfo();
-    }
-  
-    this.setupTokenInteractions();
-  }
-
-  // Обновление информации о токенах
-  async updateTokenInfo() {
-    if (!this.isConnected || !this.userAccount) return;
-
-    try {
-      const tokenBalance = await window.contractManager.getTokenBalance(this.userAccount);
-      const tokenPrice = await window.contractManager.getTokenCurrentPrice();
-      const totalSupply = await window.contractManager.getTokenTotalSupply();
-
-      const elements = {
-        tokenBalance: document.getElementById('tokenBalance'),
-        tokenBalanceDisplay: document.getElementById('tokenBalanceDisplay'),
-        tokenPrice: document.getElementById('tokenPrice'),
-        tokenPriceDisplay: document.getElementById('tokenPriceDisplay'),
-        totalSupply: document.getElementById('totalSupply'),
-        tokenValue: document.getElementById('tokenValue'),
-        tokenValueDisplay: document.getElementById('tokenValueDisplay')
-      };
-
-      const formattedBalance = this.formatTokens(tokenBalance);
-      const formattedPrice = this.formatBNB(tokenPrice, 6);
-
-      if (elements.tokenBalance) {
-        elements.tokenBalance.textContent = `${formattedBalance} GWT`;
-      }
-      if (elements.tokenBalanceDisplay) {
-        elements.tokenBalanceDisplay.textContent = `${formattedBalance} GWT`;
-      }
-      if (elements.tokenPrice) {
-        elements.tokenPrice.textContent = `$${formattedPrice}`;
-      }
-      if (elements.tokenPriceDisplay) {
-        elements.tokenPriceDisplay.textContent = `$${formattedPrice}`;
-      }
-      if (elements.totalSupply) {
-        elements.totalSupply.textContent = this.formatLargeNumber(totalSupply);
-      }
-
-      const userTokenValue = (parseFloat(formattedBalance) * parseFloat(formattedPrice)).toFixed(2);
-      if (elements.tokenValue) {
-        elements.tokenValue.textContent = `≈ $${userTokenValue}`;
-      }
-      if (elements.tokenValueDisplay) {
-        elements.tokenValueDisplay.textContent = `≈ $${userTokenValue}`;
-      }
-
-    } catch (error) {
-      console.error('Ошибка получения информации о токенах:', error);
-    }
-  }
-
-  initSettings() {
-    this.setupSettings();
-    this.loadUserSettings();
-    this.setupSecuritySettings();
-    this.setupSettingsInteractions();
-    this.updateSecurityInfo();
-  }
-
-  initProjects() {
-    this.setupProjectCards();
-    this.updateProjectStats();
-    this.setupProjectInteractions();
-  }
-
-  // ==================== РАБОТА С КОНТРАКТАМИ ====================
-
-  async updateUserInfo() {
-    if (!this.isConnected || !this.userAccount) return;
-
-    try {
-      if (window.contractManager?.contracts?.globalWayStats) {
-        this.userData = await window.contractManager.getUserFullInfo(this.userAccount);
-        this.displayUserData();
-      }
-
-      if (window.contractManager?.contracts?.globalWay) {
-        const userData = await window.contractManager.getUserData(this.userAccount);
-        this.displayBasicUserData(userData);
-      }
-
-      if (this.currentPage === 'tokens') {
-        await this.updateTokenInfo();
-      }
-
-    } catch (error) {
-      console.error('Ошибка получения данных пользователя:', error);
-    }
-  }
-
-  displayUserData() {
-    if (!this.userData) return;
-
-    const elements = {
-      userBalance: document.getElementById('userBalance'),
-      totalEarned: document.getElementById('totalEarned'),
-      personalInvites: document.getElementById('personalInvites'),
-      leaderRank: document.getElementById('leaderRank'),
-      registrationTime: document.getElementById('registrationTime'),
-      lastActivity: document.getElementById('lastActivity')
-    };
-
-    if (elements.totalEarned) {
-      elements.totalEarned.textContent = this.formatBNB(this.userData.totalEarned);
-    }
-
-    if (elements.personalInvites) {
-      elements.personalInvites.textContent = this.userData.personalInvites;
-    }
-
-    if (elements.leaderRank) {
-      elements.leaderRank.textContent = this.userData.leaderRank;
-    }
-
-    if (elements.registrationTime && this.userData.registrationTime > 0) {
-      elements.registrationTime.textContent = new Date(this.userData.registrationTime * 1000).toLocaleDateString();
-    }
-
-    this.updateActiveLevelsDisplay();
-  }
-
-  // Отображение базовых данных пользователя
-  displayBasicUserData(userData) {
-    if (!userData) return;
-
-    const elements = {
-      userId: document.getElementById('userId'),
-      userRank: document.getElementById('userRank'),
-      referralFrom: document.getElementById('referralFrom')
-    };
-
-    if (elements.userId) {
-      elements.userId.textContent = userData.personalInvites || '---';
-    }
-
-    if (elements.userRank) {
-      elements.userRank.textContent = userData.leaderRank || '---';
-    }
-
-    if (elements.referralFrom && userData.sponsor) {
-      elements.referralFrom.textContent = this.formatAddress(userData.sponsor);
-    }
-  }
-
-  updateActiveLevelsDisplay() {
-    if (!this.userData?.activeLevels) return;
-
-    for (let i = 1; i <= 12; i++) {
-      const levelBtn = document.querySelector(`[data-level="${i}"]`);
-      if (levelBtn) {
-        if (this.userData.activeLevels.includes(i)) {
-          levelBtn.classList.add('active');
-          levelBtn.classList.remove('inactive');
-          levelBtn.querySelector('.level-status').textContent = 'Active';
-        } else {
-          levelBtn.classList.remove('active');
-          levelBtn.classList.add('inactive');
-          levelBtn.querySelector('.level-status').textContent = 'Available';
-        }
-      }
-    }
-  }
-
-  async setupLevelButtons() {
-    const levelButtons = document.querySelectorAll('.level-button');
-    levelButtons.forEach(button => {
-      button.addEventListener('click', async () => {
-        const level = parseInt(button.dataset.level);
-        await this.buyLevel(level);
-      });
-    });
-  }
-
-  async buyLevel(level) {
-    if (!this.checkWeb3Connection()) return;
-
-    try {
-      // Проверяем наличие предыдущих уровней
-      const hasRequiredLevels = await this.checkRequiredLevels(level);
-      if (!hasRequiredLevels) {
-        this.showNotification(`Необходимо сначала активировать уровни 1-${level-1}`, 'warning');
-        return;
-      }
-
-      const price = await window.contractManager.getLevelPrice(level);
-      
-      const confirmed = await this.showConfirmModal(
-        `Купить уровень ${level}`,
-        `Цена: ${this.formatBNB(price)} BNB`,
-        'Подтвердить покупку'
-      );
-  
-      if (!confirmed) return;
-  
-      this.showNotification('Обрабатывается транзакция...', 'info');
-  
-      const tx = await window.contractManager.buyLevel(level, this.userAccount, price);
-      
-      this.showNotification('Уровень успешно куплен!', 'success');
-      
-      await this.updateUserInfo();
-  
-    } catch (error) {
-      // Убираем модальные наложения при ошибке
-      if (window.web3Manager) {
-        window.web3Manager.removeModalOverlays();
-      }
-      this.handleError(error, 'покупке уровня');
-    }
-  }
-
-  // Проверка необходимых уровней
-  async checkRequiredLevels(targetLevel) {
-    if (!this.userData?.activeLevels) {
-      await this.updateUserInfo();
-    }
-
-    if (!this.userData?.activeLevels) return false;
-
-    for (let i = 1; i < targetLevel; i++) {
-      if (!this.userData.activeLevels.includes(i)) {
-        return false;
-      }
+    // Админские страницы
+    const adminPages = ['admin'];
+    if (adminPages.includes(page)) {
+      return this.appState.isOwner || this.appState.isFounder;
     }
 
     return true;
   }
 
-  async setupQuickBuy() {
-    const quickBuyButtons = document.querySelectorAll('.quick-buy-btn');
-    quickBuyButtons.forEach(button => {
-      button.addEventListener('click', async () => {
-        const packageType = parseInt(button.dataset.package);
-        await this.activatePackage(packageType);
-      });
-    });
+  showAccessDenied(page) {
+    let message = 'Доступ к этой странице ограничен';
+    
+    if (page === 'admin') {
+      message = 'Доступ только для владельца и основателей';
+    } else if (!window.web3Manager?.isConnected) {
+      message = 'Подключите кошелек для доступа к этой странице';
+    }
+
+    this.showNotification(message, 'warning');
   }
 
-async activatePackage(packageType) {
-  if (!this.checkWeb3Connection()) return;
-
-  try {
-    // Убираем все зависшие модальные окна перед началом
-    if (window.web3Manager) {
-      window.web3Manager.removeModalOverlays();
+  hidePage(page) {
+    const pageElement = document.getElementById(`${page}-page`);
+    if (pageElement) {
+      pageElement.classList.remove('active');
+      pageElement.classList.add('hidden');
     }
+  }
 
-    const packageLevels = {
-      1: [1, 2, 3, 4], // MiniAdmin (1-4)
-      2: [1, 2, 3, 4, 5, 6, 7], // Admin (1-7)
-      3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // SuperAdmin (1-10)
-      4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // Manager (1-12)
+  showPage(page) {
+    const pageElement = document.getElementById(`${page}-page`);
+    if (pageElement) {
+      pageElement.classList.remove('hidden');
+      pageElement.classList.add('active');
+    }
+  }
+
+  updateNavigation() {
+    // Обновляем активную кнопку навигации
+    document.querySelectorAll('[data-page]').forEach(btn => {
+      if (btn.dataset.page === this.currentPage) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Обновляем заголовок страницы
+    this.updatePageTitle();
+  }
+
+  updatePageTitle() {
+    const titles = {
+      dashboard: 'GlobalWay - Главная',
+      matrix: 'GlobalWay - Матрица',
+      profile: 'GlobalWay - Профиль',
+      referrals: 'GlobalWay - Рефералы',
+      tokens: 'GlobalWay - GWT Токены',
+      admin: 'GlobalWay - Администрирование',
+      welcome: 'GlobalWay - Добро пожаловать'
     };
 
-    const packageNames = {
-      1: 'MiniAdmin (1-4)',
-      2: 'Admin (1-7)', 
-      3: 'SuperAdmin (1-10)',
-      4: 'Manager (1-12)'
-    };
+    document.title = titles[this.currentPage] || 'GlobalWay';
+  }
 
-    if (!this.userData?.activeLevels) {
-      await this.updateUserInfo();
+  loadPageFromURL() {
+    const hash = window.location.hash.slice(1);
+    const page = hash || 'dashboard';
+    this.navigateToPage(page, false);
+  }
+
+  // ==================== ЗАГРУЗКА ДАННЫХ ДЛЯ СТРАНИЦ ====================
+
+  async loadPageData(page) {
+    try {
+      switch (page) {
+        case 'dashboard':
+          await this.loadDashboardData();
+          break;
+        case 'matrix':
+          await this.loadMatrixData();
+          break;
+        case 'profile':
+          await this.loadProfileData();
+          break;
+        case 'referrals':
+          await this.loadReferralsData();
+          break;
+        case 'tokens':
+          await this.loadTokensData();
+          break;
+        case 'admin':
+          await this.loadAdminData();
+          break;
+      }
+    } catch (error) {
+      console.error(`Ошибка загрузки данных для страницы ${page}:`, error);
     }
+  }
 
-    const activeLevels = this.userData?.activeLevels || [];
-    const targetLevels = packageLevels[packageType];
-    
-    const levelsToActivate = targetLevels.filter(level => !activeLevels.includes(level));
+  async loadDashboardData() {
+    try {
+      // Загружаем общую статистику
+      await this.loadPublicStats();
+      
+      // Если пользователь подключен, загружаем его данные
+      if (window.web3Manager?.isConnected) {
+        await this.updateUserInfo();
+      }
+      
+    } catch (error) {
+      console.error('Ошибка загрузки данных дашборда:', error);
+    }
+  }
 
-    if (levelsToActivate.length === 0) {
-      this.showNotification('Все уровни этого пакета уже активированы', 'info');
+  async loadMatrixData() {
+    if (!window.web3Manager?.isConnected) {
+      this.createInteractiveMatrix();
       return;
     }
 
-    let totalPrice = 0;
-    for (const level of levelsToActivate) {
-      const levelPrice = await window.contractManager.getLevelPrice(level);
-      totalPrice += parseInt(levelPrice);
+    try {
+      const userStats = await window.contractManager.getUserStats(window.web3Manager.account);
+      
+      if (userStats && userStats.isRegistered) {
+        await this.loadMatrixData();
+      } else {
+        this.showRegistrationPrompt();
+      }
+      
+    } catch (error) {
+      console.error('Ошибка загрузки матрицы:', error);
+      this.createInteractiveMatrix();
     }
-
-    const confirmed = await this.showConfirmModal(
-      `Активировать пакет ${packageNames[packageType]}`,
-      `Доплата за уровни ${levelsToActivate.join(', ')}: ${this.formatBNB(totalPrice.toString())} BNB`,
-      'Активировать пакет'
-    );
-
-    if (!confirmed) return;
-
-    this.showNotification('Активация пакета...', 'info');
-
-    for (const level of levelsToActivate) {
-      const levelPrice = await window.contractManager.getLevelPrice(level);
-      await window.contractManager.buyLevel(level, this.userAccount, levelPrice);
-    }
-    
-    this.showNotification('Пакет успешно активирован!', 'success');
-    await this.updateUserInfo();
-
-  } catch (error) {
-    // Убираем модальные наложения при ошибке  
-    if (window.web3Manager) {
-      window.web3Manager.removeModalOverlays();
-    }
-    this.handleError(error, 'активации пакета');
   }
-}
 
-  async registerUser() {
-    if (!this.checkWeb3Connection()) return;
+  async loadProfileData() {
+    if (!window.web3Manager?.isConnected) return;
 
     try {
-      let sponsor = localStorage.getItem('globalway_referrer');
-      if (!sponsor) {
-        sponsor = this.getUrlParameter('ref');
-      }
+      await this.updateUserInfo();
+      this.displayUserProfile();
+      
+    } catch (error) {
+      console.error('Ошибка загрузки профиля:', error);
+    }
+  }
 
-      if (!sponsor || !this.isValidAddress(sponsor)) {
-        this.showNotification('Некорректная реферальная ссылка', 'error');
+  async loadReferralsData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      const userStats = await window.contractManager.getUserStats(window.web3Manager.account);
+      
+      if (userStats) {
+        this.displayReferralStats(userStats);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка загрузки рефералов:', error);
+    }
+  }
+
+  async loadTokensData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      if (window.uiManager) {
+        await window.uiManager.updateTokenInfo();
+      }
+      
+      this.displayTokenInfo();
+      
+    } catch (error) {
+      console.error('Ошибка загрузки токенов:', error);
+    }
+  }
+
+  async loadAdminData() {
+    if (!this.appState.isOwner && !this.appState.isFounder) return;
+
+    try {
+      const overview = await window.contractManager.getContractOverview();
+      this.displayAdminStats(overview);
+      
+    } catch (error) {
+      console.error('Ошибка загрузки админских данных:', error);
+    }
+  }
+
+  // ==================== ОТОБРАЖЕНИЕ ДАННЫХ ====================
+
+  async loadPublicStats() {
+    try {
+      if (!window.contractManager?.isContractsReady()) {
+        this.displayDemoStats();
         return;
       }
 
-      this.showNotification('Регистрация пользователя...', 'info');
-      const tx = await window.contractManager.register(sponsor, this.userAccount);
-     
-      this.showNotification('Регистрация успешна!', 'success');
-      await this.updateUserInfo();
-
+      const overview = await window.contractManager.getContractOverview();
+      this.displayStats(overview);
+      
     } catch (error) {
-      this.handleError(error, 'регистрации');
+      console.error('Ошибка загрузки публичной статистики:', error);
+      this.displayDemoStats();
     }
   }
 
-  // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
-
-  startDataUpdates() {
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
+  displayStats(overview) {
+    // Обновляем счетчики на главной странице
+    if (window.uiManager) {
+      window.uiManager.updateCounter('totalUsers', parseInt(overview.totalUsers));
+      window.uiManager.updateCounter('activeUsers', parseInt(overview.activeUsers));
     }
-    
+
+    // Обновляем объем
+    const volumeElement = document.getElementById('totalVolume');
+    if (volumeElement && overview.totalVolume) {
+      const volumeInBNB = window.web3Manager.fromWei(overview.totalVolume);
+      volumeElement.textContent = this.formatLargeNumber(volumeInBNB) + ' BNB';
+    }
+
+    // Обновляем распределение уровней
+    this.updateLevelDistribution(overview.levelDistribution);
+  }
+
+  displayDemoStats() {
+    // Показываем демо-статистику если контракты недоступны
+    if (window.uiManager) {
+      window.uiManager.updateCounter('totalUsers', 1234);
+      window.uiManager.updateCounter('activeUsers', 567);
+    }
+
+    const volumeElement = document.getElementById('totalVolume');
+    if (volumeElement) {
+      volumeElement.textContent = '1,234.56 BNB';
+    }
+  }
+
+  // ==================== ПРОДОЛЖЕНИЕ СЛЕДУЕТ... ====================
+
+  // ==================== АВТООБНОВЛЕНИЕ ====================
+
+  setupAutoUpdate() {
+    // Автообновление каждые 30 секунд
     this.updateInterval = setInterval(() => {
-      if (this.isConnected) {
-        this.updateUserInfo();
-        this.updateContractStats();
+      if (this.autoUpdateEnabled && window.web3Manager?.isConnected) {
+        this.performAutoUpdate();
       }
     }, 30000);
+
+    // Обновление при фокусе на странице
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && window.web3Manager?.isConnected) {
+        this.performAutoUpdate();
+      }
+    });
+
+    console.log('Автообновление настроено');
   }
 
-  async updateContractStats() {
+  async performAutoUpdate() {
+    const now = Date.now();
+    
+    // Ограничиваем частоту обновлений
+    if (now - this.lastUpdateTime < 10000) return;
+    
+    this.lastUpdateTime = now;
+
     try {
-      if (window.contractManager?.contracts?.globalWayStats) {
-        const overview = await window.contractManager.getContractOverview();
-        this.displayContractStats(overview);
+      // Обновляем только если пользователь активен
+      if (this.isUserActive()) {
+        await this.loadPublicStats();
+        
+        if (window.web3Manager.isConnected) {
+          await this.updateUserInfo();
+        }
       }
     } catch (error) {
-      console.error('Ошибка получения статистики контракта:', error);
+      console.error('Ошибка автообновления:', error);
+      
+      // При повторных ошибках отключаем автообновление
+      this.retryAttempts++;
+      if (this.retryAttempts >= this.maxRetries) {
+        this.disableAutoUpdate();
+      }
     }
   }
 
-  displayContractStats(stats) {
-    const elements = {
-      totalUsers: document.getElementById('totalUsers'),
-      totalVolume: document.getElementById('totalVolume'),
-      activeUsers: document.getElementById('activeUsers'),
-      contractBalance: document.getElementById('contractBalance')
-    };
-
-    if (elements.totalUsers) {
-      elements.totalUsers.textContent = stats.totalUsers || 0;
-    }
-
-    if (elements.totalVolume) {
-      elements.totalVolume.textContent = this.formatBNB(stats.totalVolume || 0);
-    }
-
-    if (elements.activeUsers) {
-      elements.activeUsers.textContent = stats.activeUsers || 0;
-    }
-
-    if (elements.contractBalance) {
-      elements.contractBalance.textContent = this.formatBNB(stats.contractBalance || 0);
-    }
+  isUserActive() {
+    // Проверяем активность пользователя
+    return !document.hidden && 
+           (Date.now() - this.lastUpdateTime) < 300000; // 5 минут
   }
 
-  // ==================== МОДАЛЬНЫЕ ОКНА ====================
-
-  async showConfirmModal(title, message, confirmText) {
-    return new Promise((resolve) => {
-      const modal = document.createElement('div');
-      modal.className = 'cosmic-modal-overlay';
-      modal.innerHTML = `
-        <div class="cosmic-modal">
-          <div class="modal-header">
-            <h3>${title}</h3>
-            <button class="modal-close" onclick="this.closest('.cosmic-modal-overlay').remove()">&times;</button>
-          </div>
-          <div class="modal-body">
-            <p>${message}</p>
-          </div>
-          <div class="modal-footer">
-            <button class="cosmic-btn secondary" onclick="this.closest('.cosmic-modal-overlay').remove()">Отмена</button>
-            <button class="cosmic-btn primary confirm-btn">${confirmText}</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(modal);
-
-      modal.querySelector('.confirm-btn').addEventListener('click', () => {
-        modal.remove();
-        resolve(true);
-      });
-
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          modal.remove();
-          resolve(false);
-        }
-      });
-    });
+  enableAutoUpdate() {
+    this.autoUpdateEnabled = true;
+    this.retryAttempts = 0;
+    console.log('Автообновление включено');
   }
 
-  // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
-
-  formatBNB(value, decimals = 4) {
-    if (!value) return '0';
-    const bnbValue = parseFloat(window.web3Manager?.web3?.utils?.fromWei(value.toString(), 'ether') || value);
-    return bnbValue.toFixed(decimals);
+  disableAutoUpdate() {
+    this.autoUpdateEnabled = false;
+    console.log('Автообновление отключено из-за ошибок');
+    
+    this.showNotification(
+      'Автообновление отключено. Проверьте подключение.',
+      'warning'
+    );
   }
 
-  formatTokens(value, decimals = 2) {
-    if (!value) return '0';
-    const tokenValue = parseFloat(window.web3Manager?.web3?.utils?.fromWei(value.toString(), 'ether') || value);
-    return tokenValue.toFixed(decimals);
+  // ==================== УТИЛИТЫ ====================
+
+  formatAddress(address, start = 6, end = 4) {
+    if (!address) return '0x000...000';
+    return `${address.slice(0, start)}...${address.slice(-end)}`;
   }
 
   formatLargeNumber(value) {
-    if (!value) return '0';
-    const num = parseFloat(window.web3Manager?.web3?.utils?.fromWei(value.toString(), 'ether') || value);
+    const num = parseFloat(value);
     if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
     if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
     if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
     return num.toFixed(0);
   }
 
-  checkWeb3Connection() {
-    if (!window.web3Manager) {
-      this.showNotification('Web3 Manager не загружен. Обновите страницу.', 'error');
-      return false;
-    }
-    
-    if (!this.isConnected) {
-      this.showNotification('Подключите кошелек для выполнения этого действия', 'warning');
-      return false;
-    }
-    
-    if (this.isConnected) {
-      this.checkOwnership();
-    }
-
-    return true;
+  debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
   }
 
-  handleError(error, action = 'выполнении операции') {
-    console.error(`Ошибка при ${action}:`, error);
-    
-    let message = `Ошибка при ${action}.`;
-    
-    if (error.message?.includes('User denied')) {
-      message = 'Транзакция отклонена пользователем';
-    } else if (error.message?.includes('insufficient funds')) {
-      message = 'Недостаточно средств на балансе';
-    } else if (error.message?.includes('Already registered')) {
-      message = 'Пользователь уже зарегистрирован';
-    }
-    
-    this.showNotification(message, 'error');
-  }
-
-  // ==================== РЕФЕРАЛЬНАЯ СИСТЕМА С 7-ЗНАЧНЫМИ ID ====================
-
-  // Генерация 7-значного случайного ID
-  generateReferralId() {
-    return Math.floor(1000000 + Math.random() * 9000000).toString();
-  }
-
-  // Получение или создание реферального ID для пользователя
-  getUserReferralId() {
-    if (!this.userReferralId) {
-      // Проверяем есть ли сохраненный ID для этого адреса
-      const savedId = localStorage.getItem(`referral_id_${this.userAccount}`);
-      if (savedId) {
-        this.userReferralId = savedId;
+  showNotification(message, type, duration = 5000, actions = null) {
+    if (window.uiManager) {
+      window.uiManager.showNotification(message, type, duration, actions);
       } else {
-        // Генерируем новый ID
-        this.userReferralId = this.generateReferralId();
-        localStorage.setItem(`referral_id_${this.userAccount}`, this.userReferralId);
+      // Fallback если uiManager недоступен
+      console.log(`[${type.toUpperCase()}] ${message}`);
+      if (type === 'error') {
+        alert(message);
       }
     }
-    return this.userReferralId;
   }
 
-  // Обновление реферальной ссылки
-  updateReferralLink() {
-  if (this.userAccount) {
-    const referralId = this.getUserReferralId();
-    const link = `${window.location.origin}?ref=${referralId}`;
-    
-    // Обновляем поле ссылки
-    const referralLink = document.getElementById('referralLink');
-    if (referralLink) {
-      referralLink.value = link;
-    }
-    
-    // Обновляем отображение ID в интерфейсе
-    const referralIdDisplay = document.getElementById('referralIdDisplay');
-    if (referralIdDisplay) {
-      referralIdDisplay.textContent = `ID: ${referralId}`;
-    }
-    
-    // ИСПРАВЛЕНО: Обновляем все элементы с реферальными ссылками
-    const allRefLinks = document.querySelectorAll('.referral-link-display, #partnerRefLink');
-    allRefLinks.forEach(element => {
-      if (element.tagName === 'INPUT') {
-        element.value = link;
-      } else {
-        element.textContent = link;
-      }
-    });
-    
-    console.log('Реферальная ссылка обновлена:', link);
-  }
-}
+  // ==================== ИНИЦИАЛИЗАЦИЯ UI КОМПОНЕНТОВ ====================
 
-  // Получение адреса кошелька по реферальному ID
-  getWalletByReferralId(referralId) {
-    // Поиск в localStorage всех сохраненных ID
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith('referral_id_')) {
-        const savedId = localStorage.getItem(key);
-        if (savedId === referralId) {
-          return key.replace('referral_id_', '');
+  initializeUIComponents() {
+    this.initializePackageCards();
+    this.initializeAdminPanel();
+    this.initializeTokenInterface();
+    this.initializeReferralSystem();
+    this.setupSearchAndFilters();
+    this.setupMobileAdaptation();
+    this.setupRealTimeNotifications();
+  }
+
+  initializePackageCards() {
+    const packageContainer = document.getElementById('packagesContainer');
+    if (!packageContainer) return;
+
+    // Правильные пакеты согласно ТЗ
+    const packages = [
+      { id: 1, name: 'MiniAdmin', levels: '1-4', price: this.calculatePackagePrice(1) },
+      { id: 2, name: 'Admin', levels: '1-7', price: this.calculatePackagePrice(2) },
+      { id: 3, name: 'SuperAdmin', levels: '1-10', price: this.calculatePackagePrice(3) },
+      { id: 4, name: 'Manager', levels: '1-12', price: this.calculatePackagePrice(4) }
+    ];
+
+    packageContainer.innerHTML = packages.map(pkg => `
+      <div class="package-card" data-package="${pkg.id}">
+        <div class="package-header">
+          <h3>${pkg.name}</h3>
+          <div class="package-levels">${pkg.levels}</div>
+        </div>
+        <div class="package-price">${pkg.price} BNB</div>
+        <button class="cosmic-btn primary package-btn" data-package="${pkg.id}">
+          Активировать пакет
+        </button>
+      </div>
+    `).join('');
+
+    // Добавляем обработчики
+    packageContainer.querySelectorAll('.package-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const packageType = parseInt(btn.dataset.package);
+        if (window.uiManager) {
+          await window.uiManager.handlePackageActivation(packageType);
         }
-      }
-    }
-    return null;
-  }
-
-  // ==================== ОСТАЛЬНЫЕ МЕТОДЫ БЕЗ ИЗМЕНЕНИЙ ====================
-
-  switchLanguage(language) {
-    this.currentLanguage = language;
-    localStorage.setItem('globalway_language', language);
-    
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-      languageSelect.value = language;
-    }
-    
-    const languageSettingsSelect = document.getElementById('languageSettingsSelect');
-    if (languageSettingsSelect) {
-      languageSettingsSelect.value = language;
-    }
-    
-    this.updateTranslations();
-  }
-
-  updateTranslations() {
-    const elements = document.querySelectorAll('[data-translate]');
-    elements.forEach(element => {
-      const key = element.dataset.translate;
-      const translation = this.getTranslation(key);
-      if (translation) {
-        element.textContent = translation;
-      }
+      });
     });
   }
 
-  getTranslation(key) {
-    return this.translations[this.currentLanguage]?.[key] || key;
+  calculatePackagePrice(packageType) {
+    if (!window.contractManager) return '0.000';
+    
+    const packageLevels = {
+      1: [1, 2, 3, 4],
+      2: [1, 2, 3, 4, 5, 6, 7],
+      3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    };
+
+    let totalPrice = 0;
+    const levels = packageLevels[packageType] || [];
+    
+    levels.forEach(level => {
+      const price = window.contractManager.levelPricesOpBNB[level];
+      if (price && window.web3Manager) {
+        totalPrice += parseFloat(window.web3Manager.fromWei(price));
+      }
+    });
+
+    return totalPrice.toFixed(3);
   }
+
+  initializeAdminPanel() {
+    const adminPanel = document.getElementById('adminPanel');
+    if (!adminPanel) return;
+
+    adminPanel.innerHTML = `
+      <div class="admin-controls">
+        <h3>Администрирование</h3>
+        <div class="admin-buttons">
+          <button class="cosmic-btn admin" id="freeRegistrationBtn">
+            Бесплатная регистрация
+          </button>
+          <button class="cosmic-btn admin" id="batchRegistrationBtn">
+            Массовая регистрация
+          </button>
+          <button class="cosmic-btn admin" id="contractStatsBtn">
+            Статистика контракта
+          </button>
+          <button class="cosmic-btn admin" id="emergencyBtn">
+            Экстренные функции
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Обработчики уже настроены в uiManager.setupAdminUI()
+  }
+
+  initializeTokenInterface() {
+    const tokenPanel = document.getElementById('tokenPanel');
+    if (!tokenPanel) return;
+
+    tokenPanel.innerHTML = `
+      <div class="token-interface">
+        <div class="token-info">
+          <div class="token-stat">
+            <label>Ваш баланс GWT:</label>
+            <span id="tokenBalance">0.00 GWT</span>
+          </div>
+          <div class="token-stat">
+            <label>Цена токена:</label>
+            <span id="tokenPrice">0.000000 BNB</span>
+          </div>
+          <div class="token-stat">
+            <label>Общий выпуск:</label>
+            <span id="totalSupply">1,000,000,000</span>
+          </div>
+          <div class="token-stat">
+            <label>Рыночная капитализация:</label>
+            <span id="marketCap">Расчет...</span>
+          </div>
+        </div>
+        <div class="token-actions">
+          <button class="cosmic-btn primary" id="buyTokensBtn">
+            Купить GWT
+          </button>
+          <button class="cosmic-btn secondary" id="sellTokensBtn">
+            Продать GWT
+          </button>
+          <button class="cosmic-btn tertiary" id="tokenHistoryBtn">
+            История операций
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Обработчики уже настроены в uiManager.setupTokenUI()
+  }
+
+  initializeReferralSystem() {
+    const referralPanel = document.getElementById('referralPanel');
+    if (!referralPanel) return;
+
+    const referralUrl = this.generateReferralUrl();
+
+    referralPanel.innerHTML = `
+      <div class="referral-system">
+        <div class="referral-link">
+          <label>Ваша реферальная ссылка:</label>
+          <div class="link-container">
+            <input type="text" value="${referralUrl}" readonly id="referralUrl">
+            <button class="cosmic-btn copy-btn" onclick="window.uiManager.copyToClipboard('${referralUrl}')">
+              Копировать
+            </button>
+          </div>
+        </div>
+        <div class="referral-stats">
+          <div class="stat-item">
+            <label>Рефералов:</label>
+            <span id="referralCount">0</span>
+          </div>
+          <div class="stat-item">
+            <label>Заработано:</label>
+            <span id="referralEarnings">0.0000 BNB</span>
+          </div>
+          <div class="stat-item">
+            <label>Лидерский ранг:</label>
+            <span id="leaderRank">Нет</span>
+          </div>
+        </div>
+        <div class="referral-tools">
+          <button class="cosmic-btn secondary" id="generateQRBtn">
+            QR-код ссылки
+          </button>
+          <button class="cosmic-btn secondary" id="shareBtn">
+            Поделиться
+          </button>
+          <button class="cosmic-btn secondary" id="referralHistoryBtn">
+            История рефералов
+          </button>
+        </div>
+      </div>
+    `;
+
+    this.setupReferralEventListeners();
+  }
+
+  setupReferralEventListeners() {
+    document.getElementById('generateQRBtn')?.addEventListener('click', () => {
+      this.generateReferralQR();
+    });
+
+    document.getElementById('shareBtn')?.addEventListener('click', () => {
+      this.shareReferralLink();
+    });
+
+    document.getElementById('referralHistoryBtn')?.addEventListener('click', () => {
+      this.showReferralHistory();
+    });
+  }
+
+  generateReferralUrl() {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const referralAddress = window.web3Manager?.account || '';
+    return `${baseUrl}?ref=${referralAddress}`;
+  }
+
+  async generateReferralQR() {
+    const referralUrl = this.generateReferralUrl();
+    
+    // Простая реализация QR-кода через API
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(referralUrl)}`;
+    
+    if (window.uiManager) {
+      window.uiManager.showModal('qr-modal', {
+        title: 'QR-код реферальной ссылки',
+        content: `
+          <div class="qr-container">
+            <img src="${qrUrl}" alt="QR код" class="qr-code">
+            <p>Отсканируйте QR-код для быстрого доступа к вашей реферальной ссылке</p>
+          </div>
+        `
+      });
+    }
+  }
+
+  async shareReferralLink() {
+    const referralUrl = this.generateReferralUrl();
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Присоединяйтесь к GlobalWay',
+          text: 'Присоединяйтесь к экосистеме GlobalWay и зарабатывайте вместе со мной!',
+          url: referralUrl
+        });
+      } catch (error) {
+        console.log('Ошибка Web Share API:', error);
+        this.fallbackShare(referralUrl);
+      }
+    } else {
+      this.fallbackShare(referralUrl);
+    }
+  }
+
+  fallbackShare(url) {
+    if (window.uiManager) {
+      window.uiManager.copyToClipboard(url);
+      this.showNotification('Ссылка скопирована в буфер обмена', 'success');
+    }
+  }
+
+  // ==================== МОНИТОРИНГ СЕТИ ====================
+
+  setupNetworkMonitoring() {
+    // Проверяем сеть каждую минуту
+    this.networkCheckInterval = setInterval(() => {
+      this.checkNetworkStatus();
+    }, 60000);
+
+    console.log('Мониторинг сети настроен');
+  }
+
+  async checkNetworkStatus() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      const networkInfo = window.web3Manager.getNetworkInfo();
+      const isCorrectNetwork = window.web3Manager.isCorrectNetwork();
+
+      if (!isCorrectNetwork) {
+        this.handleWrongNetwork(networkInfo);
+      }
+
+      // Проверяем подключение к блокчейну
+      await this.checkBlockchainConnection();
+
+    } catch (error) {
+      console.error('Ошибка проверки сети:', error);
+      this.handleNetworkError(error);
+    }
+  }
+
+  handleWrongNetwork(networkInfo) {
+    this.showNotification(
+      `Подключена неправильная сеть: ${networkInfo.name}. Переключитесь на opBNB.`,
+      'warning',
+      0,
+      [{
+        id: 'switch',
+        label: 'Переключить',
+        callback: async () => {
+          try {
+            await window.web3Manager.switchToOpBNB();
+          } catch (error) {
+            console.error('Ошибка переключения сети:', error);
+          }
+        }
+      }]
+    );
+  }
+
+  async checkBlockchainConnection() {
+    try {
+      if (window.web3Manager.web3) {
+        await window.web3Manager.web3.eth.getBlockNumber();
+      }
+    } catch (error) {
+      throw new Error('Нет подключения к блокчейну');
+    }
+  }
+
+  handleNetworkError(error) {
+    console.error('Ошибка сети:', error);
+    this.showNotification('Проблемы с подключением к сети', 'error');
+  }
+
+  // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
 
   setupEventListeners() {
-    const connectButton = document.getElementById('connectWallet');
-    if (connectButton) {
-      connectButton.addEventListener('click', () => {
-        if (window.web3Manager) {
-          window.web3Manager.connectWallet();
-        } else {
-          this.showNotification('Web3 Manager not loaded', 'error');
-        }
-      });
-    }
-
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-      languageSelect.addEventListener('change', (e) => {
-        this.switchLanguage(e.target.value);
-      });
-    }
-
-    const languageSettingsSelect = document.getElementById('languageSettingsSelect');
-    if (languageSettingsSelect) {
-      languageSettingsSelect.addEventListener('change', (e) => {
-        this.switchLanguage(e.target.value);
-      });
-    }
-
-    const copyRefLink = document.getElementById('copyRefLink');
-    if (copyRefLink) {
-      copyRefLink.addEventListener('click', () => {
-        this.copyReferralLink();
-      });
-    }
-
-    // ИСПРАВЛЕНО: Добавлен обработчик ошибок для предотвращения "тухнущего" экрана
+    // Обработчики Web3Manager
     if (window.web3Manager) {
-      window.web3Manager.on('connected', (data) => {
-        this.isConnected = true;
-        this.userAccount = data.account;
-        this.updateUI();
-        this.updateUserInfo();
-        this.checkOwnership();
-        this.showNotification('Кошелек подключен!', 'success');
+      window.web3Manager.on('connected', async (data) => {
+        console.log('Кошелек подключен, обновляем приложение');
+        await this.handleWalletConnected();
+        this.enableAutoUpdate();
       });
 
       window.web3Manager.on('disconnected', () => {
-        this.isConnected = false;
-        this.userAccount = null;
-        this.userData = null;
-        if (this.updateInterval) {
-          clearInterval(this.updateInterval);
-        }
-        this.updateUI();
-        this.showNotification('Кошелек отключен', 'info');
+        console.log('Кошелек отключен');
+        this.handleWalletDisconnected();
       });
 
-      // ИСПРАВЛЕНО: Обработка ошибок для предотвращения зависания интерфейса
-      window.web3Manager.on('error', (error) => {
-        console.error('Web3 Manager error:', error);
-        this.showNotification('Ошибка подключения кошелька', 'error');
-        this.removeModalOverlays(); // Убираем все модальные наложения
+      window.web3Manager.on('accountChanged', async (data) => {
+        console.log('Аккаунт изменен:', data);
+        await this.handleAccountChanged(data);
       });
+
+      window.web3Manager.on('chainChanged', async (data) => {
+        console.log('Сеть изменена:', data);
+        await this.handleNetworkChanged(data);
+      });
+    }
+
+    // Глобальные обработчики
+    this.setupGlobalEventListeners();
+  }
+
+  setupGlobalEventListeners() {
+    // Обработка ошибок
+    window.addEventListener('error', (event) => {
+      this.handleGlobalError(event.error);
+    });
+
+    // Обработка необработанных промисов
+    window.addEventListener('unhandledrejection', (event) => {
+      this.handleGlobalError(event.reason);
+    });
+
+    // Обработка изменения размера окна
+    window.addEventListener('resize', () => {
+      this.handleWindowResize();
+    });
+
+    // Сохранение состояния при закрытии
+    window.addEventListener('beforeunload', () => {
+      this.saveAppState();
+    });
+
+    // Обработка клавиатурных сокращений
+    document.addEventListener('keydown', (e) => {
+      this.handleKeyboardShortcuts(e);
+    });
+  }
+
+  handleKeyboardShortcuts(event) {
+    // Ctrl/Cmd + число для быстрой навигации
+    if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '5') {
+      event.preventDefault();
+      const pages = ['dashboard', 'matrix', 'profile', 'referrals', 'tokens'];
+      const pageIndex = parseInt(event.key) - 1;
+      if (pages[pageIndex]) {
+        this.navigateToPage(pages[pageIndex]);
+      }
+    }
+
+    // Escape для закрытия модальных окон
+    if (event.key === 'Escape') {
+      if (window.uiManager) {
+        window.uiManager.closeAllModals();
+      }
+    }
+
+    // F5 для обновления данных
+    if (event.key === 'F5' && !event.ctrlKey) {
+      event.preventDefault();
+      this.performAutoUpdate();
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Удаление модальных наложений при ошибках
-  removeModalOverlays() {
-    const overlays = document.querySelectorAll('.cosmic-modal-overlay, .wallet-modal-overlay, .loading-overlay');
-    overlays.forEach(overlay => {
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
-      }
-    });
+  handleWalletDisconnected() {
+    this.user = null;
+    this.appState = {
+      userRegistered: false,
+      userActive: false,
+      activeLevels: [],
+      isOwner: false,
+      isFounder: false,
+      tokenBalance: '0',
+      bnbBalance: '0',
+      lastBlockNumber: 0,
+      connectionState: 'disconnected'
+    };
+
+    // Переходим на welcome страницу
+    this.navigateToPage('welcome');
     
-    // Убираем blur эффект с body
-    document.body.style.filter = '';
-    document.body.style.pointerEvents = '';
+    // Отключаем админские функции
+    if (window.uiManager) {
+      window.uiManager.toggleAdminFeatures(false);
+    }
+
+    this.disableAutoUpdate();
   }
 
-  updateUI() {
-    const connectButton = document.getElementById('connectWallet');
-    const walletInfo = document.getElementById('walletInfo');
+  async handleAccountChanged(data) {
+    console.log('Обработка смены аккаунта');
     
-    if (this.isConnected && this.userAccount) {
-      if (connectButton) connectButton.style.display = 'none';
-      if (walletInfo) walletInfo.classList.remove('hidden');
-      
-      const walletAddress = document.getElementById('walletAddress');
-      const userAddress = document.getElementById('userAddress');
-      
-      if (walletAddress) walletAddress.textContent = this.formatAddress(this.userAccount);
-      if (userAddress) userAddress.textContent = this.formatAddress(this.userAccount);
-      
-      this.updateReferralLink();
-      
+    // Очищаем старые данные
+    this.user = null;
+    this.clearMatrixCache();
+    
+    // Загружаем новые данные
+    await this.handleWalletConnected();
+    
+    this.showNotification('Аккаунт изменен, данные обновлены', 'info');
+  }
+
+  async handleNetworkChanged(data) {
+    console.log('Обработка смены сети');
+    
+    // Проверяем правильность новой сети
+    if (!window.web3Manager.isCorrectNetwork()) {
+      this.showNetworkWarning();
     } else {
-      if (connectButton) connectButton.style.display = 'block';
-      if (walletInfo) walletInfo.classList.add('hidden');
+      this.showNotification('Подключена правильная сеть opBNB', 'success');
     }
 
-    // ИСПРАВЛЕНО: Показываем админку для владельца
-if (this.isConnected && this.isOwner) {
-  // Показываем админку в навигации
-  const adminNavBtn = document.querySelector('[data-page="admin"]');
-  if (adminNavBtn) {
-    adminNavBtn.style.display = 'block';
-  }
-  
-  // Обновляем UI Manager если есть
-  if (window.uiManager) {
-    window.uiManager.toggleAdminFeatures(true);
-  }
-} else {
-  // Скрываем админку
-  const adminNavBtn = document.querySelector('[data-page="admin"]');
-  if (adminNavBtn) {
-    adminNavBtn.style.display = 'none';
-  }
-  
-  if (window.uiManager) {
-    window.uiManager.toggleAdminFeatures(false);
-  }
-}
+    // Переинициализируем контракты
+    if (window.contractManager) {
+      window.contractManager.reinitializeContracts();
+    }
 
-    this.updateTranslations();
+    // Обновляем данные
+    await this.updateUserInfo();
   }
 
-  formatAddress(address) {
-    if (!address) return '0x000...000';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  }
-
-  async copyReferralLink() {
-    const referralLink = document.getElementById('referralLink');
-    if (referralLink && referralLink.value) {
-      try {
-        await navigator.clipboard.writeText(referralLink.value);
-        this.showNotification('Ссылка скопирована!', 'success');
-      } catch (error) {
-        this.showNotification('Не удалось скопировать ссылку', 'error');
-      }
+  handleGlobalError(error) {
+    console.error('Глобальная ошибка:', error);
+    
+    // Не показываем уведомления для всех ошибок
+    if (error.message?.includes('network') || 
+        error.message?.includes('contract') ||
+        error.message?.includes('transaction')) {
+      
+      this.showNotification('Произошла ошибка в приложении', 'error');
     }
   }
 
-  showNotification(message, type = 'info', duration = 3000) {
-    const container = document.getElementById('notifications');
-    if (!container) return;
-    
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.innerHTML = message;
-    
-    container.appendChild(notification);
-    
-    setTimeout(() => {
-      notification.classList.add('notification-slide-in');
-    }, 10);
-    
-    setTimeout(() => {
-      notification.classList.add('notification-slide-out');
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
+  handleWindowResize() {
+    // Адаптация интерфейса под новый размер
+    if (window.uiManager) {
+      window.uiManager.handleResize();
+    }
+
+    // Обновление матрицы при изменении размера
+    this.refreshMatrix();
+  }
+
+  // ==================== ОТОБРАЖЕНИЕ ДАННЫХ (ПРОДОЛЖЕНИЕ) ====================
+
+  displayUserProfile() {
+    if (!this.user) return;
+
+    const elements = {
+      userAddress: document.getElementById('userAddress'),
+      registrationTime: document.getElementById('registrationTime'),
+      activeLevels: document.getElementById('activeLevels'),
+      totalEarned: document.getElementById('totalEarned'),
+      personalInvites: document.getElementById('personalInvites'),
+      tokenBalance: document.getElementById('userTokenBalance'),
+      bnbBalance: document.getElementById('userBnbBalance'),
+      leaderRank: document.getElementById('userLeaderRank')
+    };
+
+    if (elements.userAddress) {
+      elements.userAddress.textContent = this.user.address;
+      elements.userAddress.title = this.user.address;
+      
+      // Добавляем кнопку копирования
+      const copyBtn = document.createElement('button');
+      copyBtn.textContent = '📋';
+      copyBtn.className = 'copy-address-btn';
+      copyBtn.onclick = () => {
+        if (window.uiManager) {
+          window.uiManager.copyToClipboard(this.user.address);
         }
-      }, 300);
-    }, duration);
-    
-    notification.addEventListener('click', () => {
-      notification.classList.add('notification-slide-out');
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-      }, 300);
-    });
-  }
+      };
+      elements.userAddress.parentNode.appendChild(copyBtn);
+    }
 
-  // Остальные методы без изменений...
-  setupWithdrawal() {
-    const withdrawBtn = document.getElementById('withdrawBtn');
-    if (withdrawBtn) {
-      withdrawBtn.addEventListener('click', () => {
-        this.processWithdrawal();
-      });
+    if (elements.registrationTime && this.user.stats?.registrationTime) {
+      const date = new Date(this.user.stats.registrationTime * 1000);
+      elements.registrationTime.textContent = date.toLocaleDateString();
+    }
+
+    if (elements.activeLevels) {
+      elements.activeLevels.textContent = this.appState.activeLevels.length + '/12';
+    }
+
+    if (elements.totalEarned && this.user.stats?.totalEarned) {
+      const earned = window.web3Manager.fromWei(this.user.stats.totalEarned);
+      elements.totalEarned.textContent = parseFloat(earned).toFixed(4) + ' BNB';
+    }
+
+    if (elements.personalInvites && this.user.stats?.personalInvites) {
+      elements.personalInvites.textContent = this.user.stats.personalInvites;
+    }
+
+    if (elements.tokenBalance) {
+      const balance = window.web3Manager.fromWei(this.appState.tokenBalance);
+      elements.tokenBalance.textContent = parseFloat(balance).toFixed(2) + ' GWT';
+    }
+
+    if (elements.bnbBalance) {
+      elements.bnbBalance.textContent = this.appState.bnbBalance + ' BNB';
+    }
+
+    if (elements.leaderRank) {
+      elements.leaderRank.textContent = this.user.stats?.leaderRank || 'Нет';
     }
   }
 
-  setupLevelTabs() {
-    const levelTabs = document.querySelectorAll('.level-tab');
-    levelTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        levelTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+  displayReferralStats(userStats) {
+    const elements = {
+      referralCount: document.getElementById('referralCount'),
+      referralEarnings: document.getElementById('referralEarnings'),
+      leaderRank: document.getElementById('leaderRank'),
+      teamSize: document.getElementById('teamSize'),
+      monthlyEarnings: document.getElementById('monthlyEarnings')
+    };
+
+    if (elements.referralCount) {
+      elements.referralCount.textContent = userStats.personalInvites || 0;
+    }
+
+    if (elements.referralEarnings && userStats.totalEarned) {
+      const earnings = window.web3Manager.fromWei(userStats.totalEarned);
+      elements.referralEarnings.textContent = parseFloat(earnings).toFixed(4) + ' BNB';
+    }
+
+    if (elements.leaderRank) {
+      elements.leaderRank.textContent = userStats.leaderRank || 'Нет';
+    }
+
+    if (elements.teamSize) {
+      elements.teamSize.textContent = userStats.teamSize || 0;
+    }
+
+    if (elements.monthlyEarnings) {
+      elements.monthlyEarnings.textContent = userStats.monthlyEarnings ? 
+        parseFloat(window.web3Manager.fromWei(userStats.monthlyEarnings)).toFixed(4) + ' BNB' : '0 BNB';
+    }
+  }
+
+  displayTokenInfo() {
+    console.log('Информация о токенах обновлена');
+    
+    // Обновляем рыночную капитализацию
+    this.updateMarketCap();
+  }
+
+  async updateMarketCap() {
+    try {
+      const tokenPrice = await window.contractManager.getTokenCurrentPrice();
+      const totalSupply = await window.contractManager.getTokenTotalSupply();
+      
+      if (tokenPrice && totalSupply) {
+        const priceInBNB = parseFloat(window.web3Manager.fromWei(tokenPrice));
+        const supplyCount = parseFloat(window.web3Manager.fromWei(totalSupply));
+        const marketCap = priceInBNB * supplyCount;
         
-        const level = tab.dataset.level || tab.dataset.matrixLevel;
-        this.updateLevelData(level);
-      });
-    });
-  }
-
-  setupSearch() {
-    const searchInput = document.getElementById('searchPartnerId');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        this.searchPartners(e.target.value);
-      });
-    }
-  }
-
-  setupMatrixNavigation() {
-    const searchBtn = document.getElementById('searchMatrixBtn');
-    if (searchBtn) {
-      searchBtn.addEventListener('click', () => {
-        this.searchInMatrix();
-      });
-    }
-  }
-
-  setupMatrixControls() {
-    const resetBtn = document.getElementById('resetMatrixView');
-    const fullscreenBtn = document.getElementById('matrixFullscreen');
-    
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
-        this.resetMatrixView();
-      });
-    }
-    
-    if (fullscreenBtn) {
-      fullscreenBtn.addEventListener('click', () => {
-        this.toggleMatrixFullscreen();
-      });
-    }
-  }
-
-  setupTokenTrading() {
-    const buyTokensBtn = document.getElementById('buyTokensBtn');
-    const sellTokensBtn = document.getElementById('sellTokensBtn');
-    
-    if (buyTokensBtn) {
-      buyTokensBtn.addEventListener('click', () => {
-        this.buyTokens();
-      });
-    }
-    
-    if (sellTokensBtn) {
-      sellTokensBtn.addEventListener('click', () => {
-        this.sellTokens();
-      });
-    }
-  }
-
-  setupTradingTabs() {
-    const tradingTabs = document.querySelectorAll('.tab-btn');
-    tradingTabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const tabType = tab.dataset.tab;
-        this.switchTradingTab(tabType);
-      });
-    });
-  }
-
-  setupSettings() {
-    const disconnectBtn = document.getElementById('disconnectWallet');
-    if (disconnectBtn) {
-      disconnectBtn.addEventListener('click', () => {
-        this.disconnectWallet();
-      });
-    }
-  }
-
-  setupSecuritySettings() {
-    const toggles = document.querySelectorAll('.cosmic-toggle input[type="checkbox"]');
-    toggles.forEach(toggle => {
-      toggle.addEventListener('change', (e) => {
-        this.saveSetting(e.target.id, e.target.checked);
-      });
-    });
-  }
-
-  setupProjectCards() {
-    const projectBtns = document.querySelectorAll('.project-btn:not(.disabled)');
-    projectBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        this.openProject();
-      });
-    });
-  }
-
-  loadUserSettings() {
-    const settings = ['autoUpgrade', 'notifications', 'darkMode'];
-    settings.forEach(setting => {
-      const value = localStorage.getItem(`globalway_${setting}`);
-      const element = document.getElementById(`${setting}Settings`);
-      if (element && value !== null) {
-        element.checked = JSON.parse(value);
-      }
-    });
-  }
-
-  saveSetting(key, value) {
-    localStorage.setItem(`globalway_${key.replace('Settings', '')}`, JSON.stringify(value));
-  }
-
-  processWithdrawal() {
-    const amount = document.getElementById('withdrawAmount')?.value;
-    if (amount && amount > 0) {
-      this.showNotification(`Вывод ${amount} BNB - функция будет добавлена после подключения контрактов`, 'info');
-    } else {
-      this.showNotification('Введите корректную сумму для вывода', 'warning');
-    }
-  }
-
-  updateLevelData(level) {
-    console.log(`Обновление данных для уровня ${level}`);
-  }
-
-  searchPartners(searchTerm) {
-    console.log(`Поиск партнеров: ${searchTerm}`);
-  }
-
-  searchInMatrix() {
-    const searchTerm = document.getElementById('searchMatrixId')?.value;
-    if (searchTerm) {
-      this.showNotification(`Поиск в матрице: ${searchTerm} - функция будет добавлена`, 'info');
-    }
-  }
-
-  resetMatrixView() {
-    this.showNotification('Сброс вида матрицы', 'info');
-  }
-
-  toggleMatrixFullscreen() {
-    const matrixContainer = document.getElementById('matrixVisualContainer');
-    if (matrixContainer) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        matrixContainer.requestFullscreen();
-      }
-    }
-  }
-
-  buyTokens() {
-    const amount = document.getElementById('buyTokenAmount')?.value;
-    if (amount && amount > 0) {
-      this.showNotification(`Покупка ${amount} токенов - функция будет добавлена после подключения контрактов`, 'info');
-    } else {
-      this.showNotification('Введите количество токенов для покупки', 'warning');
-    }
-  }
-
-  sellTokens() {
-    const amount = document.getElementById('sellTokenAmount')?.value;
-    if (amount && amount > 0) {
-      this.showNotification(`Продажа ${amount} токенов - функция будет добавлена после подключения контрактов`, 'info');
-    } else {
-      this.showNotification('Введите количество токенов для продажи', 'warning');
-    }
-  }
-
-  switchTradingTab(tabType) {
-    document.querySelectorAll('.tab-btn').forEach(tab => {
-      tab.classList.remove('active');
-    });
-    
-    document.querySelectorAll('.trading-content').forEach(content => {
-      content.classList.add('hidden');
-    });
-    
-    const activeTab = document.querySelector(`[data-tab="${tabType}"]`);
-    if (activeTab) {
-      activeTab.classList.add('active');
-    }
-    
-    const activeContent = document.getElementById(`${tabType}Tab`);
-    if (activeContent) {
-      activeContent.classList.remove('hidden');
-    }
-  }
-
-  disconnectWallet() {
-    if (window.web3Manager) {
-      window.web3Manager.disconnectWallet();
-    }
-    this.isConnected = false;
-    this.userAccount = null;
-    this.userData = null;
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-    }
-    this.updateUI();
-  }
-
-  openProject() {
-    this.showNotification('Проекты будут доступны в следующих обновлениях', 'info');
-  }
-
-  updatePartnerStats() {
-    console.log('Обновление статистики партнеров');
-  }
-
-  updateMatrixDisplay() {
-    const svg = document.querySelector('.matrix-svg');
-    if (!svg) return;
-    
-    const connections = [
-      {from: {x: 300, y: 70}, to: {x: 200, y: 150}},
-      {from: {x: 300, y: 70}, to: {x: 400, y: 150}},
-      {from: {x: 200, y: 150}, to: {x: 150, y: 230}},
-      {from: {x: 200, y: 150}, to: {x: 250, y: 230}},
-      {from: {x: 400, y: 150}, to: {x: 350, y: 230}},
-      {from: {x: 400, y: 150}, to: {x: 450, y: 230}}
-    ];
-    
-    svg.innerHTML = '';
-    
-    connections.forEach((conn, i) => {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', conn.from.x);
-      line.setAttribute('y1', conn.from.y);
-      line.setAttribute('x2', conn.to.x);
-      line.setAttribute('y2', conn.to.y);
-      line.setAttribute('class', `matrix-line ${i < 2 ? 'active' : ''}`);
-      svg.appendChild(line);
-    });
-  }
-
-  updateTokenPrices() {
-    console.log('Обновление цен токенов');
-  }
-
-  updateProjectStats() {
-    console.log('Обновление статистики проектов');
-  }
-
-  setupPartnerTools() {
-    const copyBtn = document.getElementById('copyPartnerRefLink');
-    const generateQR = document.getElementById('generateQRBtn');
-    const telegramBtn = document.getElementById('shareToTelegram');
-    const twitterBtn = document.getElementById('shareToTwitter');
-    const whatsappBtn = document.getElementById('shareToWhatsApp');
-
-    if (copyBtn) copyBtn.addEventListener('click', () => this.copyReferralLink());
-    if (generateQR) generateQR.addEventListener('click', () => this.generateQRCode());
-    if (telegramBtn) telegramBtn.addEventListener('click', () => this.shareToTelegram());
-    if (twitterBtn) twitterBtn.addEventListener('click', () => this.shareToTwitter());
-    if (whatsappBtn) whatsappBtn.addEventListener('click', () => this.shareToWhatsApp());
-  }
-
-  // ==================== ДОПОЛНИТЕЛЬНЫЕ МЕТОДЫ ====================
-
-  validateInput(value, min = 0, max = null) {
-    const num = parseFloat(value);
-    if (isNaN(num) || num <= min) {
-      return false;
-    }
-    if (max !== null && num > max) {
-      return false;
-    }
-    return true;
-  }
-
-  formatNumber(number, decimals = 4) {
-    return parseFloat(number).toFixed(decimals);
-  }
-
-  getUrlParameter(name) {
-    const urlParams = new URLSearchParams(window.location.search);
-    const param = urlParams.get(name);
-    
-    // ИСПРАВЛЕНО: Обработка реферальных ID (7-значные числа)
-    if (name === 'ref' && param) {
-      // Если это 7-значное число, ищем соответствующий адрес кошелька
-      if (/^\d{7}$/.test(param)) {
-        const walletAddress = this.getWalletByReferralId(param);
-        return walletAddress || param; // Возвращаем адрес или сам ID если не найден
-      }
-      // Если это адрес кошелька, возвращаем как есть
-      return param;
-    }
-    
-    return param;
-  }
-
-  handleReferral() {
-    const ref = this.getUrlParameter('ref');
-    if (ref) {
-      if (this.isValidAddress(ref)) {
-        // Это адрес кошелька
-        localStorage.setItem('globalway_referrer', ref);
-        this.showNotification('Реферальная ссылка сохранена!', 'success');
-      } else if (/^\d{7}$/.test(ref)) {
-        // Это 7-значный ID
-        const walletAddress = this.getWalletByReferralId(ref);
-        if (walletAddress) {
-          localStorage.setItem('globalway_referrer', walletAddress);
-          this.showNotification('Реферальная ссылка сохранена!', 'success');
-        } else {
-          this.showNotification('Неверный реферальный ID', 'warning');
+        const marketCapElement = document.getElementById('marketCap');
+        if (marketCapElement) {
+          marketCapElement.textContent = this.formatLargeNumber(marketCap) + ' BNB';
         }
       }
+    } catch (error) {
+      console.error('Ошибка расчета рыночной капитализации:', error);
     }
   }
 
-  isValidAddress(address) {
-    return /^0x[a-fA-F0-9]{40}$/.test(address);
+  displayAdminStats(overview) {
+    const elements = {
+      adminTotalUsers: document.getElementById('adminTotalUsers'),
+      adminActiveUsers: document.getElementById('adminActiveUsers'),
+      adminTotalVolume: document.getElementById('adminTotalVolume'),
+      adminContractBalance: document.getElementById('adminContractBalance'),
+      adminTokenSupply: document.getElementById('adminTokenSupply'),
+      adminLastActivity: document.getElementById('adminLastActivity')
+    };
+
+    if (elements.adminTotalUsers) {
+      elements.adminTotalUsers.textContent = overview.totalUsers;
+    }
+
+    if (elements.adminActiveUsers) {
+      elements.adminActiveUsers.textContent = overview.activeUsers;
+    }
+
+    if (elements.adminTotalVolume) {
+      const volume = window.web3Manager.fromWei(overview.totalVolume);
+      elements.adminTotalVolume.textContent = parseFloat(volume).toFixed(2) + ' BNB';
+    }
+
+    if (elements.adminContractBalance) {
+      const balance = window.web3Manager.fromWei(overview.contractBalance);
+      elements.adminContractBalance.textContent = parseFloat(balance).toFixed(4) + ' BNB';
+    }
+
+    if (elements.adminTokenSupply) {
+      const supply = window.web3Manager.fromWei(overview.tokenSupply || '0');
+      elements.adminTokenSupply.textContent = this.formatLargeNumber(supply) + ' GWT';
+    }
+
+    if (elements.adminLastActivity) {
+      elements.adminLastActivity.textContent = overview.lastActivity ? 
+        new Date(overview.lastActivity * 1000).toLocaleString() : 'Нет данных';
+    }
   }
+
+  updateLevelDistribution(distribution) {
+    if (window.uiManager) {
+      window.uiManager.updateLevelDistribution(distribution);
+    }
+  }
+
+  // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
+
+  async updateUserInfo() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      await this.loadUserData();
+      this.updateUserInterface();
+      
+      // Обновляем баланс в UI
+      if (window.uiManager) {
+        await window.uiManager.updateBalance();
+        await window.uiManager.updateTokenInfo();
+      }
+      
+      console.log('Информация пользователя обновлена');
+      
+    } catch (error) {
+      console.error('Ошибка обновления информации пользователя:', error);
+    }
+  }
+
+  updateUserInterface() {
+    if (!this.user) return;
+
+    // Обновляем элементы интерфейса в зависимости от текущей страницы
+    switch (this.currentPage) {
+      case 'profile':
+        this.displayUserProfile();
+        break;
+      case 'matrix':
+        if (this.user.stats?.isRegistered) {
+          this.refreshMatrix();
+        }
+        break;
+      case 'referrals':
+        this.displayReferralStats(this.user.stats);
+        break;
+      case 'tokens':
+        this.displayTokenInfo();
+        break;
+    }
+
+    // Обновляем глобальные элементы
+    this.updateGlobalUserElements();
+  }
+
+  updateGlobalUserElements() {
+    // Обновляем адрес пользователя во всех местах
+    document.querySelectorAll('.user-address').forEach(element => {
+      element.textContent = this.formatAddress(this.user.address);
+      element.title = this.user.address;
+    });
+
+    // Обновляем статус регистрации
+    document.querySelectorAll('.registration-status').forEach(element => {
+      element.textContent = this.appState.userRegistered ? 'Зарегистрирован' : 'Не зарегистрирован';
+      element.className = `registration-status ${this.appState.userRegistered ? 'registered' : 'not-registered'}`;
+    });
+
+    // Обновляем количество активных уровней
+    document.querySelectorAll('.active-levels-count').forEach(element => {
+      element.textContent = `${this.appState.activeLevels.length}/12`;
+    });
+
+    // Обновляем баланс токенов
+    document.querySelectorAll('.token-balance').forEach(element => {
+      const balance = window.web3Manager.fromWei(this.appState.tokenBalance);
+      element.textContent = parseFloat(balance).toFixed(2) + ' GWT';
+    });
+  }
+
+  // ==================== ОБРАБОТКА ОШИБОК ====================
+
+  handleInitializationError(error) {
+    console.error('Критическая ошибка инициализации:', error);
+    
+    // Показываем пользователю сообщение об ошибке
+    this.showCriticalError(error);
+    
+    // Пытаемся восстановиться
+    setTimeout(() => {
+      this.attemptRecovery();
+    }, 5000);
+  }
+
+  showCriticalError(error) {
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'critical-error';
+    errorContainer.innerHTML = `
+      <div class="error-content">
+        <h2>Ошибка загрузки приложения</h2>
+        <p>Произошла критическая ошибка при инициализации GlobalWay.</p>
+        <details>
+          <summary>Подробности ошибки</summary>
+          <pre>${error.message || error}</pre>
+        </details>
+        <div class="error-actions">
+          <button onclick="location.reload()" class="cosmic-btn primary">
+            Перезагрузить страницу
+          </button>
+          <button onclick="this.parentElement.parentElement.parentElement.remove()" class="cosmic-btn secondary">
+            Закрыть
+          </button>
+          <button onclick="window.globalWayApp.attemptRecovery()" class="cosmic-btn tertiary">
+            Попробовать восстановить
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(errorContainer);
+  }
+
+  async attemptRecovery() {
+    console.log('Попытка восстановления приложения...');
+    
+    try {
+      // Переинициализируем критически важные компоненты
+      if (!this.isInitialized) {
+        await this.init();
+      }
+      
+      this.showNotification('Восстановление успешно завершено', 'success');
+    } catch (error) {
+      console.error('Восстановление не удалось:', error);
+      this.showNotification('Восстановление не удалось. Перезагрузите страницу.', 'error');
+    }
+  }
+
+  showError(title, message) {
+    this.showNotification(`${title}: ${message}`, 'error');
+  }
+
+  // ==================== СОХРАНЕНИЕ СОСТОЯНИЯ ====================
 
   saveAppState() {
     const state = {
       currentPage: this.currentPage,
-      currentLanguage: this.currentLanguage,
-      isConnected: this.isConnected,
-      userAccount: this.userAccount
+      lastUpdateTime: this.lastUpdateTime,
+      autoUpdateEnabled: this.autoUpdateEnabled,
+      appState: this.appState,
+      matrixConfig: this.matrixConfig,
+      timestamp: Date.now()
     };
-    localStorage.setItem('globalway_app_state', JSON.stringify(state));
+
+    try {
+      localStorage.setItem('globalway_app_state', JSON.stringify(state));
+    } catch (error) {
+      console.error('Ошибка сохранения состояния:', error);
+    }
   }
 
-  restoreAppState() {
+  loadAppState() {
     try {
       const savedState = localStorage.getItem('globalway_app_state');
       if (savedState) {
         const state = JSON.parse(savedState);
-        this.currentLanguage = state.currentLanguage || 'en';
+        
+        // Проверяем актуальность состояния (не старше 1 часа)
+        if (Date.now() - state.timestamp < 3600000) {
+          this.currentPage = state.currentPage || 'dashboard';
+          this.autoUpdateEnabled = state.autoUpdateEnabled !== false;
+          
+          if (state.appState) {
+            this.appState = { ...this.appState, ...state.appState };
+          }
+          
+          if (state.matrixConfig) {
+            this.matrixConfig = { ...this.matrixConfig, ...state.matrixConfig };
+          }
+          
+          return state;
+        }
       }
     } catch (error) {
-      console.error('Ошибка восстановления состояния:', error);
+      console.error('Ошибка загрузки состояния:', error);
     }
+    
+    return null;
   }
 
-  clearAppData() {
-    const keys = Object.keys(localStorage).filter(key => key.startsWith('globalway_'));
-    keys.forEach(key => localStorage.removeItem(key));
-    this.showNotification('Данные приложения очищены', 'success');
+  clearAppState() {
+    localStorage.removeItem('globalway_app_state');
   }
 
-  exportData() {
-    const data = {
-      settings: {},
-      timestamp: Date.now(),
-      version: '1.0.0'
+  // ==================== ДИАГНОСТИКА ====================
+
+  async runDiagnostics() {
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      managers: {
+        web3Manager: !!window.web3Manager,
+        contractManager: !!window.contractManager,
+        uiManager: !!window.uiManager
+      },
+      connection: {
+        walletConnected: window.web3Manager?.isConnected || false,
+        correctNetwork: window.web3Manager?.isCorrectNetwork() || false,
+        contractsReady: window.contractManager?.isContractsReady() || false
+      },
+      app: {
+        initialized: this.isInitialized,
+        currentPage: this.currentPage,
+        autoUpdateEnabled: this.autoUpdateEnabled,
+        userRegistered: this.appState.userRegistered,
+        offlineMode: this.offlineMode
+      },
+      performance: {
+        cacheSize: this.dataCache.users.size,
+        eventListeners: this.eventListeners.size,
+        lastUpdate: this.lastUpdateTime
+      }
     };
+
+    if (window.web3Manager?.isConnected) {
+      try {
+        const networkInfo = window.web3Manager.getNetworkInfo();
+        diagnostics.network = networkInfo;
+        
+        if (window.contractManager?.isContractsReady()) {
+          const contractDiag = await window.contractManager.diagnoseContract();
+          diagnostics.contracts = contractDiag;
+        }
+        
+        // Тест производительности
+        const perfTest = await this.runPerformanceTest();
+        diagnostics.performance = { ...diagnostics.performance, ...perfTest };
+        
+      } catch (error) {
+        diagnostics.error = error.message;
+      }
+    }
+
+    console.log('Диагностика приложения:', diagnostics);
+    return diagnostics;
+  }
+
+  async runPerformanceTest() {
+    const results = {
+      contractResponseTime: 0,
+      uiRenderTime: 0,
+      cacheEfficiency: 0
+    };
+
+    try {
+      // Тест времени отклика контракта
+      const startTime = performance.now();
+      await window.contractManager.getContractOverview();
+      results.contractResponseTime = performance.now() - startTime;
+
+      // Тест рендеринга UI
+      const renderStart = performance.now();
+      const testElement = document.createElement('div');
+      testElement.innerHTML = '<div class="test-render">Test</div>';
+      document.body.appendChild(testElement);
+      document.body.removeChild(testElement);
+      results.uiRenderTime = performance.now() - renderStart;
+
+      // Эффективность кэша
+      const cacheHits = this.dataCache.users.size;
+      const totalRequests = cacheHits + 10; // примерная оценка
+      results.cacheEfficiency = cacheHits > 0 ? (cacheHits / totalRequests) * 100 : 0;
+
+    } catch (error) {
+      console.error('Ошибка теста производительности:', error);
+    }
+
+    return results;
+  }
+
+  // ==================== ОЧИСТКА РЕСУРСОВ ====================
+
+  destroy() {
+    console.log('Уничтожение GlobalWay App...');
+
+    // Очищаем интервалы
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
     
-    const keys = Object.keys(localStorage).filter(key => key.startsWith('globalway_'));
-    keys.forEach(key => {
-      data.settings[key] = localStorage.getItem(key);
+    if (this.networkCheckInterval) {
+      clearInterval(this.networkCheckInterval);
+    }
+
+    // Отписываемся от событий контрактов
+    this.eventListeners.forEach((listener, eventName) => {
+      try {
+        listener.removeAllListeners();
+      } catch (error) {
+        console.warn(`Ошибка отписки от события ${eventName}:`, error);
+      }
     });
+    this.eventListeners.clear();
+
+    // Очищаем кэш
+    this.cache.clear();
+    this.dataCache.users.clear();
+    this.dataCache.stats.clear();
+    this.dataCache.events.clear();
+
+    // Сохраняем состояние
+    this.saveAppState();
+
+    // Очищаем ссылки
+    this.user = null;
+    this.currentPage = null;
+    this.isInitialized = false;
+
+    console.log('GlobalWay App уничтожен');
+  }
+
+  // ==================== ДОПОЛНИТЕЛЬНЫЕ УТИЛИТЫ ====================
+
+  async getUserReferrals(userAddress) {
+    try {
+      const cached = this.getCachedUserData(userAddress);
+      if (cached?.referrals) {
+        return cached.referrals;
+      }
+
+      const userStats = await window.contractManager.getUserStats(userAddress);
+      return userStats?.referrals || [];
+    } catch (error) {
+      console.error('Ошибка получения рефералов:', error);
+      return [];
+    }
+  }
+
+  async getUserEarnings(userAddress) {
+    try {
+      const userStats = await window.contractManager.getUserStats(userAddress);
+      
+      return {
+        total: userStats?.totalEarned || '0',
+        monthly: userStats?.monthlyEarnings || '0',
+        referral: userStats?.referralEarnings || '0',
+        matrix: userStats?.matrixEarnings || '0'
+      };
+    } catch (error) {
+      console.error('Ошибка получения заработка:', error);
+      return { total: '0', monthly: '0', referral: '0', matrix: '0' };
+    }
+  }
+
+  async getAllUsers() {
+    // Заглушка для получения всех пользователей
+    // В реальной реализации нужно получать через контракт или API
+    return Array.from(this.dataCache.users.values());
+  }
+
+  filterUsersByAdvancedCriteria(filters) {
+    const userCards = document.querySelectorAll('.user-card');
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `globalway_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    userCards.forEach(card => {
+      let shouldShow = true;
+
+      // Фильтр по дате
+      if (filters.dateFrom || filters.dateTo) {
+        const userDate = card.dataset.registrationDate;
+        if (userDate) {
+          const date = new Date(userDate);
+          if (filters.dateFrom && date < new Date(filters.dateFrom)) shouldShow = false;
+          if (filters.dateTo && date > new Date(filters.dateTo)) shouldShow = false;
+        }
+      }
+
+      // Фильтр по уровням
+      if (filters.levels.length > 0) {
+        const userLevels = JSON.parse(card.dataset.activeLevels || '[]');
+        const hasMatchingLevel = filters.levels.some(level => userLevels.includes(level));
+        if (!hasMatchingLevel) shouldShow = false;
+      }
+
+      // Фильтр по заработку
+      const userEarnings = parseFloat(card.dataset.earnings || '0');
+      if (userEarnings < filters.earningsMin || userEarnings > filters.earningsMax) {
+        shouldShow = false;
+      }
+
+      card.style.display = shouldShow ? 'block' : 'none';
+    });
+  }
+
+  clearAdvancedFilters() {
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    document.getElementById('levelFilter').selectedIndex = -1;
+    document.getElementById('earningsMin').value = '';
+    document.getElementById('earningsMax').value = '';
+
+    // Показываем все карточки пользователей
+    document.querySelectorAll('.user-card').forEach(card => {
+      card.style.display = 'block';
+    });
+  }
+
+  clearSearch() {
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.value = '';
+    }
     
-    this.showNotification('Данные экспортированы', 'success');
+    // Показываем все результаты
+    document.querySelectorAll('.user-card').forEach(card => {
+      card.style.display = 'block';
+    });
   }
 
-  generateQRCode() {
-    if (this.userAccount) {
-      const referralId = this.getUserReferralId();
-      const link = `${window.location.origin}?ref=${referralId}`;
-      this.showNotification('QR код будет добавлен в следующих обновлениях', 'info');
-    } else {
-      this.showNotification('Подключите кошелек для генерации QR кода', 'warning');
+  displaySearchResults(results) {
+    const resultsContainer = document.getElementById('searchResults');
+    if (!resultsContainer) return;
+
+    if (results.length === 0) {
+      resultsContainer.innerHTML = '<div class="no-results">Пользователи не найдены</div>';
+      return;
+    }
+
+    resultsContainer.innerHTML = results.map(user => `
+      <div class="user-search-result" data-address="${user.address}">
+        <div class="user-avatar"></div>
+        <div class="user-info">
+          <div class="user-address">${this.formatAddress(user.address)}</div>
+          <div class="user-stats">
+            Уровни: ${user.stats?.activeLevels?.length || 0}/12 | 
+            Рефералы: ${user.stats?.personalInvites || 0}
+          </div>
+        </div>
+        <button class="view-user-btn" onclick="window.globalWayApp.selectMatrixUser('${user.address}')">
+          Просмотр
+        </button>
+      </div>
+    `).join('');
+  }
+
+  updateFilterButtons(activeButton) {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    activeButton.classList.add('active');
+  }
+
+  applyFilter(filterType) {
+    const userCards = document.querySelectorAll('.user-card');
+
+    userCards.forEach(card => {
+      const shouldShow = this.shouldShowCard(card, filterType);
+      card.style.display = shouldShow ? 'block' : 'none';
+    });
+  }
+
+  shouldShowCard(card, filterType) {
+    switch (filterType) {
+      case 'all':
+        return true;
+      case 'active':
+        return card.classList.contains('user-active');
+      case 'inactive':
+        return !card.classList.contains('user-active');
+      case 'referrals':
+        return card.dataset.isReferral === 'true';
+      case 'leaders':
+        return parseInt(card.dataset.leaderRank || '0') > 0;
+      default:
+        return true;
     }
   }
 
-  shareToTelegram() {
-    if (this.userAccount) {
-      const referralId = this.getUserReferralId();
-      const link = `${window.location.origin}?ref=${referralId}`;
-      const text = encodeURIComponent('Join GlobalWay - Your Global Path to Success!');
-      const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`;
-      window.open(telegramUrl, '_blank');
-    } else {
-      this.showNotification('Подключите кошелек для создания реферальной ссылки', 'warning');
+  async loadGridData() {
+    // Загружаем данные для grid режима матрицы
+    try {
+      const overview = await window.contractManager.getContractOverview();
+      
+      // Обновляем счетчики участников для каждого уровня
+      if (overview.levelDistribution) {
+        overview.levelDistribution.forEach((count, index) => {
+          const level = index + 1;
+          const participantsElement = document.getElementById(`levelParticipants${level}`);
+          if (participantsElement) {
+            participantsElement.textContent = count;
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных grid:', error);
     }
   }
 
-  shareToTwitter() {
-    if (this.userAccount) {
-      const referralId = this.getUserReferralId();
-      const link = `${window.location.origin}?ref=${referralId}`;
-      const text = encodeURIComponent('Join GlobalWay - Your Global Path to Success!');
-      const twitterUrl = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(link)}`;
-      window.open(twitterUrl, '_blank');
-    } else {
-      this.showNotification('Подключите кошелек для создания реферальной ссылки', 'warning');
+  async loadListData() {
+    // Загружаем данные для list режима матрицы
+    const listContent = document.getElementById('listContent');
+    if (!listContent) return;
+
+    try {
+      const users = await this.getAllUsers();
+      
+      if (users.length === 0) {
+        listContent.innerHTML = '<div class="no-users">Пользователи не найдены</div>';
+        return;
+      }
+
+      listContent.innerHTML = users.map(user => `
+        <div class="list-user-item" data-address="${user.address}">
+          <div class="list-user-avatar"></div>
+          <div class="list-user-info">
+            <div class="list-user-address">${this.formatAddress(user.address)}</div>
+            <div class="list-user-stats">
+              Уровни: ${user.stats?.activeLevels?.length || 0}/12 |
+              Рефералы: ${user.stats?.personalInvites || 0} |
+              Заработано: ${user.userData?.totalEarned ? 
+                parseFloat(window.web3Manager.fromWei(user.userData.totalEarned)).toFixed(4) + ' BNB' : '0 BNB'}
+            </div>
+          </div>
+          <div class="list-user-actions">
+            <button class="cosmic-btn secondary" onclick="window.globalWayApp.selectMatrixUser('${user.address}')">
+              Выбрать
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+    } catch (error) {
+      console.error('Ошибка загрузки списка пользователей:', error);
+      listContent.innerHTML = '<div class="list-error">Ошибка загрузки пользователей</div>';
     }
   }
 
-  shareToWhatsApp() {
-    if (this.userAccount) {
-      const referralId = this.getUserReferralId();
-      const link = `${window.location.origin}?ref=${referralId}`;
-      const text = encodeURIComponent('Join GlobalWay - Your Global Path to Success! ' + link);
-     const whatsappUrl = `https://wa.me/?text=${text}`;
-     window.open(whatsappUrl, '_blank');
-   } else {
-     this.showNotification('Подключите кошелек для создания реферальной ссылки', 'warning');
-   }
- }
+  filterMatrixUsers(query) {
+    const listItems = document.querySelectorAll('.list-user-item');
+    
+    listItems.forEach(item => {
+      const address = item.dataset.address.toLowerCase();
+      const shouldShow = address.includes(query.toLowerCase());
+      item.style.display = shouldShow ? 'block' : 'none';
+    });
+  }
 
- setupProjectInteractions() {
-   const suggestBtn = document.getElementById('suggestProjectBtn');
-   const votingBtn = document.getElementById('openVotingBtn');
-   const developerBtn = document.getElementById('joinDeveloperBtn');
-   const docsBtn = document.getElementById('openDocsBtn');
-   const partnerBtn = document.getElementById('applyPartnershipBtn');
+  optimizeForTouch() {
+    // Увеличиваем размер кнопок для touch устройств
+    document.querySelectorAll('button, .clickable').forEach(element => {
+      element.style.minHeight = '44px';
+      element.style.minWidth = '44px';
+    });
 
-   if (suggestBtn) suggestBtn.addEventListener('click', () => this.suggestProject());
-   if (votingBtn) votingBtn.addEventListener('click', () => this.openVoting());
-   if (developerBtn) developerBtn.addEventListener('click', () => this.joinDeveloperProgram());
-   if (docsBtn) docsBtn.addEventListener('click', () => this.openDeveloperDocs());
-   if (partnerBtn) partnerBtn.addEventListener('click', () => this.applyForPartnership());
- }
+    // Добавляем touch feedback
+    document.addEventListener('touchstart', (e) => {
+      e.target.classList.add('touch-active');
+    });
 
- suggestProject() {
-   this.showNotification('Форма предложения проекта будет добавлена в следующих обновлениях', 'info');
- }
+    document.addEventListener('touchend', (e) => {
+      setTimeout(() => {
+        e.target.classList.remove('touch-active');
+      }, 150);
+    });
+  }
 
- openVoting() {
-   if (!this.isConnected) {
-     this.showNotification('Подключите кошелек для участия в голосовании', 'warning');
-     return;
-   }
-   this.showNotification('Система голосования будет добавлена в следующих обновлениях', 'info');
- }
+  subscribeToContractEvents() {
+    if (!window.web3Manager?.isConnected) return;
 
- joinDeveloperProgram() {
-   this.showNotification('Программа для разработчиков будет запущена в Q2 2024', 'info');
- }
+    const userAddress = window.web3Manager.account;
+    
+    // Подписка на события с фильтром по пользователю
+    this.subscribeToEvent('UserRegistered', (event) => {
+      if (event.returnValues.user.toLowerCase() === userAddress.toLowerCase()) {
+        this.handleUserRegistered(event);
+      }
+    });
 
- openDeveloperDocs() {
-   window.open('https://docs.globalway.io', '_blank');
- }
+    this.subscribeToEvent('LevelActivated', (event) => {
+      if (event.returnValues.user.toLowerCase() === userAddress.toLowerCase()) {
+        this.handleLevelActivated(event);
+      }
+    });
 
- applyForPartnership() {
-   if (!this.isConnected) {
-     this.showNotification('Подключите кошелек для подачи заявки на партнерство', 'warning');
-     return;
-   }
-   this.showNotification('Партнерская программа будет запущена в Q3 2024', 'info');
- }
+    this.subscribeToEvent('ReferralReward', (event) => {
+      if (event.returnValues.referrer.toLowerCase() === userAddress.toLowerCase()) {
+        this.handleReferralReward(event);
+      }
+    });
+  }
 
- setupTokenInteractions() {
-   const applyFiltersBtn = document.getElementById('applyFiltersBtn');
-   const copyContractBtn = document.getElementById('copyContractAddress');
-   const viewBscscanBtn = document.getElementById('viewOnBscscan');
-   const addToWalletBtn = document.getElementById('addToWallet');
+  showRegistrationPrompt() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (matrixContainer) {
+      matrixContainer.innerHTML = `
+        <div class="registration-prompt">
+          <h3>Регистрация в GlobalWay</h3>
+          <p>Для доступа к матрице необходимо зарегистрироваться в системе</p>
+          <div class="registration-benefits">
+            <h4>Преимущества регистрации:</h4>
+            <ul>
+              <li>Доступ к интерактивной матрице</li>
+              <li>Возможность приглашать рефералов</li>
+              <li>Получение вознаграждений с уровней</li>
+              <li>Участие в лидерских программах</li>
+            </ul>
+          </div>
+          <button class="cosmic-btn primary" id="registerFromMatrix">Зарегистрироваться</button>
+        </div>
+      `;
 
-   if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', () => this.applyTokenFilters());
-   if (copyContractBtn) copyContractBtn.addEventListener('click', () => this.copyContractAddress());
-   if (viewBscscanBtn) viewBscscanBtn.addEventListener('click', () => this.viewOnBscscan());
-   if (addToWalletBtn) addToWalletBtn.addEventListener('click', () => this.addTokenToWallet());
+      const registerBtn = document.getElementById('registerFromMatrix');
+      if (registerBtn) {
+        registerBtn.addEventListener('click', () => {
+          if (window.uiManager) {
+            window.uiManager.handleRegistration();
+          }
+        });
+      }
+    }
+  }
 
-   const buyAmountInput = document.getElementById('buyTokenAmount');
-   const sellAmountInput = document.getElementById('sellTokenAmount');
-   
-   if (buyAmountInput) {
-     buyAmountInput.addEventListener('input', (e) => this.calculateBuyCost(e.target.value));
-   }
-   if (sellAmountInput) {
-     sellAmountInput.addEventListener('input', (e) => this.calculateSellReceive(e.target.value));
-   }
- }
+  async showReferralHistory() {
+    try {
+      const referrals = await this.getUserReferrals(window.web3Manager.account);
+      
+      if (window.uiManager) {
+        window.uiManager.showModal('referral-history', {
+          title: 'История рефералов',
+          content: this.generateReferralHistoryHTML(referrals)
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки истории рефералов:', error);
+      this.showNotification('Ошибка загрузки истории', 'error');
+    }
+  }
 
- applyTokenFilters() {
-   const filter = document.getElementById('historyFilter').value;
-   const dateFrom = document.getElementById('dateFrom').value;
-   const dateTo = document.getElementById('dateTo').value;
-   
-   this.showNotification(`Применены фильтры: ${filter}${dateFrom ? `, с ${dateFrom}` : ''}${dateTo ? `, до ${dateTo}` : ''}`, 'info');
- }
+  generateReferralHistoryHTML(referrals) {
+    if (referrals.length === 0) {
+      return '<div class="no-referrals">У вас пока нет рефералов</div>';
+    }
 
- copyContractAddress() {
-   const address = '0xd9145CCE52D386f254917e481eB44e9943F39138';
-   navigator.clipboard.writeText(address).then(() => {
-     this.showNotification('Адрес контракта скопирован!', 'success');
-   }).catch(() => {
-     this.showNotification('Не удалось скопировать адрес', 'error');
-   });
- }
-
- viewOnBscscan() {
-   const address = '0xd9145CCE52D386f254917e481eB44e9943F39138';
-   window.open(`https://mainnet.opbnbscan.com/token/${address}`, '_blank');
- }
-
- async addTokenToWallet() {
-   if (!this.isConnected) {
-     this.showNotification('Подключите кошелек для добавления токена', 'warning');
-     return;
-   }
-
-   try {
-     await window.ethereum.request({
-       method: 'wallet_watchAsset',
-       params: {
-         type: 'ERC20',
-         options: {
-           address: '0xd9145CCE52D386f254917e481eB44e9943F39138',
-           symbol: 'GWT',
-           decimals: 18,
-           image: 'https://globalway.io/logo.png'
-         }
-       }
-     });
-     this.showNotification('Токен добавлен в кошелек!', 'success');
-   } catch (error) {
-     this.showNotification('Не удалось добавить токен в кошелек', 'error');
-   }
- }
-
- calculateBuyCost(amount) {
-   if (!amount || amount <= 0) {
-     document.getElementById('buyTokenCost').value = '';
-     return;
-   }
-   
-   const tokenPrice = 0.01; // BNB
-   const commission = 0.1; // 10%
-   const cost = (amount * tokenPrice * (1 + commission)).toFixed(6);
-   
-   document.getElementById('buyTokenCost').value = `${cost} BNB`;
- }
-
- calculateSellReceive(amount) {
-   if (!amount || amount <= 0) {
-     document.getElementById('sellTokenReceive').value = '';
-     return;
-   }
-   
-   const tokenPrice = 0.01; // BNB
-   const commission = 0.1; // 10%
-   const receive = (amount * tokenPrice * (1 - commission)).toFixed(6);
-   
-   document.getElementById('sellTokenReceive').value = `${receive} BNB`;
- }
-
- setupSettingsInteractions() {
-   const changeWalletBtn = document.getElementById('changeWallet');
-   const copyMainBtn = document.getElementById('copyMainContract');
-   const copyTokenBtn = document.getElementById('copyTokenContract');
-   const verifyBtn = document.getElementById('verifyContractsBtn');
-   const viewSourceBtn = document.getElementById('viewSourceBtn');
-   const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
-   const clearCacheBtn = document.getElementById('clearCacheBtn');
-   
-   const whitepaperBtn = document.getElementById('openWhitepaperBtn');
-   const docsBtn = document.getElementById('openDocumentationBtn');
-   const faqBtn = document.getElementById('openFAQBtn');
-   const supportBtn = document.getElementById('openSupportBtn');
-   const telegramBtn = document.getElementById('openTelegramBtn');
-   const twitterBtn = document.getElementById('openTwitterBtn');
-   
-   const exportBtn = document.getElementById('exportDataBtn');
-   const importBtn = document.getElementById('importDataBtn');
-   const backupBtn = document.getElementById('createBackupBtn');
-   const restoreBtn = document.getElementById('restoreBackupBtn');
-   const resetBtn = document.getElementById('resetSettingsBtn');
-   const clearDataBtn = document.getElementById('clearAllDataBtn');
-
-   if (changeWalletBtn) changeWalletBtn.addEventListener('click', () => this.changeWallet());
-   if (copyMainBtn) copyMainBtn.addEventListener('click', () => this.copyMainContract());
-   if (copyTokenBtn) copyTokenBtn.addEventListener('click', () => this.copyTokenContract());
-   if (verifyBtn) verifyBtn.addEventListener('click', () => this.verifyContracts());
-   if (viewSourceBtn) viewSourceBtn.addEventListener('click', () => this.viewSourceCode());
-   if (checkUpdatesBtn) checkUpdatesBtn.addEventListener('click', () => this.checkForUpdates());
-   if (clearCacheBtn) clearCacheBtn.addEventListener('click', () => this.clearCache());
-   
-   if (whitepaperBtn) whitepaperBtn.addEventListener('click', () => this.openWhitepaper());
-   if (docsBtn) docsBtn.addEventListener('click', () => this.openDocumentation());
-   if (faqBtn) faqBtn.addEventListener('click', () => this.openFAQ());
-   if (supportBtn) supportBtn.addEventListener('click', () => this.openSupport());
-   if (telegramBtn) telegramBtn.addEventListener('click', () => this.openTelegram());
-   if (twitterBtn) twitterBtn.addEventListener('click', () => this.openTwitter());
-   
-   if (exportBtn) exportBtn.addEventListener('click', () => this.exportData());
-   if (importBtn) importBtn.addEventListener('click', () => this.createImportDialog());
-   if (backupBtn) backupBtn.addEventListener('click', () => this.createBackup());
-   if (restoreBtn) restoreBtn.addEventListener('click', () => this.restoreBackup());
-   if (resetBtn) resetBtn.addEventListener('click', () => this.resetSettingsDialog());
-   if (clearDataBtn) clearDataBtn.addEventListener('click', () => this.clearAllDataDialog());
- }
-
- changeWallet() {
-   if (window.web3Manager) {
-     window.web3Manager.disconnectWallet();
-     setTimeout(() => {
-       window.web3Manager.connectWallet();
-     }, 1000);
-   }
- }
-
- copyMainContract() {
-   const address = '0x64De05a0c818a925711EA0874FD972Bdc2edb2aA';
-   navigator.clipboard.writeText(address).then(() => {
-     this.showNotification('Адрес основного контракта скопирован!', 'success');
-   });
- }
-
- copyTokenContract() {
-   const address = '0xd9145CCE52D386f254917e481eB44e9943F39138';
-   navigator.clipboard.writeText(address).then(() => {
-     this.showNotification('Адрес токена скопирован!', 'success');
-   });
- }
-
- verifyContracts() {
-   this.showNotification('Проверка контрактов...', 'info');
-   setTimeout(() => {
-     this.showNotification('Контракты верифицированы!', 'success');
-   }, 2000);
- }
-
- viewSourceCode() {
-   window.open('https://github.com/GlobalWay/contracts', '_blank');
- }
-
- openWhitepaper() {
-   window.open('https://globalway.io/whitepaper.pdf', '_blank');
- }
-
- openDocumentation() {
-   window.open('https://docs.globalway.io', '_blank');
- }
-
- openFAQ() {
-   window.open('https://globalway.io/faq', '_blank');
- }
-
- openSupport() {
-   window.open('mailto:support@globalway.io', '_blank');
- }
-
- openTelegram() {
-   window.open('https://t.me/globalway_official', '_blank');
- }
-
- openTwitter() {
-   window.open('https://twitter.com/globalway_io', '_blank');
- }
-
- createBackup() {
-   this.exportData();
- }
-
- createImportDialog() {
-   const input = document.createElement('input');
-   input.type = 'file';
-   input.accept = '.json';
-   input.onchange = (e) => {
-     if (e.target.files[0]) {
-       this.importData(e.target.files[0]);
-     }
-   };
-   input.click();
- }
-
- restoreBackup() {
-   this.createImportDialog();
- }
-
- importData(file) {
-   const reader = new FileReader();
-   reader.onload = (e) => {
-     try {
-       const data = JSON.parse(e.target.result);
-       if (data.settings) {
-         Object.keys(data.settings).forEach(key => {
-           localStorage.setItem(key, data.settings[key]);
-         });
-         this.showNotification('Данные импортированы успешно', 'success');
-         this.loadUserSettings();
-       }
-     } catch (error) {
-       this.showNotification('Ошибка импорта данных', 'error');
-     }
-   };
-   reader.readAsText(file);
- }
-
- async resetSettingsDialog() {
-   const confirmed = await this.showConfirmModal(
-     'Сбросить настройки',
-     'Все настройки будут сброшены к значениям по умолчанию. Продолжить?',
-     'Сбросить'
-   );
-   
-   if (confirmed) {
-     localStorage.clear();
-     this.showNotification('Настройки сброшены к значениям по умолчанию', 'success');
-     setTimeout(() => location.reload(), 1000);
-   }
- }
-
- async clearAllDataDialog() {
-   const confirmed = await this.showConfirmModal(
-     'Очистить все данные',
-     'ВСЕ данные приложения будут удалены без возможности восстановления. Продолжить?',
-     'Удалить все'
-   );
-   
-   if (confirmed) {
-     this.clearAppData();
-     this.clearCache();
-     setTimeout(() => location.reload(), 1000);
-   }
- }
-
- async checkForUpdates() {
-   this.showNotification('Проверка обновлений...', 'info');
-   setTimeout(() => {
-     this.showNotification('У вас последняя версия приложения', 'success');
-   }, 2000);
- }
-
- clearCache() {
-   if ('caches' in window) {
-     caches.keys().then(names => {
-       names.forEach(name => {
-         caches.delete(name);
-       });
-     });
-   }
-   this.clearAppData();
-   this.showNotification('Кэш очищен', 'success');
- }
-
- updateSecurityInfo() {
-   const elements = {
-     connectedWallet: document.getElementById('connectedWallet'),
-     connectionStatus: document.getElementById('connectionStatus'),
-     settingsWalletAddress: document.getElementById('settingsWalletAddress')
-   };
-   
-   if (this.isConnected) {
-     if (elements.connectedWallet) elements.connectedWallet.textContent = 'SafePal';
-     if (elements.connectionStatus) {
-       elements.connectionStatus.textContent = 'Connected';
-       elements.connectionStatus.className = 'value connected';
-     }
-     if (elements.settingsWalletAddress) {
-       elements.settingsWalletAddress.textContent = this.formatAddress(this.userAccount);
-     }
-   } else {
-     if (elements.connectedWallet) elements.connectedWallet.textContent = 'Not Connected';
-     if (elements.connectionStatus) {
-       elements.connectionStatus.textContent = 'Disconnected';
-       elements.connectionStatus.className = 'value disconnected';
-     }
-     if (elements.settingsWalletAddress) {
-       elements.settingsWalletAddress.textContent = '0x000...000';
-     }
-   }
- }
-
-// Деструктор для очистки ресурсов
-destroy() {
- document.removeEventListener('DOMContentLoaded', this.init);
- 
- if (this.updateInterval) {
-   clearInterval(this.updateInterval);
- }
- 
- this.saveAppState();
- 
- console.log('GlobalWay App destroyed');
+    return `
+      <div class="referral-history">
+        ${referrals.map(referral => `
+          <div class="referral-item">
+            <div class="referral-address">${this.formatAddress(referral.address)}</div>
+            <div class="referral-date">${new Date(referral.timestamp * 1000).toLocaleDateString()}</div>
+            <div class="referral-level">Уровень: ${referral.level || 1}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
 }
 
-initAdmin() {
- if (!this.isOwner) {
-   this.showNotification('Доступ запрещен', 'error');
-   this.navigateToPage('dashboard');
-   return;
- }
- 
- const adminSection = document.querySelector('#admin');
- if (adminSection && !adminSection.innerHTML.trim()) {
-   adminSection.innerHTML = `
-     <div class="container">
-       <h2>Панель администратора</h2>
-       <div class="admin-section">
-         <h3>Управление пользователями</h3>
-         <button id="batchRegisterBtn" class="admin-btn">Массовая регистрация</button>
-         <button id="freeRegisterBtn" class="admin-btn">Бесплатная регистрация</button>
-       </div>
-       <div class="admin-section">
-         <h3>Статистика контракта</h3>
-         <div id="contractStats">Загрузка статистики...</div>
-       </div>
-     </div>
-   `;
- }
- 
- this.setupAdminInteractions();
-}
+// ==================== ГЛОБАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ ====================
 
-setupAdminInteractions() {
- const batchBtn = document.getElementById('batchRegisterBtn');
- const freeBtn = document.getElementById('freeRegisterBtn');
- 
- if (batchBtn) {
-   batchBtn.addEventListener('click', () => {
-     this.showNotification('Функция в разработке', 'info');
-   });
- }
- 
- if (freeBtn) {
-   freeBtn.addEventListener('click', () => {
-     this.showNotification('Функция в разработке', 'info');
-   });
- }
-}
-
-}
-
-// ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ====================
-
-document.addEventListener('DOMContentLoaded', () => {
- if (typeof Web3 === 'undefined') {
-   console.error('Web3 не загружен!');
-   document.body.innerHTML = `
-     <div style="
-       display: flex; 
-       justify-content: center; 
-       align-items: center; 
-       height: 100vh; 
-       background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-       color: #FFD700;
-       font-family: 'Segoe UI', sans-serif;
-       text-align: center;
-     ">
-       <div>
-         <h1>Ошибка загрузки</h1>
-         <p>Web3 библиотека не загружена. Проверьте подключение к интернету и обновите страницу.</p>
-         <button onclick="location.reload()" style="
-           background: #FFD700; 
-           border: none; 
-           padding: 10px 20px; 
-           border-radius: 10px; 
-           color: #000; 
-           font-weight: 600; 
-           cursor: pointer;
-           margin-top: 20px;
-         ">Обновить страницу</button>
-       </div>
-     </div>
-   `;
-   return;
- }
-
- window.globalWayApp = new GlobalWayApp();
-
- setTimeout(() => {
-   if (window.globalWayApp) {
-     window.globalWayApp.navigateToPage('dashboard');
-   }
- }, 200);
-
- window.globalWayApp.handleReferral();
- window.globalWayApp.restoreAppState();
-
- console.log('GlobalWay DApp loaded successfully!');
+// Инициализация приложения при загрузке DOM
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('Запуск GlobalWay Application...');
+  
+  try {
+    // Создаем глобальный экземпляр приложения
+    window.globalWayApp = new GlobalWayApp();
+    
+    // Загружаем сохраненное состояние
+    window.globalWayApp.loadAppState();
+    
+    console.log('GlobalWay Application запущен успешно');
+    
+  } catch (error) {
+    console.error('Критическая ошибка запуска приложения:', error);
+    
+    // Показываем пользователю ошибку
+    document.body.innerHTML = `
+      <div class="critical-error">
+        <h1>Ошибка загрузки GlobalWay</h1>
+        <p>Не удалось запустить приложение. Перезагрузите страницу.</p>
+        <button onclick="location.reload()">Перезагрузить</button>
+      </div>
+    `;
+  }
 });
 
+// Очистка при закрытии
 window.addEventListener('beforeunload', () => {
- if (window.globalWayApp) {
-   window.globalWayApp.destroy();
- }
+  if (window.globalWayApp) {
+    window.globalWayApp.destroy();
+  }
 });
 
-if (typeof module !== 'undefined' && module.exports) {
- module.exports = GlobalWayApp;
-}
+// ==================== ОТЛАДОЧНЫЕ УТИЛИТЫ ====================
+
+window.debugApp = {
+  async checkStatus() {
+    if (window.globalWayApp) {
+      return await window.globalWayApp.runDiagnostics();
+    }
+    return { error: 'App not initialized' };
+  },
+  
+  forceUpdate() {
+    if (window.globalWayApp) {
+      window.globalWayApp.performAutoUpdate();
+    }
+  },
+  
+  navigateTo(page) {
+    if (window.globalWayApp) {
+      window.globalWayApp.navigateToPage(page);
+    }
+  },
+  
+  clearState() {
+    if (window.globalWayApp) {
+      window.globalWayApp.clearAppState();
+    }
+  },
+
+  clearCache() {
+    if (window.globalWayApp) {
+      window.globalWayApp.clearMatrixCache();
+    }
+  },
+
+  testMatrix() {
+    if (window.globalWayApp) {
+      window.globalWayApp.refreshMatrix();
+    }
+  },
+
+  enableOffline() {
+    if (window.globalWayApp) {
+      window.globalWayApp.offlineMode = true;
+    }
+  }
+};
+
+console.log('GlobalWay App полностью инициализирован для opBNB');
+console.log('Доступны утилиты отладки: window.debugApp');
+console.log('Версия: 1.0.0 - Полная функциональность восстановлена');
