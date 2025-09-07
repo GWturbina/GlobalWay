@@ -1,4 +1,18 @@
 // cosmic-intro.js - УЛУЧШЕННАЯ ВЕРСИЯ
+
+createCosmicPlanets() {
+  const intro = document.getElementById('cosmic-intro');
+  if (!intro) {
+    console.warn('cosmic-intro элемент не найден');
+    return;
+  }
+
+  // Убеждаемся что intro видимый
+  if (intro.style.display === 'none') {
+    console.warn('cosmic-intro скрыт, пропускаем создание планет');
+    return;
+  }
+
 class CosmicIntro {
   constructor() {
     this.currentLang = this.getDefaultLanguage();
