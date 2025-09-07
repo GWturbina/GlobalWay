@@ -700,22 +700,22 @@ class GlobalWayApp {
         `Цена: ${this.formatBNB(price)} BNB`,
         'Подтвердить покупку'
       );
-
+  
       if (!confirmed) return;
-
+  
       this.showNotification('Обрабатывается транзакция...', 'info');
-
+  
       const tx = await window.contractManager.buyLevel(level, this.userAccount, price);
       
       this.showNotification('Уровень успешно куплен!', 'success');
       
       await this.updateUserInfo();
-
+  
     } catch (error) {
       // Убираем модальные наложения при ошибке
-    if (window.web3Manager) {
-      window.web3Manager.removeModalOverlays();
-    }
+      if (window.web3Manager) {
+        window.web3Manager.removeModalOverlays();
+      }
       this.handleError(error, 'покупке уровня');
     }
   }
@@ -749,12 +749,9 @@ class GlobalWayApp {
 
   async activatePackage(packageType) {
     if (!this.checkWeb3Connection()) return;
+
     try {
   // Убираем все зависшие модальные окна перед началом
-  // Убираем все зависшие модальные окна перед началом
-  if (window.web3Manager) {
-    window.web3Manager.removeModalOverlays();
-  }
   if (window.web3Manager) {
     window.web3Manager.removeModalOverlays();
   }
@@ -817,11 +814,11 @@ class GlobalWayApp {
       this.showNotification('Пакет успешно активирован!', 'success');
       await this.updateUserInfo();
 
- } catch (error) {
+    } catch (error) {
       // Убираем модальные наложения при ошибке  
-if (window.web3Manager) {
-  window.web3Manager.removeModalOverlays();
-}
+      if (window.web3Manager) {
+        window.web3Manager.removeModalOverlays();
+      }
       this.handleError(error, 'активации пакета');
     }
   }
