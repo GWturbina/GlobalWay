@@ -747,81 +747,75 @@ class GlobalWayApp {
     });
   }
 
-  async activatePackage(packageType) {
-    if (!this.checkWeb3Connection()) return;
+async activatePackage(packageType) {
+  if (!this.checkWeb3Connection()) return;
 
-    try {
-  // Убираем все зависшие модальные окна перед началом
-  if (window.web3Manager) {
-    window.web3Manager.removeModalOverlays();
-  }
-
-    try {
-      // ИСПРАВЛЕНО: Убран Client пакет, теперь только 4 пакета
-      const packageLevels = {
-        1: [1, 2, 3, 4], // MiniAdmin (1-4)
-        2: [1, 2, 3, 4, 5, 6, 7], // Admin (1-7)
-        3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // SuperAdmin (1-10)
-        4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // Manager (1-12)
-      };
-
-      const packageNames = {
-        1: 'MiniAdmin (1-4)',
-        2: 'Admin (1-7)', 
-        3: 'SuperAdmin (1-10)',
-        4: 'Manager (1-12)'
-      };
-
-      // Получаем текущие активные уровни пользователя
-      if (!this.userData?.activeLevels) {
-        await this.updateUserInfo();
-      }
-
-      const activeLevels = this.userData?.activeLevels || [];
-      const targetLevels = packageLevels[packageType];
-      
-      // Определяем какие уровни нужно доплатить
-      const levelsToActivate = targetLevels.filter(level => !activeLevels.includes(level));
-
-      if (levelsToActivate.length === 0) {
-        this.showNotification('Все уровни этого пакета уже активированы', 'info');
-        return;
-      }
-
-      // Рассчитываем стоимость недостающих уровней
-      let totalPrice = 0;
-      for (const level of levelsToActivate) {
-        const levelPrice = await window.contractManager.getLevelPrice(level);
-        totalPrice += parseInt(levelPrice);
-      }
-
-      const confirmed = await this.showConfirmModal(
-        `Активировать пакет ${packageNames[packageType]}`,
-        `Доплата за уровни ${levelsToActivate.join(', ')}: ${this.formatBNB(totalPrice.toString())} BNB`,
-        'Активировать пакет'
-      );
-
-      if (!confirmed) return;
-
-      this.showNotification('Активация пакета...', 'info');
-
-      // Покупаем недостающие уровни по одному
-      for (const level of levelsToActivate) {
-        const levelPrice = await window.contractManager.getLevelPrice(level);
-        await window.contractManager.buyLevel(level, this.userAccount, levelPrice);
-      }
-      
-      this.showNotification('Пакет успешно активирован!', 'success');
-      await this.updateUserInfo();
-
-    } catch (error) {
-      // Убираем модальные наложения при ошибке  
-      if (window.web3Manager) {
-        window.web3Manager.removeModalOverlays();
-      }
-      this.handleError(error, 'активации пакета');
+  try {
+    // Убираем все зависшие модальные окна перед началом
+    if (window.web3Manager) {
+      window.web3Manager.removeModalOverlays();
     }
+
+    const packageLevels = {
+      1: [1, 2, 3, 4], // MiniAdmin (1-4)
+      2: [1, 2, 3, 4, 5, 6, 7], // Admin (1-7)
+      3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], // SuperAdmin (1-10)
+      4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // Manager (1-12)
+    };
+
+    const packageNames = {
+      1: 'MiniAdmin (1-4)',
+      2: 'Admin (1-7)', 
+      3: 'SuperAdmin (1-10)',
+      4: 'Manager (1-12)'
+    };
+
+    if (!this.userData?.activeLevels) {
+      await this.updateUserInfo();
+    }
+
+    const activeLevels = this.userData?.activeLevels || [];
+    const targetLevels = packageLevels[packageType];
+    
+    const levelsToActivate = targetLevels.filter(level => !activeLevels.includes(level));
+
+    if (levelsToActivate.length === 0) {
+      this.showNotification('Все уровни этого пакета уже активированы', 'info');
+      return;
+    }
+
+    let totalPrice = 0;
+    for (const level of levelsToActivate) {
+      const levelPrice = await window.contractManager.getLevelPrice(level);
+      totalPrice += parseInt(levelPrice);
+    }
+
+    const confirmed = await this.showConfirmModal(
+      `Активировать пакет ${packageNames[packageType]}`,
+      `Доплата за уровни ${levelsToActivate.join(', ')}: ${this.formatBNB(totalPrice.toString())} BNB`,
+      'Активировать пакет'
+    );
+
+    if (!confirmed) return;
+
+    this.showNotification('Активация пакета...', 'info');
+
+    for (const level of levelsToActivate) {
+      const levelPrice = await window.contractManager.getLevelPrice(level);
+      await window.contractManager.buyLevel(level, this.userAccount, levelPrice);
+    }
+    
+    this.showNotification('Пакет успешно активирован!', 'success');
+    await this.updateUserInfo();
+
+  } catch (error) {
+    // Убираем модальные наложения при ошибке  
+    if (window.web3Manager) {
+      window.web3Manager.removeModalOverlays();
+    }
+    this.handleError(error, 'активации пакета');
   }
+}
 
   async registerUser() {
     if (!this.checkWeb3Connection()) return;
