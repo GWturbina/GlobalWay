@@ -70,7 +70,7 @@ class Web3Manager {
   async detectWalletProvider() {
     console.log('🔍 Поиск кошелька SafePal...');
     
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     if (window.safepalProvider) {
       console.log('✅ SafePal (safepalProvider) обнаружен');
