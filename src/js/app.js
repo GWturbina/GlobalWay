@@ -443,7 +443,7 @@ class GlobalWayApp {
       
       if (elements.quarterlyStatus) {
         const statusSpan = elements.quarterlyStatus.querySelector('.value');
-        const daysUntilNext = Math.max(0, nextPaymentDay - daysSinceRegistration);
+        const daysUntilNext = Math.max(0, parseInt(nextPaymentDay) - parseInt(daysSinceRegistration));
         
         if (canPayQuarterly) {
           statusSpan.textContent = '⚠️ Требуется оплата';
