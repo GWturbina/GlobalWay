@@ -779,7 +779,7 @@ class GlobalWayApp {
     });
 
     // Инициализация Service Worker
-    this.initializeServiceWorker();
+    // this.initializeServiceWorker();
   }
 
   async initializeServiceWorker() {
