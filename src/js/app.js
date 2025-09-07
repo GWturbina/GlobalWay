@@ -406,7 +406,7 @@ class GlobalWayApp {
       
       const daysSinceRegistration = Math.floor((now - parseInt(user.registrationTime)) / (24 * 60 * 60));
       
-      const nextPaymentDay = user.quarterlyCounter * 90;
+      const nextPaymentDay = parseInt(user.quarterlyCounter) * 90;
       const canPayQuarterly = daysSinceRegistration >= nextPaymentDay;
 
       const elements = {
