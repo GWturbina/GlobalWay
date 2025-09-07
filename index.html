@@ -159,6 +159,10 @@
                <img src="assets/icons/projects.png" class="nav-icon" alt="Projects">
                <span class="nav-text" data-translate="projects">Projects</span>
            </button>
+           <button class="nav-btn" data-page="admin" style="display: none;">
+             <i class="fas fa-cog"></i>
+             <span>Admin</span>
+           </button>
            <!-- АДМИН КНОПКА - ПОЯВЛЯЕТСЯ ТОЛЬКО У ВЛАДЕЛЬЦА -->
            <!-- Будет добавлена динамически через JavaScript -->
        </nav>
@@ -191,6 +195,18 @@
            
            <!-- АДМИН СТРАНИЦА - ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА -->
            <section id="admin" class="page admin-only">
+             <div class="container">
+               <h2>Панель администратора</h2>
+               <div class="admin-section">
+                 <h3>Управление пользователями</h3>
+                 <button id="batchRegisterBtn" class="admin-btn">Массовая регистрация</button>
+                 <button id="freeRegisterBtn" class="admin-btn">Бесплатная регистрация</button>
+               </div>
+               <div class="admin-section">
+                 <h3>Статистика контракта</h3>
+                 <div id="contractStats">Загрузка...</div>
+               </div>
+             </div>
            </section>
        </main>
       
