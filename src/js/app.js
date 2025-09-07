@@ -2390,11 +2390,12 @@ class GlobalWayApp {
   }
 
   updateLevelDistribution(distribution) {
-    if (window.uiManager) {
-      window.uiManager.updateLevelDistribution(distribution);
-    }
+  if (window.uiManager && typeof window.uiManager.updateLevelDistribution === 'function') {
+    window.uiManager.updateLevelDistribution(distribution);
+  } else {
+    console.warn('uiManager.updateLevelDistribution не готов, пропускаем');
   }
-
+}
   // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
 
   async updateUserInfo() {
