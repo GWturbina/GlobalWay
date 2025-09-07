@@ -1089,6 +1089,17 @@ class Web3Manager {
     return this.providerType || 'Unknown';
   }
 
+    // ИСПРАВЛЕНО: Добавлен недостающий метод getWalletType
+  getWalletType() {
+    if (this.provider && this.provider.isSafePal) {
+      return 'SafePal';
+    } else if (this.provider) {
+      return 'MetaMask';
+    }
+    return 'Unknown';
+  }
+
+
   // ==================== EVENT EMITTER ====================
 
   on(event, callback) {
