@@ -419,7 +419,7 @@ class GlobalWayApp {
       };
       
       if (elements.quarterNumber) {
-        elements.quarterNumber.textContent = user.quarterlyCounter + 1;
+        const daysUntilNext = Math.max(0, Number(nextPaymentDay) - Number(daysSinceRegistration));
       }
       
       if (elements.lastQuarterlyPayment) {
