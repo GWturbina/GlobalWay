@@ -502,10 +502,18 @@ class GlobalWayApp {
   }
 
   initTokens() {
+    // Не инициализируем токены если на неправильной странице
+    if (this.currentPage !== 'tokens') return;
+  
     this.setupTokenTrading();
     this.updateTokenPrices();
     this.setupTradingTabs();
-    this.updateTokenInfo();
+  
+    // Обновляем информацию о токенах только если пользователь подключен
+    if (this.isConnected) {
+      this.updateTokenInfo();
+    }
+  
     this.setupTokenInteractions();
   }
 
