@@ -1,4 +1,4 @@
-// ==================== UI УПРАВЛЕНИЕ ====================
+// ==================== ПОЛНЫЙ ИСПРАВЛЕННЫЙ UI.JS ====================
 
 class UIManager {
   constructor() {
@@ -7,6 +7,7 @@ class UIManager {
     this.loadingStates = new Map();
     this.tooltips = new Map();
     this.currentTheme = 'dark';
+    this.progressModals = new Map();
     
     this.init();
   }
@@ -19,7 +20,9 @@ class UIManager {
     this.setupTheme();
     this.setupContractInteractionUI();
     this.setupWalletUI();
-    console.log('🎨 UIManager инициализирован');
+    this.setupAdminUI();
+    this.setupTokenUI();
+    console.log('🎨 UIManager инициализирован с поддержкой opBNB');
   }
 
   // ==================== МОДАЛЬНЫЕ ОКНА ====================
@@ -106,7 +109,6 @@ class UIManager {
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Заполнение данных в модальное окно
   populateModalData(modal, data) {
     Object.keys(data).forEach(key => {
       const element = modal.querySelector(`[data-field="${key}"]`);
@@ -120,9 +122,8 @@ class UIManager {
     });
   }
 
-  // ==================== СПЕЦИАЛЬНЫЕ МОДАЛЬНЫЕ ОКНА ДЛЯ КОНТРАКТОВ ====================
+  // ==================== СПЕЦИАЛЬНЫЕ МОДАЛЬНЫЕ ОКНА ====================
 
-  // НОВАЯ ФУНКЦИЯ: Модальное окно подтверждения транзакции
   showTransactionModal(title, details, onConfirm, onCancel) {
     return new Promise((resolve) => {
       const modal = document.createElement('div');
@@ -130,7 +131,7 @@ class UIManager {
       modal.innerHTML = `
         <div class="cosmic-modal">
           <div class="modal-header">
-            <h3>🔐 ${title}</h3>
+            <h3>🔍 ${title}</h3>
             <button class="modal-close">&times;</button>
           </div>
           <div class="modal-body">
@@ -144,7 +145,7 @@ class UIManager {
             </div>
           </div>
           <div class="modal-footer">
-            <button class="cosmic-btn secondary cancel-btn">❌ Отмена</button>
+            <button class="cosmic-btn secondary cancel-btn">✖ Отмена</button>
             <button class="cosmic-btn primary confirm-btn">✅ Подтвердить</button>
           </div>
         </div>
@@ -187,10 +188,11 @@ class UIManager {
     });
   }
 
-  // НОВАЯ ФУНКЦИЯ: Модальное окно прогресса транзакции
   showTransactionProgress(txHash, networkExplorer) {
+    const modalId = `progress_${Date.now()}`;
     const modal = document.createElement('div');
     modal.className = 'cosmic-modal-overlay';
+    modal.id = modalId;
     modal.innerHTML = `
       <div class="cosmic-modal">
         <div class="modal-header">
@@ -216,6 +218,8 @@ class UIManager {
     modal.classList.add('active');
     document.body.classList.add('modal-open');
 
+    this.progressModals.set(modalId, modal);
+
     return {
       modal,
       updateStatus: (status, success = false) => {
@@ -237,18 +241,25 @@ class UIManager {
           `;
           
           modal.querySelector('.close-progress-btn').addEventListener('click', () => {
-            modal.remove();
-            document.body.classList.remove('modal-open');
+            this.closeProgressModal(modalId);
           });
         } else {
           progressDiv.querySelector('p').textContent = status;
         }
       },
       close: () => {
-        modal.remove();
-        document.body.classList.remove('modal-open');
+        this.closeProgressModal(modalId);
       }
     };
+  }
+
+  closeProgressModal(modalId) {
+    const modal = this.progressModals.get(modalId);
+    if (modal) {
+      modal.remove();
+      document.body.classList.remove('modal-open');
+      this.progressModals.delete(modalId);
+    }
   }
 
   // ==================== УВЕДОМЛЕНИЯ ====================
@@ -275,7 +286,9 @@ class UIManager {
       info: 'ℹ️',
       wallet: '👛',
       contract: '📜',
-      transaction: '💰'
+      transaction: '💰',
+      admin: '⚙️',
+      token: '🪙'
     };
     
     const icon = icons[type] || icons.info;
@@ -347,7 +360,6 @@ class UIManager {
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Уведомление с прогрессом
   showProgressNotification(message, type = 'info') {
     const notification = this.showNotification(message, type, 0);
     const progressBar = document.createElement('div');
@@ -380,7 +392,7 @@ class UIManager {
     // Настройка кнопок покупки уровней
     document.querySelectorAll('[data-level]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const level = btn.dataset.level;
+        const level = parseInt(btn.dataset.level);
         await this.handleLevelPurchase(level);
       });
     });
@@ -388,7 +400,7 @@ class UIManager {
     // Настройка кнопок пакетов
     document.querySelectorAll('[data-package]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const packageType = btn.dataset.package;
+        const packageType = parseInt(btn.dataset.package);
         await this.handlePackageActivation(packageType);
       });
     });
@@ -400,19 +412,33 @@ class UIManager {
         this.handleRegistration();
       });
     }
+
+    // Настройка кнопки квартальной оплаты
+    const quarterlyBtn = document.getElementById('quarterlyPaymentBtn');
+    if (quarterlyBtn) {
+      quarterlyBtn.addEventListener('click', () => {
+        this.handleQuarterlyPayment();
+      });
+    }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Обработка покупки уровня
+  // ИСПРАВЛЕНО: Правильная обработка покупки уровня с новыми ценами
   async handleLevelPurchase(level) {
     if (!window.web3Manager?.isConnected) {
       this.showNotification('🔗 Сначала подключите кошелек', 'warning');
       return;
     }
 
+    if (!window.contractManager?.isContractsReady()) {
+      this.showNotification('📜 Контракты не готовы', 'error');
+      return;
+    }
+
     try {
-      this.showLoader(document.querySelector(`[data-level="${level}"]`));
+      const levelBtn = document.querySelector(`[data-level="${level}"]`);
+      this.showLoader(levelBtn);
       
-      // Получаем цену уровня
+      // ИСПРАВЛЕНО: Используем правильные цены из contractManager
       const price = await window.contractManager.getLevelPrice(level);
       const priceInBNB = window.web3Manager.fromWei(price);
       
@@ -422,30 +448,30 @@ class UIManager {
         {
           'Уровень': level,
           'Цена': `${priceInBNB} BNB`,
-          'Сеть': window.web3Manager.getNetworkInfo().name
+          'Сеть': window.web3Manager.getNetworkInfo().name,
+          'Адрес': this.formatAddress(window.web3Manager.account)
         }
       );
 
       if (!confirmed) {
-        this.hideLoader(document.querySelector(`[data-level="${level}"]`), `Уровень ${level}`);
+        this.hideLoader(levelBtn, `Уровень ${level}`);
         return;
       }
 
-      // Выполняем покупку
-      const txHash = await window.contractManager.buyLevel(
+      // ИСПРАВЛЕНО: Используем новый метод из contractManager
+      const result = await window.contractManager.buyLevel(
         level, 
-        window.web3Manager.account, 
-        price
+        window.web3Manager.account
       );
 
       // Показываем прогресс
       const progressModal = this.showTransactionProgress(
-        txHash, 
+        result.hash || result, 
         window.web3Manager.getNetworkInfo().explorer
       );
 
       // Ждем подтверждения
-      const receipt = await window.web3Manager.waitForTransaction(txHash, 1);
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
       
       if (receipt.status) {
         progressModal.updateStatus('Транзакция успешна!', true);
@@ -455,6 +481,13 @@ class UIManager {
         if (window.globalWayApp) {
           await window.globalWayApp.updateUserInfo();
         }
+        
+        // Обновляем кнопку уровня
+        if (levelBtn) {
+          levelBtn.classList.add('level-active');
+          levelBtn.textContent = `Уровень ${level} ✓`;
+          levelBtn.disabled = true;
+        }
       } else {
         throw new Error('Транзакция не удалась');
       }
@@ -463,64 +496,92 @@ class UIManager {
       console.error('Ошибка покупки уровня:', error);
       this.showNotification(`❌ Ошибка покупки уровня: ${error.message}`, 'error');
     } finally {
-      this.hideLoader(document.querySelector(`[data-level="${level}"]`), `Уровень ${level}`);
+      const levelBtn = document.querySelector(`[data-level="${level}"]`);
+      this.hideLoader(levelBtn, `Уровень ${level}`);
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Обработка активации пакета
+  // ИСПРАВЛЕНО: Правильная обработка активации пакета
   async handlePackageActivation(packageType) {
     if (!window.web3Manager?.isConnected) {
       this.showNotification('🔗 Сначала подключите кошелек', 'warning');
       return;
     }
 
+    if (!window.contractManager?.isContractsReady()) {
+      this.showNotification('📜 Контракты не готовы', 'error');
+      return;
+    }
+
+    // ИСПРАВЛЕНО: Правильные названия пакетов согласно ТЗ
     const packageNames = {
-      1: 'Client (1-3)',
-      2: 'MiniAdmin (1-4)',
-      3: 'Admin (1-7)', 
-      4: 'SuperAdmin (1-10)',
-      5: 'Manager (1-12)'
+      1: 'MiniAdmin (1-4)',
+      2: 'Admin (1-7)', 
+      3: 'SuperAdmin (1-10)',
+      4: 'Manager (1-12)'
     };
 
     try {
-      // Получаем цену пакета
+      const packageBtn = document.querySelector(`[data-package="${packageType}"]`);
+      this.showLoader(packageBtn);
+
+      // ИСПРАВЛЕНО: Получаем цену с учетом уже активных уровней
       const price = await window.contractManager.getPackagePrice(
         window.web3Manager.account, 
         packageType
       );
       const priceInBNB = window.web3Manager.fromWei(price);
       
+      if (price === '0') {
+        this.showNotification('✅ Все уровни этого пакета уже активированы', 'info');
+        this.hideLoader(packageBtn, packageNames[packageType]);
+        return;
+      }
+      
+      const packageInfo = window.contractManager.getPackageInfo(packageType);
+      
       const confirmed = await this.showTransactionModal(
         `Активация пакета`,
         {
           'Пакет': packageNames[packageType],
           'Цена': `${priceInBNB} BNB`,
-          'Включает': `Уровни 1-${packageType === 1 ? 3 : packageType === 2 ? 4 : packageType === 3 ? 7 : packageType === 4 ? 10 : 12}`
+          'Включает': `Уровни 1-${packageInfo.maxLevel}`,
+          'Сеть': window.web3Manager.getNetworkInfo().name
         }
       );
 
-      if (!confirmed) return;
+      if (!confirmed) {
+        this.hideLoader(packageBtn, packageNames[packageType]);
+        return;
+      }
 
       const progressNotification = this.showProgressNotification(
         `Активация пакета ${packageNames[packageType]}...`, 
         'info'
       );
 
-      const txHash = await window.contractManager.activatePackage(
+      // ИСПРАВЛЕНО: Используем правильный метод activatePackage
+      const result = await window.contractManager.activatePackage(
         packageType,
-        window.web3Manager.account,
-        price
+        window.web3Manager.account
       );
 
       progressNotification.updateProgress(50);
       
-      const receipt = await window.web3Manager.waitForTransaction(txHash, 1);
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
       
       if (receipt.status) {
         progressNotification.complete(true, `Пакет ${packageNames[packageType]} активирован!`);
         
         if (window.globalWayApp) {
           await window.globalWayApp.updateUserInfo();
+        }
+        
+        // Обновляем UI пакета
+        if (packageBtn) {
+          packageBtn.classList.add('package-active');
+          packageBtn.textContent = `${packageNames[packageType]} ✓`;
+          packageBtn.disabled = true;
         }
       } else {
         throw new Error('Транзакция не удалась');
@@ -529,6 +590,114 @@ class UIManager {
     } catch (error) {
       console.error('Ошибка активации пакета:', error);
       this.showNotification(`❌ Ошибка активации: ${error.message}`, 'error');
+    } finally {
+      const packageBtn = document.querySelector(`[data-package="${packageType}"]`);
+      this.hideLoader(packageBtn, packageNames[packageType]);
+    }
+  }
+
+  // НОВОЕ: Обработка регистрации
+  async handleRegistration() {
+    if (!window.web3Manager?.isConnected) {
+      this.showNotification('🔗 Сначала подключите кошелек', 'warning');
+      return;
+    }
+
+    // Получаем спонсора из URL или используем F1
+    const urlParams = new URLSearchParams(window.location.search);
+    const sponsor = urlParams.get('ref') || window.contractManager.founders[0];
+
+    if (!window.contractManager.isValidAddress(sponsor)) {
+      this.showNotification('❌ Неверный адрес спонсора', 'error');
+      return;
+    }
+
+    try {
+      // Проверяем, не зарегистрирован ли уже
+      const isRegistered = await window.contractManager.isUserRegistered(window.web3Manager.account);
+      if (isRegistered) {
+        this.showNotification('ℹ️ Вы уже зарегистрированы', 'info');
+        return;
+      }
+
+      const confirmed = await this.showTransactionModal(
+        'Регистрация в GlobalWay',
+        {
+          'Спонсор': this.formatAddress(sponsor),
+          'Стоимость': 'Бесплатно',
+          'Сеть': window.web3Manager.getNetworkInfo().name
+        }
+      );
+
+      if (!confirmed) return;
+
+      const result = await window.contractManager.register(sponsor, window.web3Manager.account);
+      
+      const progressModal = this.showTransactionProgress(
+        result.hash || result,
+        window.web3Manager.getNetworkInfo().explorer
+      );
+
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
+      
+      if (receipt.status) {
+        progressModal.updateStatus('Регистрация успешна!', true);
+        this.showNotification('🎉 Добро пожаловать в GlobalWay!', 'success');
+        
+        if (window.globalWayApp) {
+          await window.globalWayApp.updateUserInfo();
+        }
+      }
+
+    } catch (error) {
+      console.error('Ошибка регистрации:', error);
+      this.showNotification(`❌ Ошибка регистрации: ${error.message}`, 'error');
+    }
+  }
+
+  // НОВОЕ: Обработка квартальной оплаты
+  async handleQuarterlyPayment() {
+    if (!window.web3Manager?.isConnected) {
+      this.showNotification('🔗 Сначала подключите кошелек', 'warning');
+      return;
+    }
+
+    try {
+      const fee = await window.contractManager.getQuarterlyFee();
+      const feeInBNB = window.web3Manager.fromWei(fee);
+
+      const confirmed = await this.showTransactionModal(
+        'Квартальная оплата активности',
+        {
+          'Стоимость': `${feeInBNB} BNB`,
+          'Период': '3 месяца',
+          'Сеть': window.web3Manager.getNetworkInfo().name
+        }
+      );
+
+      if (!confirmed) return;
+
+      const result = await window.contractManager.payQuarterlyActivity(window.web3Manager.account);
+      
+      const progressModal = this.showTransactionProgress(
+        result.hash || result,
+        window.web3Manager.getNetworkInfo().explorer
+      );
+
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
+      
+      if (receipt.status) {
+        progressModal.updateStatus('Оплата успешна!', true);
+        this.showNotification('✅ Квартальная активность оплачена!', 'success');
+        
+        if (window.globalWayApp) {
+          await window.globalWayApp.updateUserInfo();
+        }
+      }
+
+    } catch (error) {
+      console.error('Ошибка квартальной оплаты:', error);
+      this.showNotification(`❌ Ошибка оплаты: ${error.message}`, 'error');
     }
   }
 
@@ -551,7 +720,7 @@ class UIManager {
       });
     }
 
-    // Обработка событий Web3
+    // ИСПРАВЛЕНО: Правильные обработчики событий Web3Manager
     if (window.web3Manager) {
       window.web3Manager.on('connected', (data) => {
         this.updateWalletUI(true, data);
@@ -566,13 +735,18 @@ class UIManager {
         this.showNotification('👋 Кошелек отключен', 'info');
       });
 
-      window.web3Manager.on('accountChanged', () => {
+      window.web3Manager.on('accountChanged', (data) => {
         this.showNotification('🔄 Аккаунт изменен', 'wallet');
+        if (window.globalWayApp) {
+          window.globalWayApp.updateUserInfo();
+        }
       });
 
-      window.web3Manager.on('chainChanged', () => {
-        const network = window.web3Manager.getNetworkInfo();
-        this.showNotification(`🌐 Сеть изменена: ${network.name}`, 'wallet');
+      // ИСПРАВЛЕНО: Правильное имя события
+      window.web3Manager.on('chainChanged', (data) => {
+        const networkInfo = window.web3Manager.getNetworkInfo();
+        this.showNotification(`🌐 Сеть изменена: ${networkInfo.name}`, 'wallet');
+        this.updateWalletUI(true, { networkInfo });
       });
     }
   }
@@ -600,21 +774,24 @@ class UIManager {
     window.web3Manager.disconnectWallet();
   }
 
+  // ИСПРАВЛЕНО: Обновленный метод updateWalletUI
   updateWalletUI(connected, data = {}) {
     const elements = {
       connectBtn: document.getElementById('connectWallet'),
       walletInfo: document.getElementById('walletInfo'),
       walletAddress: document.getElementById('walletAddress'),
       walletType: document.getElementById('walletType'),
-      networkStatus: document.getElementById('networkStatus')
+      networkStatus: document.getElementById('networkStatus'),
+      balanceDisplay: document.getElementById('balanceDisplay')
     };
 
     if (connected) {
       if (elements.connectBtn) elements.connectBtn.style.display = 'none';
       if (elements.walletInfo) elements.walletInfo.classList.remove('hidden');
       
-      if (elements.walletAddress && data.account) {
-        elements.walletAddress.textContent = this.formatAddress(data.account);
+      if (elements.walletAddress && window.web3Manager.account) {
+        elements.walletAddress.textContent = this.formatAddress(window.web3Manager.account);
+        elements.walletAddress.title = window.web3Manager.account;
       }
       
       if (elements.walletType) {
@@ -622,14 +799,631 @@ class UIManager {
       }
       
       if (elements.networkStatus) {
-        const network = window.web3Manager.getNetworkInfo();
-        elements.networkStatus.textContent = network.name;
+        const networkInfo = window.web3Manager.getNetworkInfo();
+        elements.networkStatus.textContent = networkInfo.name;
         elements.networkStatus.className = window.web3Manager.isCorrectNetwork() ? 
           'network-correct' : 'network-incorrect';
       }
+
+      // Показываем баланс
+      this.updateBalance();
     } else {
       if (elements.connectBtn) elements.connectBtn.style.display = 'block';
       if (elements.walletInfo) elements.walletInfo.classList.add('hidden');
+    }
+  }
+
+  async updateBalance() {
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    if (balanceDisplay && window.web3Manager.isConnected) {
+      try {
+        const balance = await window.web3Manager.getFormattedBalance();
+        balanceDisplay.textContent = `${balance.formatted} ${balance.symbol}`;
+      } catch (error) {
+        balanceDisplay.textContent = '0.0000 BNB';
+      }
+    }
+  }
+
+  // ==================== АДМИНСКИЙ UI ====================
+
+  setupAdminUI() {
+    // Кнопки админских функций
+    const freeRegBtn = document.getElementById('freeRegistrationBtn');
+    if (freeRegBtn) {
+      freeRegBtn.addEventListener('click', () => {
+        this.showFreeRegistrationModal();
+      });
+    }
+
+    const batchRegBtn = document.getElementById('batchRegistrationBtn');
+    if (batchRegBtn) {
+      batchRegBtn.addEventListener('click', () => {
+        this.showBatchRegistrationModal();
+      });
+    }
+
+    // Проверяем права владельца при подключении кошелька
+    if (window.web3Manager) {
+      window.web3Manager.on('connected', async () => {
+        await this.checkAdminRights();
+      });
+    }
+  }
+
+  async checkAdminRights() {
+    if (!window.web3Manager.isConnected || !window.contractManager.isContractsReady()) {
+      return;
+    }
+
+    try {
+      const currentAccount = window.web3Manager.account;
+      const isOwner = window.contractManager.isOwner(currentAccount);
+      const isFounder = window.contractManager.isFounder(currentAccount);
+      
+      if (isOwner || isFounder) {
+        this.toggleAdminFeatures(true);
+        this.showNotification(
+          `Админские права активированы ${isOwner ? '(Владелец)' : '(Основатель)'}`, 
+          'admin'
+        );
+      } else {
+        this.toggleAdminFeatures(false);
+      }
+    } catch (error) {
+      console.error('Ошибка проверки админских прав:', error);
+    }
+  }
+
+  showFreeRegistrationModal() {
+    const modal = document.createElement('div');
+    modal.className = 'cosmic-modal-overlay';
+    modal.innerHTML = `
+      <div class="cosmic-modal">
+        <div class="modal-header">
+          <h3>Бесплатная регистрация пользователя</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="admin-form">
+            <div class="form-group">
+              <label for="userAddress">Адрес пользователя:</label>
+              <input type="text" id="userAddress" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+              <label for="maxLevel">Максимальный уровень:</label>
+              <select id="maxLevel" required>
+                <option value="4">4 (MiniAdmin)</option>
+                <option value="7">7 (Admin)</option>
+                <option value="10">10 (SuperAdmin)</option>
+                <option value="12">12 (Manager)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cosmic-btn secondary cancel-btn">Отмена</button>
+          <button class="cosmic-btn primary confirm-btn">Активировать</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const confirmBtn = modal.querySelector('.confirm-btn');
+    const closeBtn = modal.querySelector('.modal-close');
+
+    const cleanup = () => {
+      modal.remove();
+      document.body.classList.remove('modal-open');
+    };
+
+    [cancelBtn, closeBtn].forEach(btn => {
+      btn.addEventListener('click', cleanup);
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+      const userAddress = modal.querySelector('#userAddress').value;
+      const maxLevel = parseInt(modal.querySelector('#maxLevel').value);
+
+      if (!window.contractManager.isValidAddress(userAddress)) {
+        this.showNotification('Неверный адрес пользователя', 'error');
+        return;
+      }
+
+      cleanup();
+      await this.handleFreeRegistration(userAddress, maxLevel);
+    });
+  }
+
+  async handleFreeRegistration(userAddress, maxLevel) {
+    try {
+      const confirmed = await this.showTransactionModal(
+        'Бесплатная активация пользователя',
+        {
+          'Пользователь': this.formatAddress(userAddress),
+          'Максимальный уровень': maxLevel,
+          'Стоимость': 'Бесплатно (админская функция)'
+        }
+      );
+
+      if (!confirmed) return;
+
+      const result = await window.contractManager.freeRegistrationWithLevels(
+        userAddress,
+        maxLevel,
+        window.web3Manager.account
+      );
+
+      const progressModal = this.showTransactionProgress(
+        result.hash || result,
+        window.web3Manager.getNetworkInfo().explorer
+      );
+
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
+      
+      if (receipt.status) {
+        progressModal.updateStatus('Пользователь успешно активирован!', true);
+        this.showNotification(
+          `Пользователь ${this.formatAddress(userAddress)} активирован до уровня ${maxLevel}`, 
+          'admin'
+        );
+      }
+
+    } catch (error) {
+      console.error('Ошибка бесплатной регистрации:', error);
+      this.showNotification(`Ошибка активации: ${error.message}`, 'error');
+    }
+  }
+
+  showBatchRegistrationModal() {
+    const modal = document.createElement('div');
+    modal.className = 'cosmic-modal-overlay';
+    modal.innerHTML = `
+      <div class="cosmic-modal">
+        <div class="modal-header">
+          <h3>Массовая регистрация команды</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="admin-form">
+            <div class="form-group">
+              <label for="teamAddresses">Адреса команды (по одному в строке):</label>
+              <textarea id="teamAddresses" rows="6" placeholder="0x...&#10;0x...&#10;0x..." required></textarea>
+            </div>
+            <div class="form-group">
+              <label for="teamSponsor">Спонсор команды:</label>
+              <input type="text" id="teamSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+              <label for="teamMaxLevel">Максимальный уровень для всех:</label>
+              <select id="teamMaxLevel" required>
+                <option value="4">4 (MiniAdmin)</option>
+                <option value="7">7 (Admin)</option>
+                <option value="10">10 (SuperAdmin)</option>
+                <option value="12">12 (Manager)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cosmic-btn secondary cancel-btn">Отмена</button>
+          <button class="cosmic-btn primary confirm-btn">Активировать команду</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const confirmBtn = modal.querySelector('.confirm-btn');
+    const closeBtn = modal.querySelector('.modal-close');
+
+    const cleanup = () => {
+      modal.remove();
+      document.body.classList.remove('modal-open');
+    };
+
+    [cancelBtn, closeBtn].forEach(btn => {
+      btn.addEventListener('click', cleanup);
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+      const addressesText = modal.querySelector('#teamAddresses').value;
+      const sponsor = modal.querySelector('#teamSponsor').value;
+      const maxLevel = parseInt(modal.querySelector('#teamMaxLevel').value);
+
+      const addresses = addressesText.split('\n')
+        .map(addr => addr.trim())
+        .filter(addr => addr.length > 0);
+
+      if (addresses.length === 0) {
+        this.showNotification('Введите адреса команды', 'error');
+        return;
+      }
+
+      const invalidAddresses = addresses.filter(addr => !window.contractManager.isValidAddress(addr));
+      if (invalidAddresses.length > 0) {
+        this.showNotification(`Неверные адреса: ${invalidAddresses.join(', ')}`, 'error');
+        return;
+      }
+
+      if (!window.contractManager.isValidAddress(sponsor)) {
+        this.showNotification('Неверный адрес спонсора', 'error');
+        return;
+      }
+
+      cleanup();
+      await this.handleBatchRegistration(addresses, sponsor, maxLevel);
+    });
+  }
+
+  async handleBatchRegistration(addresses, sponsor, maxLevel) {
+    try {
+      const confirmed = await this.showTransactionModal(
+        'Массовая активация команды',
+        {
+          'Количество пользователей': addresses.length,
+          'Спонсор': this.formatAddress(sponsor),
+          'Максимальный уровень': maxLevel,
+          'Стоимость': 'Бесплатно (админская функция)'
+        }
+      );
+
+      if (!confirmed) return;
+
+      const result = await window.contractManager.batchFreeRegistration(
+        addresses,
+        sponsor,
+        maxLevel,
+        window.web3Manager.account
+      );
+
+      const progressModal = this.showTransactionProgress(
+        result.hash || result,
+        window.web3Manager.getNetworkInfo().explorer
+      );
+
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
+      
+      if (receipt.status) {
+        progressModal.updateStatus('Команда успешно активирована!', true);
+        this.showNotification(
+          `${addresses.length} пользователей активированы до уровня ${maxLevel}`, 
+          'admin'
+        );
+      }
+
+    } catch (error) {
+      console.error('Ошибка массовой регистрации:', error);
+      this.showNotification(`Ошибка активации команды: ${error.message}`, 'error');
+    }
+  }
+
+  // ==================== ТОКЕН UI ====================
+
+  setupTokenUI() {
+    // Кнопки для работы с токенами
+    const buyTokensBtn = document.getElementById('buyTokensBtn');
+    if (buyTokensBtn) {
+      buyTokensBtn.addEventListener('click', () => {
+        this.showBuyTokensModal();
+      });
+    }
+
+    const sellTokensBtn = document.getElementById('sellTokensBtn');
+    if (sellTokensBtn) {
+      sellTokensBtn.addEventListener('click', () => {
+        this.showSellTokensModal();
+      });
+    }
+
+    // Обновляем информацию о токенах при подключении
+    if (window.web3Manager) {
+      window.web3Manager.on('connected', () => {
+        this.updateTokenInfo();
+      });
+    }
+  }
+
+  async updateTokenInfo() {
+    const elements = {
+      tokenBalance: document.getElementById('tokenBalance'),
+      tokenPrice: document.getElementById('tokenPrice'),
+      totalSupply: document.getElementById('totalSupply')
+    };
+
+    if (!window.web3Manager.isConnected || !window.contractManager.isContractsReady()) {
+      return;
+    }
+
+    try {
+      if (elements.tokenBalance) {
+        const balance = await window.contractManager.getTokenBalance(window.web3Manager.account);
+        const formattedBalance = window.web3Manager.fromWei(balance);
+        elements.tokenBalance.textContent = `${parseFloat(formattedBalance).toFixed(2)} GWT`;
+      }
+
+      if (elements.tokenPrice) {
+        const price = await window.contractManager.getTokenCurrentPrice();
+        const formattedPrice = window.web3Manager.fromWei(price);
+        elements.tokenPrice.textContent = `${parseFloat(formattedPrice).toFixed(6)} BNB`;
+      }
+
+      if (elements.totalSupply) {
+        const supply = await window.contractManager.getTokenTotalSupply();
+        const formattedSupply = window.web3Manager.fromWei(supply);
+        elements.totalSupply.textContent = this.formatLargeNumber(formattedSupply);
+      }
+
+    } catch (error) {
+      console.error('Ошибка обновления информации о токенах:', error);
+    }
+  }
+
+  showBuyTokensModal() {
+    const modal = document.createElement('div');
+    modal.className = 'cosmic-modal-overlay';
+    modal.innerHTML = `
+      <div class="cosmic-modal">
+        <div class="modal-header">
+          <h3>Покупка GWT токенов</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="token-form">
+            <div class="form-group">
+              <label for="tokenAmount">Количество токенов GWT:</label>
+              <input type="number" id="tokenAmount" placeholder="100" min="1" step="1" required>
+            </div>
+            <div class="form-group">
+              <label for="bnbAmount">Стоимость в BNB:</label>
+              <input type="number" id="bnbAmount" placeholder="0.001" min="0" step="0.000001" required>
+            </div>
+            <div class="token-info">
+              <p>Текущая цена: <span id="currentTokenPrice">Загрузка...</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cosmic-btn secondary cancel-btn">Отмена</button>
+          <button class="cosmic-btn primary confirm-btn">Купить токены</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+
+    // Загружаем текущую цену
+    this.loadCurrentTokenPrice(modal);
+
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const confirmBtn = modal.querySelector('.confirm-btn');
+    const closeBtn = modal.querySelector('.modal-close');
+    const tokenAmountInput = modal.querySelector('#tokenAmount');
+    const bnbAmountInput = modal.querySelector('#bnbAmount');
+
+    const cleanup = () => {
+      modal.remove();
+      document.body.classList.remove('modal-open');
+    };
+
+    [cancelBtn, closeBtn].forEach(btn => {
+      btn.addEventListener('click', cleanup);
+    });
+
+    // Автоматический расчет стоимости
+    tokenAmountInput.addEventListener('input', async () => {
+      const amount = tokenAmountInput.value;
+      if (amount && amount > 0) {
+        try {
+          const cost = await this.calculateTokenPurchaseCost(amount);
+          bnbAmountInput.value = window.web3Manager.fromWei(cost);
+        } catch (error) {
+          console.error('Ошибка расчета стоимости:', error);
+        }
+      }
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+      const tokenAmount = tokenAmountInput.value;
+      const bnbAmount = bnbAmountInput.value;
+
+      if (!tokenAmount || !bnbAmount || tokenAmount <= 0 || bnbAmount <= 0) {
+        this.showNotification('Введите корректные значения', 'error');
+        return;
+      }
+
+      cleanup();
+      await this.handleBuyTokens(tokenAmount, bnbAmount);
+    });
+  }
+
+  async loadCurrentTokenPrice(modal) {
+    try {
+      const price = await window.contractManager.getTokenCurrentPrice();
+      const formattedPrice = window.web3Manager.fromWei(price);
+      const priceElement = modal.querySelector('#currentTokenPrice');
+      if (priceElement) {
+        priceElement.textContent = `${parseFloat(formattedPrice).toFixed(6)} BNB`;
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки цены токена:', error);
+    }
+  }
+
+  async calculateTokenPurchaseCost(tokenAmount) {
+    try {
+      const tokenAmountWei = window.web3Manager.toWei(tokenAmount);
+      // Здесь должен быть вызов метода calculatePurchaseCost из контракта
+      // Пока используем простую формулу: количество * текущая цена
+      const price = await window.contractManager.getTokenCurrentPrice();
+      return (BigInt(tokenAmountWei) * BigInt(price) / BigInt(window.web3Manager.toWei('1'))).toString();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async handleBuyTokens(tokenAmount, bnbAmount) {
+    try {
+      const confirmed = await this.showTransactionModal(
+        'Покупка GWT токенов',
+        {
+          'Количество токенов': `${tokenAmount} GWT`,
+          'Стоимость': `${bnbAmount} BNB`,
+          'Сеть': window.web3Manager.getNetworkInfo().name
+        }
+      );
+
+      if (!confirmed) return;
+
+      const tokenAmountWei = window.web3Manager.toWei(tokenAmount);
+      const bnbAmountWei = window.web3Manager.toWei(bnbAmount);
+
+      const result = await window.contractManager.buyTokens(
+        tokenAmountWei,
+        window.web3Manager.account,
+        bnbAmountWei
+      );
+
+      const progressModal = this.showTransactionProgress(
+        result.hash || result,
+        window.web3Manager.getNetworkInfo().explorer
+      );
+
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
+      
+      if (receipt.status) {
+        progressModal.updateStatus('Токены успешно куплены!', true);
+        this.showNotification(`Куплено ${tokenAmount} GWT токенов`, 'token');
+        await this.updateTokenInfo();
+      }
+
+    } catch (error) {
+      console.error('Ошибка покупки токенов:', error);
+      this.showNotification(`Ошибка покупки: ${error.message}`, 'error');
+    }
+  }
+
+  showSellTokensModal() {
+    const modal = document.createElement('div');
+    modal.className = 'cosmic-modal-overlay';
+    modal.innerHTML = `
+      <div class="cosmic-modal">
+        <div class="modal-header">
+          <h3>Продажа GWT токенов</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="token-form">
+            <div class="form-group">
+              <label for="sellTokenAmount">Количество токенов для продажи:</label>
+              <input type="number" id="sellTokenAmount" placeholder="100" min="1" step="1" required>
+            </div>
+            <div class="token-info">
+              <p>Ваш баланс: <span id="userTokenBalance">Загрузка...</span></p>
+              <p>Цена продажи: <span id="sellTokenPrice">Загрузка...</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cosmic-btn secondary cancel-btn">Отмена</button>
+          <button class="cosmic-btn primary confirm-btn">Продать токены</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.classList.add('active');
+
+    // Загружаем информацию о балансе и цене
+    this.loadUserTokenBalance(modal);
+
+    const cancelBtn = modal.querySelector('.cancel-btn');
+    const confirmBtn = modal.querySelector('.confirm-btn');
+    const closeBtn = modal.querySelector('.modal-close');
+
+    const cleanup = () => {
+      modal.remove();
+      document.body.classList.remove('modal-open');
+    };
+
+    [cancelBtn, closeBtn].forEach(btn => {
+      btn.addEventListener('click', cleanup);
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+      const tokenAmount = modal.querySelector('#sellTokenAmount').value;
+
+      if (!tokenAmount || tokenAmount <= 0) {
+        this.showNotification('Введите корректное количество токенов', 'error');
+        return;
+      }
+
+      cleanup();
+      await this.handleSellTokens(tokenAmount);
+    });
+  }
+
+  async loadUserTokenBalance(modal) {
+    try {
+      const balance = await window.contractManager.getTokenBalance(window.web3Manager.account);
+      const formattedBalance = window.web3Manager.fromWei(balance);
+      const balanceElement = modal.querySelector('#userTokenBalance');
+      if (balanceElement) {
+        balanceElement.textContent = `${parseFloat(formattedBalance).toFixed(2)} GWT`;
+      }
+
+      const price = await window.contractManager.getTokenCurrentPrice();
+      const formattedPrice = window.web3Manager.fromWei(price);
+      const priceElement = modal.querySelector('#sellTokenPrice');
+      if (priceElement) {
+        priceElement.textContent = `${parseFloat(formattedPrice).toFixed(6)} BNB`;
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки баланса токенов:', error);
+    }
+  }
+
+  async handleSellTokens(tokenAmount) {
+    try {
+      const confirmed = await this.showTransactionModal(
+        'Продажа GWT токенов',
+        {
+          'Количество токенов': `${tokenAmount} GWT`,
+          'Сеть': window.web3Manager.getNetworkInfo().name
+        }
+      );
+
+      if (!confirmed) return;
+
+      const tokenAmountWei = window.web3Manager.toWei(tokenAmount);
+
+      const result = await window.contractManager.sellTokens(
+        tokenAmountWei,
+        window.web3Manager.account
+      );
+
+      const progressModal = this.showTransactionProgress(
+        result.hash || result,
+        window.web3Manager.getNetworkInfo().explorer
+      );
+
+      const receipt = await window.contractManager.waitForTransaction(result.hash || result, 1);
+      
+      if (receipt.status) {
+        progressModal.updateStatus('Токены успешно проданы!', true);
+        this.showNotification(`Продано ${tokenAmount} GWT токенов`, 'token');
+        await this.updateTokenInfo();
+      }
+
+    } catch (error) {
+      console.error('Ошибка продажи токенов:', error);
+      this.showNotification(`Ошибка продажи: ${error.message}`, 'error');
     }
   }
 
@@ -739,17 +1533,32 @@ class UIManager {
   setupTheme() {
     const savedTheme = localStorage.getItem('globalway_theme') || 'dark';
     this.setTheme(savedTheme);
+    
+    // Кнопка переключения темы
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.addEventListener('click', () => {
+        this.toggleTheme();
+      });
+    }
   }
 
   setTheme(theme) {
     this.currentTheme = theme;
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('globalway_theme', theme);
+    
+    // Обновляем иконку кнопки темы
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+      themeToggle.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
   }
 
   toggleTheme() {
     const newTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
     this.setTheme(newTheme);
+    this.showNotification(`Тема изменена на ${newTheme === 'dark' ? 'темную' : 'светлую'}`, 'info', 2000);
   }
 
   // ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
@@ -757,6 +1566,14 @@ class UIManager {
   formatAddress(address, start = 6, end = 4) {
     if (!address) return '0x000...000';
     return `${address.slice(0, start)}...${address.slice(-end)}`;
+  }
+
+  formatLargeNumber(value) {
+    const num = parseFloat(value);
+    if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+    return num.toFixed(0);
   }
 
   animateElement(element, animationClass, duration = 500) {
@@ -772,11 +1589,11 @@ class UIManager {
   async copyToClipboard(text) {
     try {
       await navigator.clipboard.writeText(text);
-      this.showNotification('📋 Скопировано в буфер обмена', 'success', 2000);
+      this.showNotification('Скопировано в буфер обмена', 'success', 2000);
       return true;
     } catch (error) {
       console.error('Ошибка копирования:', error);
-      this.showNotification('❌ Не удалось скопировать', 'error');
+      this.showNotification('Не удалось скопировать', 'error');
       return false;
     }
   }
@@ -842,7 +1659,7 @@ class UIManager {
     requestAnimationFrame(updateValue);
   }
 
-// НОВАЯ ФУНКЦИЯ: Добавление админ кнопки в навигацию
+  // НОВАЯ ФУНКЦИЯ: Добавление админ кнопки в навигацию
   addAdminNavButton() {
     const bottomNav = document.querySelector('.bottom-nav');
     const existingAdminBtn = document.querySelector('[data-page="admin"]');
@@ -868,25 +1685,348 @@ class UIManager {
 
   // НОВАЯ ФУНКЦИЯ: Переключение админ функций  
   toggleAdminFeatures(isOwner) {
-  const adminElements = document.querySelectorAll('.admin-only');
-  adminElements.forEach(element => {
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(element => {
+      if (isOwner) {
+        element.classList.remove('hidden');
+      } else {
+        element.classList.add('hidden');
+      }
+    });
+
     if (isOwner) {
-      element.classList.remove('hidden');
+      this.addAdminNavButton();
     } else {
-      element.classList.add('hidden');
+      const adminBtn = document.querySelector('[data-page="admin"]');
+      if (adminBtn) adminBtn.remove();
     }
-  });
-
-  if (isOwner) {
-    this.addAdminNavButton();
-  } else {
-    const adminBtn = document.querySelector('[data-page="admin"]');
-    if (adminBtn) adminBtn.remove();
-  }
   }
 
-  // Очистка ресурсов
+  // ==================== СТАТИСТИКА И МОНИТОРИНГ ====================
+
+  async updateDashboardStats() {
+    if (!window.contractManager.isContractsReady()) return;
+
+    try {
+      const overview = await window.contractManager.getContractOverview();
+      
+      // Обновляем счетчики
+      this.updateCounter('totalUsers', parseInt(overview.totalUsers));
+      this.updateCounter('activeUsers', parseInt(overview.activeUsers));
+      
+      // Обновляем объем
+      const volumeElement = document.getElementById('totalVolume');
+      if (volumeElement) {
+        const volumeInBNB = window.web3Manager.fromWei(overview.totalVolume);
+        volumeElement.textContent = this.formatLargeNumber(volumeInBNB) + ' BNB';
+      }
+
+      // Обновляем баланс контракта
+      const balanceElement = document.getElementById('contractBalance');
+      if (balanceElement) {
+        const balanceInBNB = window.web3Manager.fromWei(overview.contractBalance);
+        balanceElement.textContent = parseFloat(balanceInBNB).toFixed(4) + ' BNB';
+      }
+
+      // Обновляем распределение уровней
+      this.updateLevelDistribution(overview.levelDistribution);
+
+    } catch (error) {
+      console.error('Ошибка обновления статистики:', error);
+    }
+  }
+
+  updateLevelDistribution(distribution) {
+    const chartContainer = document.getElementById('levelChart');
+    if (!chartContainer || !distribution) return;
+
+    const maxValue = Math.max(...distribution);
+    
+    chartContainer.innerHTML = distribution.map((count, index) => {
+      const level = index + 1;
+      const percentage = maxValue > 0 ? (count / maxValue) * 100 : 0;
+      
+      return `
+        <div class="level-bar" data-level="${level}">
+          <div class="level-label">L${level}</div>
+          <div class="level-progress">
+            <div class="level-fill" style="height: ${percentage}%"></div>
+          </div>
+          <div class="level-count">${count}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ==================== ПОИСК И ФИЛЬТРАЦИЯ ====================
+
+  setupSearchAndFilters() {
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.filterUsers(e.target.value);
+      });
+    }
+
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        this.applyFilter(filter);
+        
+        // Обновляем активную кнопку
+        filterButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  }
+
+  filterUsers(searchTerm) {
+    const userCards = document.querySelectorAll('.user-card');
+    const term = searchTerm.toLowerCase();
+
+    userCards.forEach(card => {
+      const address = card.dataset.address?.toLowerCase() || '';
+      const name = card.querySelector('.user-name')?.textContent.toLowerCase() || '';
+      
+      if (address.includes(term) || name.includes(term)) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  applyFilter(filterType) {
+    const userCards = document.querySelectorAll('.user-card');
+
+    userCards.forEach(card => {
+      const shouldShow = this.shouldShowCard(card, filterType);
+      card.style.display = shouldShow ? 'block' : 'none';
+    });
+  }
+
+  shouldShowCard(card, filterType) {
+    switch (filterType) {
+      case 'all':
+        return true;
+      case 'active':
+        return card.classList.contains('user-active');
+      case 'inactive':
+        return !card.classList.contains('user-active');
+      case 'leaders':
+        return card.dataset.leaderRank > 0;
+      default:
+        return true;
+    }
+  }
+
+  // ==================== ЭКСПОРТ И ИМПОРТ ДАННЫХ ====================
+
+  async exportUserData() {
+    if (!window.web3Manager.isConnected) {
+      this.showNotification('Подключите кошелек для экспорта', 'warning');
+      return;
+    }
+
+    try {
+      this.showPageLoader();
+      
+      const userData = await window.contractManager.getUserStats(window.web3Manager.account);
+      
+      const exportData = {
+        address: window.web3Manager.account,
+        network: window.web3Manager.getNetworkInfo().name,
+        exportTime: new Date().toISOString(),
+        ...userData
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(dataBlob);
+      link.download = `globalway_user_${this.formatAddress(window.web3Manager.account)}_${Date.now()}.json`;
+      link.click();
+      
+      this.showNotification('Данные пользователя экспортированы', 'success');
+      
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      this.showNotification('Ошибка экспорта данных', 'error');
+    } finally {
+      this.hidePageLoader();
+    }
+  }
+
+  // ==================== УВЕДОМЛЕНИЯ О СОБЫТИЯХ ====================
+
+  setupEventNotifications() {
+    if (!window.contractManager.isContractsReady()) return;
+
+    // Подписываемся на события контракта
+    try {
+      // Пример подписки на событие регистрации
+      window.contractManager.contracts.globalWay.events.UserRegistered({
+        filter: { user: window.web3Manager.account }
+      }).on('data', (event) => {
+        this.showNotification('Вы успешно зарегистрированы!', 'success');
+      });
+
+      // Подписка на активацию уровней
+      window.contractManager.contracts.globalWay.events.LevelActivated({
+        filter: { user: window.web3Manager.account }
+      }).on('data', (event) => {
+        const level = event.returnValues.level;
+        this.showNotification(`Уровень ${level} активирован!`, 'success');
+      });
+
+    } catch (error) {
+      console.log('События контракта недоступны:', error);
+    }
+  }
+
+  // ==================== РЕЗЕРВНОЕ КОПИРОВАНИЕ СОСТОЯНИЯ ====================
+
+  saveUIState() {
+    const state = {
+      theme: this.currentTheme,
+      lastUpdate: Date.now(),
+      notifications: this.notifications.length,
+      activeModals: Object.keys(this.modals).filter(id => 
+        this.modals[id].classList.contains('active')
+      )
+    };
+    
+    localStorage.setItem('ui_manager_state', JSON.stringify(state));
+  }
+
+  loadUIState() {
+    try {
+      const savedState = localStorage.getItem('ui_manager_state');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        
+        if (state.theme) {
+          this.setTheme(state.theme);
+        }
+        
+        return state;
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки состояния UI:', error);
+    }
+    
+    return null;
+  }
+
+  // ==================== ОБРАБОТКА ОШИБОК UI ====================
+
+  handleUIError(error, context = 'UI operation') {
+    console.error(`UI Error in ${context}:`, error);
+    
+    // Скрываем все загрузчики
+    this.loadingStates.forEach((content, element) => {
+      this.hideLoader(element);
+    });
+    
+    // Закрываем модальные окна при критических ошибках
+    if (error.message?.includes('contract') || error.message?.includes('network')) {
+      Object.keys(this.modals).forEach(modalId => {
+        this.hideModal(modalId);
+      });
+    }
+    
+    // Показываем пользователю понятную ошибку
+    let userMessage = 'Произошла ошибка в интерфейсе';
+    
+    if (error.message?.includes('network')) {
+      userMessage = 'Проблема с сетью. Проверьте подключение';
+    } else if (error.message?.includes('contract')) {
+      userMessage = 'Ошибка смарт-контракта';
+    } else if (error.message?.includes('wallet')) {
+      userMessage = 'Проблема с кошельком';
+    }
+    
+    this.showNotification(userMessage, 'error');
+  }
+
+  // ==================== АДАПТИВНОСТЬ И МОБИЛЬНОСТЬ ====================
+
+  setupResponsiveUI() {
+    // Обработка изменения размера экрана
+    window.addEventListener('resize', () => {
+      this.handleResize();
+    });
+
+    // Определение мобильного устройства
+    this.isMobile = window.innerWidth <= 768;
+    
+    if (this.isMobile) {
+      this.setupMobileUI();
+    }
+  }
+
+  handleResize() {
+    const wasMobile = this.isMobile;
+    this.isMobile = window.innerWidth <= 768;
+    
+    if (wasMobile !== this.isMobile) {
+      if (this.isMobile) {
+        this.setupMobileUI();
+      } else {
+        this.setupDesktopUI();
+      }
+    }
+    
+    // Перепозиционируем модальные окна
+    this.repositionModals();
+  }
+
+  setupMobileUI() {
+    document.body.classList.add('mobile-ui');
+    
+    // Адаптируем модальные окна для мобильных
+    const modals = document.querySelectorAll('.cosmic-modal');
+    modals.forEach(modal => {
+      modal.classList.add('mobile-modal');
+    });
+    
+    // Упрощаем уведомления
+    this.notificationContainer.classList.add('mobile-notifications');
+  }
+
+  setupDesktopUI() {
+    document.body.classList.remove('mobile-ui');
+    
+    const modals = document.querySelectorAll('.cosmic-modal');
+    modals.forEach(modal => {
+      modal.classList.remove('mobile-modal');
+    });
+    
+    this.notificationContainer.classList.remove('mobile-notifications');
+  }
+
+  repositionModals() {
+    // Перепозиционируем активные модальные окна
+    Object.values(this.modals).forEach(modal => {
+      if (modal.classList.contains('active')) {
+        const content = modal.querySelector('.modal-content, .cosmic-modal');
+        if (content) {
+          // Сброс позиционирования для пересчета
+          content.style.transform = '';
+          content.style.top = '';
+          content.style.left = '';
+        }
+      }
+    });
+  }
+
+  // ==================== ОЧИСТКА РЕСУРСОВ ====================
+
   destroy() {
+    console.log('Уничтожение UIManager...');
+    
     // Удаляем все подсказки
     this.tooltips.forEach(tooltip => {
       if (tooltip.parentNode) {
@@ -903,7 +2043,23 @@ class UIManager {
     // Очищаем состояния загрузки
     this.loadingStates.clear();
     
-    console.log('🗑️ UIManager destroyed');
+    // Закрываем все модальные окна
+    Object.keys(this.modals).forEach(modalId => {
+      this.hideModal(modalId);
+    });
+    
+    // Очищаем прогресс модальные окна
+    this.progressModals.forEach(modal => {
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
+    });
+    this.progressModals.clear();
+    
+    // Сохраняем состояние перед уничтожением
+    this.saveUIState();
+    
+    console.log('UIManager уничтожен');
   }
 }
 
@@ -918,17 +2074,86 @@ document.addEventListener('DOMContentLoaded', () => {
     // Подписываемся на события Web3
     window.web3Manager.on('connected', (data) => {
       window.uiManager.updateWalletUI(true, data);
+      window.uiManager.updateTokenInfo();
+      window.uiManager.checkAdminRights();
     });
     
     window.web3Manager.on('disconnected', () => {
       window.uiManager.updateWalletUI(false);
+      window.uiManager.toggleAdminFeatures(false);
+    });
+
+    window.web3Manager.on('chainChanged', (data) => {
+      window.uiManager.updateWalletUI(true, data);
     });
   }
   
-  console.log('🎨 UI Manager инициализирован с интеграцией контрактов');
+  // Автоматическое обновление статистики каждые 30 секунд
+  setInterval(() => {
+    if (window.uiManager && window.contractManager?.isContractsReady()) {
+      window.uiManager.updateDashboardStats();
+    }
+  }, 30000);
+  
+  // Сохранение состояния UI каждые 5 минут
+  setInterval(() => {
+    if (window.uiManager) {
+      window.uiManager.saveUIState();
+    }
+  }, 300000);
+  
+  // Обработка ошибок JavaScript
+  window.addEventListener('error', (event) => {
+    if (window.uiManager) {
+      window.uiManager.handleUIError(event.error, 'Global error');
+    }
+  });
+  
+  // Очистка при закрытии страницы
+  window.addEventListener('beforeunload', () => {
+    if (window.uiManager) {
+      window.uiManager.destroy();
+    }
+  });
+  
+  console.log('UI Manager инициализирован с интеграцией контрактов opBNB');
 });
 
 // Экспорт для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = UIManager;
 }
+
+// ==================== ГЛОБАЛЬНЫЕ УТИЛИТЫ UI ====================
+
+// Утилиты для быстрого доступа из консоли
+window.debugUI = {
+  showAllModals: () => {
+    Object.keys(window.uiManager.modals).forEach(id => {
+      console.log(`Modal: ${id}`, window.uiManager.modals[id]);
+    });
+  },
+  
+  testNotification: (type = 'info') => {
+    window.uiManager.showNotification(`Тест уведомления ${type}`, type);
+  },
+  
+  clearNotifications: () => {
+    window.uiManager.notifications.forEach(n => window.uiManager.removeNotification(n));
+  },
+  
+  toggleTheme: () => {
+    window.uiManager.toggleTheme();
+  },
+  
+  showLoadingTest: () => {
+    const btn = document.querySelector('button');
+    if (btn) {
+      window.uiManager.showLoader(btn, 'Тестирование...');
+      setTimeout(() => window.uiManager.hideLoader(btn), 3000);
+    }
+  }
+};
+
+console.log('UIManager полностью инициализирован для opBNB сети');
+console.log('Доступны утилиты отладки: window.debugUI');
