@@ -2060,18 +2060,64 @@ if (this.isConnected && this.isOwner) {
    }
  }
 
- // Деструктор для очистки ресурсов
- destroy() {
-   document.removeEventListener('DOMContentLoaded', this.init);
-   
-   if (this.updateInterval) {
-     clearInterval(this.updateInterval);
-   }
-   
-   this.saveAppState();
-   
-   console.log('GlobalWay App destroyed');
+// Деструктор для очистки ресурсов
+destroy() {
+ document.removeEventListener('DOMContentLoaded', this.init);
+ 
+ if (this.updateInterval) {
+   clearInterval(this.updateInterval);
  }
+ 
+ this.saveAppState();
+ 
+ console.log('GlobalWay App destroyed');
+}
+
+initAdmin() {
+ if (!this.isOwner) {
+   this.showNotification('Доступ запрещен', 'error');
+   this.navigateToPage('dashboard');
+   return;
+ }
+ 
+ const adminSection = document.querySelector('#admin');
+ if (adminSection && !adminSection.innerHTML.trim()) {
+   adminSection.innerHTML = `
+     <div class="container">
+       <h2>Панель администратора</h2>
+       <div class="admin-section">
+         <h3>Управление пользователями</h3>
+         <button id="batchRegisterBtn" class="admin-btn">Массовая регистрация</button>
+         <button id="freeRegisterBtn" class="admin-btn">Бесплатная регистрация</button>
+       </div>
+       <div class="admin-section">
+         <h3>Статистика контракта</h3>
+         <div id="contractStats">Загрузка статистики...</div>
+       </div>
+     </div>
+   `;
+ }
+ 
+ this.setupAdminInteractions();
+}
+
+setupAdminInteractions() {
+ const batchBtn = document.getElementById('batchRegisterBtn');
+ const freeBtn = document.getElementById('freeRegisterBtn');
+ 
+ if (batchBtn) {
+   batchBtn.addEventListener('click', () => {
+     this.showNotification('Функция в разработке', 'info');
+   });
+ }
+ 
+ if (freeBtn) {
+   freeBtn.addEventListener('click', () => {
+     this.showNotification('Функция в разработке', 'info');
+   });
+ }
+}
+
 }
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ====================
