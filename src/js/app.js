@@ -423,7 +423,7 @@ class GlobalWayApp {
       }
       
       if (elements.lastQuarterlyPayment) {
-        const lastPayment = new Date(user.lastActivity * 1000);
+        const daysUntilNext = Math.max(0, Number(nextPaymentDay) - Number(daysSinceRegistration));
         elements.lastQuarterlyPayment.textContent = lastPayment.toLocaleDateString();
       }
       
