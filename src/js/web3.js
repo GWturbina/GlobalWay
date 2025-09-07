@@ -1,4 +1,4 @@
-// ==================== ПОЛНЫЙ WEB3 MANAGER С SAFEPAL ПРИОРИТЕТОМ ====================
+// ==================== ПОЛНЫЙ ИСПРАВЛЕННЫЙ WEB3.JS ====================
 
 class Web3Manager {
   constructor() {
@@ -11,34 +11,42 @@ class Web3Manager {
     this.retryCount = 0;
     this.maxRetries = 3;
     this.isInitializing = false;
+    this.providerType = null;
+    this.networkMonitoringInterval = null;
+    
+    // ИСПРАВЛЕНО: Правильная конфигурация opBNB
     this.supportedNetworks = {
       204: {  // opBNB - ОСНОВНАЯ СЕТЬ!
         name: 'opBNB Mainnet',
         symbol: 'BNB',
         rpcUrls: ['https://opbnb-mainnet-rpc.bnbchain.org'],
         blockExplorerUrls: ['https://mainnet.opbnbscan.com'],
-        chainId: '0xCC'  // 204 в hex
+        chainId: '0xCC',  // 204 в hex
+        explorer: 'https://mainnet.opbnbscan.com'
       },
       56: {
         name: 'Binance Smart Chain',
         symbol: 'BNB',
         rpcUrls: ['https://bsc-dataseed.binance.org/'],
         blockExplorerUrls: ['https://bscscan.com/'],
-        chainId: '0x38'
+        chainId: '0x38',
+        explorer: 'https://bscscan.com'
       },
       1: {
         name: 'Ethereum Mainnet',
         symbol: 'ETH',
         rpcUrls: ['https://mainnet.infura.io/v3/'],
         blockExplorerUrls: ['https://etherscan.io/'],
-        chainId: '0x1'
+        chainId: '0x1',
+        explorer: 'https://etherscan.io'
       },
       137: {
         name: 'Polygon',
         symbol: 'MATIC',
         rpcUrls: ['https://polygon-rpc.com/'],
         blockExplorerUrls: ['https://polygonscan.com/'],
-        chainId: '0x89'
+        chainId: '0x89',
+        explorer: 'https://polygonscan.com'
       }
     };
     
@@ -70,8 +78,10 @@ class Web3Manager {
   async detectWalletProvider() {
     console.log('🔍 Поиск кошелька SafePal...');
     
+    // Ждем загрузки кошельков
     await new Promise(resolve => setTimeout(resolve, 2000));
     
+    // ИСПРАВЛЕНО: Улучшенная детекция SafePal
     if (window.safepalProvider) {
       console.log('✅ SafePal (safepalProvider) обнаружен');
       this.provider = window.safepalProvider;
@@ -84,17 +94,24 @@ class Web3Manager {
       console.log('✅ SafePal (ethereum.isSafePal) обнаружен');
       this.provider = window.ethereum;
       this.providerType = 'SafePal';
+    } else if (window.ethereum && window.ethereum.providers) {
+      // Проверяем массив провайдеров
+      const safePalProvider = window.ethereum.providers.find(p => p.isSafePal);
+      if (safePalProvider) {
+        console.log('✅ SafePal найден в массиве провайдеров');
+        this.provider = safePalProvider;
+        this.providerType = 'SafePal';
+      } else {
+        console.log('✅ Ethereum provider найден, проверяем тип...');
+        this.provider = window.ethereum;
+        this.providerType = this.getProviderName(window.ethereum);
+      }
     } else if (window.ethereum) {
       console.log('✅ Ethereum provider найден, проверяем тип...');
       this.provider = window.ethereum;
-      
-      if (window.ethereum.isMetaMask) {
-        this.providerType = 'MetaMask';
-      } else {
-        this.providerType = 'Unknown Wallet';
-      }
+      this.providerType = this.getProviderName(window.ethereum);
     } else {
-      console.warn('⌀ Кошелек не найден');
+      console.warn('⚠ Кошелек не найден');
       this.provider = null;
       this.providerType = null;
     }
@@ -102,6 +119,16 @@ class Web3Manager {
     if (this.provider) {
       this.web3 = new Web3(this.provider);
     }
+  }
+
+  getProviderName(provider) {
+    if (provider.isSafePal) return 'SafePal';
+    if (provider.isMetaMask) return 'MetaMask';
+    if (provider.isTrust) return 'Trust Wallet';
+    if (provider.isCoinbaseWallet) return 'Coinbase Wallet';
+    if (provider.isTokenPocket) return 'TokenPocket';
+    if (provider.isBinance) return 'Binance Chain Wallet';
+    return 'Unknown Wallet';
   }
 
   async connectWallet() {
@@ -148,6 +175,7 @@ class Web3Manager {
         balance: this.web3.utils.fromWei(balance, 'ether') + ' ' + this.getNetworkSymbol(this.networkId)
       });
 
+      // ИСПРАВЛЕНО: Проверка сети opBNB
       if (this.networkId !== 204) {
         console.warn('⚠️ Подключена неправильная сеть:', this.getNetworkName(this.networkId));
         
@@ -178,7 +206,7 @@ class Web3Manager {
       return this.account;
 
     } catch (error) {
-      console.error('⌀ Ошибка подключения к кошельку:', error);
+      console.error('⚠ Ошибка подключения к кошельку:', error);
       
       // ИСПРАВЛЕНО: Убираем модальные наложения при ошибке
       this.removeModalOverlays();
@@ -195,7 +223,7 @@ class Web3Manager {
     }
   }
 
-  // НОВАЯ ФУНКЦИЯ: Удаление модальных наложений
+  // ИСПРАВЛЕНО: Функция удаления модальных наложений
   removeModalOverlays() {
     const overlays = document.querySelectorAll('.cosmic-modal-overlay, .wallet-modal-overlay, .loading-overlay, .network-switch-modal, .install-wallet-modal, .mobile-wallet-modal');
     overlays.forEach(overlay => {
@@ -467,7 +495,7 @@ class Web3Manager {
         : 'https://play.google.com/store/apps/details?id=io.safepal.wallet';
     }
     
-    console.warn('⌀', message);
+    console.warn('⚠', message);
     
     if (window.globalWayApp) {
       window.globalWayApp.showNotification(message, 'warning');
@@ -571,6 +599,7 @@ class Web3Manager {
       console.log('Ошибка переключения, код:', switchError.code);
       
       if (switchError.code === 4902) {
+        // Сеть не добавлена, добавляем
         try {
           await this.provider.request({
             method: 'wallet_addEthereumChain',
@@ -595,7 +624,7 @@ class Web3Manager {
           }
           
         } catch (addError) {
-          console.error('⌀ Ошибка добавления opBNB сети:', addError);
+          console.error('⚠ Ошибка добавления opBNB сети:', addError);
           
           if (window.globalWayApp) {
             window.globalWayApp.showNotification('Не удалось добавить opBNB сеть', 'error');
@@ -657,7 +686,7 @@ class Web3Manager {
       
       this.networkId = newNetworkId;
       
-      this.emit('networkChanged', {
+      this.emit('chainChanged', {
         newNetworkId: this.networkId,
         oldNetworkId: oldNetworkId,
         networkName: this.getNetworkName(this.networkId)
@@ -693,7 +722,7 @@ class Web3Manager {
     });
 
     this.provider.on('disconnect', (error) => {
-      console.log('⌀ Кошелек отключен:', error);
+      console.log('⚠ Кошелек отключен:', error);
       this.disconnectWallet();
     });
 
@@ -708,7 +737,7 @@ class Web3Manager {
   }
 
   setupNetworkMonitoring() {
-    setInterval(async () => {
+    this.networkMonitoringInterval = setInterval(async () => {
       if (this.isConnected && this.provider) {
         try {
           const isConnected = await this.provider.request({
@@ -762,7 +791,7 @@ class Web3Manager {
 
   async reconnect() {
     if (this.retryCount >= this.maxRetries) {
-      console.error('⌀ Превышено количество попыток переподключения');
+      console.error('⚠ Превышено количество попыток переподключения');
       this.disconnectWallet();
       return;
     }
@@ -862,7 +891,7 @@ class Web3Manager {
       };
       
     } catch (error) {
-      console.error('⌀ Ошибка отправки транзакции:', error);
+      console.error('⚠ Ошибка отправки транзакции:', error);
       this.removeModalOverlays(); // Убираем зависшие модальные окна
       throw this.formatTransactionError(error);
     }
@@ -948,7 +977,7 @@ class Web3Manager {
       return signature;
       
     } catch (error) {
-      console.error('⌀ Ошибка подписания:', error);
+      console.error('⚠ Ошибка подписания:', error);
       this.removeModalOverlays();
       throw error;
     }
@@ -971,7 +1000,7 @@ class Web3Manager {
       return signature;
       
     } catch (error) {
-      console.error('⌀ Ошибка подписания структурированных данных:', error);
+      console.error('⚠ Ошибка подписания структурированных данных:', error);
       this.removeModalOverlays();
       throw error;
     }
@@ -1084,21 +1113,10 @@ class Web3Manager {
     return Object.keys(this.supportedNetworks).includes(networkId.toString());
   }
 
-  // ИСПРАВЛЕНО: Добавлен недостающий метод getWalletType
+  // ИСПРАВЛЕНО: Убран дубликат метода getWalletType
   getWalletType() {
     return this.providerType || 'Unknown';
   }
-
-    // ИСПРАВЛЕНО: Добавлен недостающий метод getWalletType
-  getWalletType() {
-    if (this.provider && this.provider.isSafePal) {
-      return 'SafePal';
-    } else if (this.provider) {
-      return 'MetaMask';
-    }
-    return 'Unknown';
-  }
-
 
   // ==================== EVENT EMITTER ====================
 
@@ -1232,47 +1250,66 @@ class Web3Manager {
 
   // ==================== ДОПОЛНИТЕЛЬНЫЕ ГЕТТЕРЫ ====================
 
-getNetworkInfo() {
-  if (!this.isConnected || !this.networkId) {
+  getNetworkInfo() {
+    if (!this.isConnected || !this.networkId) {
+      return {
+        networkId: null,
+        name: 'Not Connected',
+        symbol: 'N/A',
+        explorer: null,
+        isSupported: false
+      };
+    }
+
+    const network = this.supportedNetworks[this.networkId];
     return {
-      networkId: null,
-      networkName: 'Not Connected',
-      symbol: 'N/A',
-      isSupported: false
+      networkId: this.networkId,
+      name: network?.name || this.getNetworkName(this.networkId),
+      symbol: network?.symbol || this.getNetworkSymbol(this.networkId),
+      explorer: network?.explorer || network?.blockExplorerUrls?.[0] || null,
+      isSupported: this.isValidNetwork(this.networkId),
+      chainId: '0x' + this.networkId.toString(16)
     };
   }
 
-  return {
-    networkId: this.networkId,
-    networkName: this.getNetworkName(this.networkId),
-    symbol: this.getNetworkSymbol(this.networkId),
-    isSupported: this.isValidNetwork(this.networkId),
-    chainId: '0x' + this.networkId.toString(16)
-  };
-}
-
-isCorrectNetwork() {
-  return this.networkId === 204; // opBNB
-}
-
-async getFormattedBalance(address = null) {
-  try {
-    const balance = await this.getBalance(address);
-    return {
-      ...balance,
-      symbol: this.getNetworkSymbol(this.networkId),
-      network: this.getNetworkName(this.networkId)
-    };
-  } catch (error) {
-    return {
-      wei: '0',
-      ether: '0',
-      formatted: '0.0000',
-      symbol: this.getNetworkSymbol(this.networkId) || 'BNB',
-      network: this.getNetworkName(this.networkId) || 'Unknown'
-    };
+  isCorrectNetwork() {
+    return this.networkId === 204; // opBNB
   }
-}
+
+  async getFormattedBalance(address = null) {
+    try {
+      const balance = await this.getBalance(address);
+      return {
+        ...balance,
+        symbol: this.getNetworkSymbol(this.networkId),
+        network: this.getNetworkName(this.networkId)
+      };
+    } catch (error) {
+      return {
+        wei: '0',
+        ether: '0',
+        formatted: '0.0000',
+        symbol: this.getNetworkSymbol(this.networkId) || 'BNB',
+        network: this.getNetworkName(this.networkId) || 'Unknown'
+      };
+    }
+  }
+
+  // ==================== КОНВЕРТАЦИЯ ====================
+
+  toWei(value) {
+    if (this.web3) {
+      return this.web3.utils.toWei(value.toString(), 'ether');
+    }
+    return value;
+  }
+
+  fromWei(value) {
+    if (this.web3) {
+      return this.web3.utils.fromWei(value.toString(), 'ether');
+    }
+    return value;
+  }
 
   // ==================== ДЕСТРУКТОР ====================
 
@@ -1283,7 +1320,9 @@ async getFormattedBalance(address = null) {
       this.provider.removeAllListeners();
     }
     
-    clearInterval(this.networkMonitoringInterval);
+    if (this.networkMonitoringInterval) {
+      clearInterval(this.networkMonitoringInterval);
+    }
     
     this.saveState();
     this.removeModalOverlays();
@@ -1298,7 +1337,7 @@ async getFormattedBalance(address = null) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (typeof Web3 === 'undefined') {
-    console.error('⌀ Web3 библиотека не загружена');
+    console.error('⚠ Web3 библиотека не загружена');
     
     if (document.body) {
       const errorDiv = document.createElement('div');
