@@ -303,7 +303,43 @@
       </div>
   </div>
 
-  <!-- Scripts -->
+    <!-- Scripts -->
+    <script>
+  // Динамическая загрузка HTML компонентов
+  async function loadComponent(id, file) {
+    try {
+      const response = await fetch(file);
+      const html = await response.text();
+      const element = document.getElementById(id);
+      if (element) {
+        element.innerHTML = html;
+      }
+    } catch (error) {
+      console.error(`Error loading ${file}:`, error);
+    }
+  }
+
+  // Загружаем все компоненты
+  Promise.all([
+    loadComponent('dashboard', 'src/html/dashboard.html'),
+    loadComponent('matrix', 'src/html/matrix.html'), 
+    loadComponent('partners', 'src/html/partners.html'),
+    loadComponent('tokens', 'src/html/tokens.html'),
+    loadComponent('settings', 'src/html/settings.html'),
+    loadComponent('admin', 'src/html/admin.html'),
+    loadComponent('projects', 'src/html/projects.html')
+  ]).then(() => {
+    console.log('✅ Все HTML компоненты загружены');
+    // После загрузки компонентов инициализируем приложение
+    if (window.uiManager) {
+     window.uiManager.setupContractInteractionUI();
+   }
+  }).catch(error => {
+    console.error('❌ Ошибка загрузки компонентов:', error);
+  });
+  </script>
+  <script src="src/js/cosmic-intro-translations.js"></script>
+  <script src="src/js/cosmic-intro.js"></script>
   <script src="src/js/web3.js"></script>
   <script src="src/js/contracts.js"></script>
   <script src="src/js/ui.js"></script>
