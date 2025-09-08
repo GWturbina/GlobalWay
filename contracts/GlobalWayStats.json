@@ -101,7 +101,7 @@
       "type": "function"
     },
     {
-      "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "packageType", "type": "uint8"}],
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
       "name": "getPackagePrice",
       "outputs": [{"internalType": "uint256", "name": "totalCost", "type": "uint256"}],
       "stateMutability": "view",
