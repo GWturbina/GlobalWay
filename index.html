@@ -1,62 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GlobalWay - Decentralized platform for global internet opportunities">
   <title>GlobalWay - Your Global Path</title>
 
   <!-- PWA -->
-  <meta name="theme-color" content="#FFD700"/>
-  <link rel="manifest" href="manifest.json"/>
-  <link rel="icon" href="assets/icons/favicon.ico"/>
+  <meta name="theme-color" content="#FFD700">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icons/favicon.ico">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="src/css/styles.css">
+  <link rel="stylesheet" href="src/css/responsive.css">
+  <link rel="stylesheet" href="src/css/animations.css">
 
   <!-- Web3 -->
   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 
+  <!-- Cosmic Intro Styles (добавлено) -->
   <style>
-    /* ====== ОСНОВНЫЕ СТИЛИ ====== */
-    :root {
-      --primary-bg: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-      --card-bg: rgba(26, 26, 46, 0.95);
-      --accent-gold: #FFD700;
-      --text-primary: #FFFFFF;
-      --text-secondary: #B0B0B0;
-      --success: #00FF88;
-      --error: #FF4444;
-      --spacing-md: 15px;
-      --border-radius: 20px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: var(--primary-bg);
-      background-image: url('assets/images/background.jpg');
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      color: var(--text-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    .app-container {
-      display: none;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-
-    /* ====== КОСМИЧЕСКОЕ ИНТРО ====== */
     #cosmic-intro {
       position: fixed;
       inset: 0;
       z-index: 9999;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.9);
       backdrop-filter: blur(10px);
       display: flex;
       align-items: center;
@@ -87,10 +57,6 @@
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       user-select: none;
       z-index: 100;
-    }
-
-    .cosmic-planet:hover {
-      transform: scale(1.1);
     }
 
     .planet-emoji {
@@ -127,7 +93,7 @@
     }
 
     .intro-lang-btn.active {
-      background: var(--accent-gold);
+      background: #FFD700;
       color: black;
     }
 
@@ -137,7 +103,7 @@
       left: 50%;
       transform: translateX(-50%);
       padding: 12px 24px;
-      background: var(--accent-gold);
+      background: #FFD700;
       color: black;
       border: none;
       border-radius: 25px;
@@ -150,7 +116,6 @@
       background: #FFA500;
     }
 
-    /* ====== МОДАЛЬНОЕ ОКНО ====== */
     .cosmic-modal {
       position: fixed;
       inset: 0;
@@ -171,9 +136,9 @@
     }
 
     .modal-content {
-      background: var(--card-bg);
-      border: 2px solid var(--accent-gold);
-      border-radius: var(--border-radius);
+      background: rgba(26, 26, 46, 0.95);
+      border: 2px solid #FFD700;
+      border-radius: 20px;
       padding: 30px;
       max-width: 500px;
       width: 90%;
@@ -197,22 +162,6 @@
       cursor: pointer;
     }
 
-    .modal-footer {
-      text-align: center;
-      margin-top: 20px;
-    }
-
-    .modal-btn {
-      padding: 10px 20px;
-      background: var(--accent-gold);
-      color: black;
-      border: none;
-      border-radius: 20px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    /* ====== АДАПТИВНОСТЬ ====== */
     @media (max-width: 768px) {
       .planet-title {
         font-size: 12px;
@@ -221,28 +170,12 @@
       .planet-emoji {
         font-size: 24px;
       }
-
-      .modal-content {
-        padding: 20px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .intro-lang-btn {
-        font-size: 12px;
-        padding: 6px 10px;
-      }
-
-      .skip-btn {
-        font-size: 14px;
-        padding: 10px 20px;
-      }
     }
   </style>
 </head>
 <body>
 
-  <!-- 🌌 КОСМИЧЕСКОЕ ИНТРО -->
+  <!-- 🌌 КОСМИЧЕСКОЕ ИНТРО (ДОБАВЛЕНО) -->
   <div id="cosmic-intro" class="active">
     <div class="intro-language-selector">
       <button class="intro-lang-btn active" data-lang="en">EN</button>
@@ -254,7 +187,6 @@
 
     <button id="skip-intro" class="skip-btn">Go to DApp</button>
 
-    <!-- Модальное окно -->
     <div id="cosmic-modal" class="cosmic-modal">
       <div class="modal-content">
         <button class="modal-close">&times;</button>
@@ -267,45 +199,161 @@
     </div>
   </div>
 
-  <!-- 🧠 ПЕРЕВОДЫ (inline) -->
+  <!-- ⭐ ОСТАЛЬНОЕ СОДЕРЖИМОЕ index.html (БЕЗ ИЗМЕНЕНИЙ) -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="cosmic-loader">
+      <div class="planet"></div>
+      <div class="orbit"></div>
+      <div class="loading-text">🌌 Connecting to the Universe...</div>
+    </div>
+  </div>
+
+  <div id="app" class="app-container">
+    <header class="app-header">
+      <div class="header-content">
+        <div class="logo">
+          <img src="assets/images/logo.png" alt="GlobalWay" class="logo-img">
+          <div class="logo-text">
+            <h1>GlobalWay</h1>
+            <span class="tagline">Your Global Path</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="network-indicator">
+            <span class="network-status" id="networkStatus">opBNB</span>
+          </div>
+          <div class="wallet-section">
+            <button id="connectWallet" class="connect-wallet-btn">🔗 Connect Wallet</button>
+            <div id="walletInfo" class="wallet-info hidden">
+              <span id="walletAddress">0x000...000</span>
+              <span id="walletBalance">0.000 BNB</span>
+              <span id="walletType" class="wallet-type">No Wallet</span>
+            </div>
+          </div>
+          <div class="language-selector">
+            <select id="languageSelect" class="language-select">
+              <option value="en">🇺🇸 EN</option>
+              <option value="uk">🇺🇦 UA</option>
+              <option value="ru">🇷🇺 RU</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-page="dashboard">
+        <img src="assets/icons/dashboard.png" class="nav-icon" alt="Dashboard">
+        <span class="nav-text" data-translate="dashboard">Dashboard</span>
+      </button>
+      <button class="nav-btn" data-page="partners">
+        <img src="assets/icons/users.png" class="nav-icon" alt="Partners">
+        <span class="nav-text" data-translate="partners">Partners</span>
+      </button>
+      <button class="nav-btn" data-page="matrix">
+        <img src="assets/icons/matrix.png" class="nav-icon" alt="Matrix">
+        <span class="nav-text" data-translate="matrix">Matrix</span>
+      </button>
+      <button class="nav-btn" data-page="tokens">
+        <img src="assets/icons/tokens.png" class="nav-icon" alt="Tokens">
+        <span class="nav-text" data-translate="tokens">Tokens</span>
+      </button>
+      <button class="nav-btn" data-page="settings">
+        <img src="assets/icons/settings.png" class="nav-icon" alt="Settings">
+        <span class="nav-text" data-translate="settings">Settings</span>
+      </button>
+      <button class="nav-btn" data-page="projects">
+        <img src="assets/icons/projects.png" class="nav-icon" alt="Projects">
+        <span class="nav-text" data-translate="projects">Projects</span>
+      </button>
+      <button class="nav-btn admin-only" style="display:none;">
+        <i class="fas fa-cog"></i>
+        <span>Admin</span>
+      </button>
+    </nav>
+
+    <main class="main-content">
+      <section id="dashboard" class="page active"></section>
+      <section id="partners" class="page"></section>
+      <section id="matrix" class="page"></section>
+      <section id="tokens" class="page"></section>
+      <section id="settings" class="page"></section>
+      <section id="projects" class="page"></section>
+      <section id="admin" class="page admin-only"></section>
+    </main>
+
+    <div id="notifications" class="notifications-container"></div>
+
+    <!-- Модальные окна -->
+    <div id="levelModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 data-translate="confirm_purchase">Confirm Purchase</h3>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p data-translate="purchase_confirmation">Are you sure you want to purchase this level?</p>
+          <div class="purchase-details">
+            <div class="detail-item">
+              <span data-translate="level">Level:</span>
+              <span id="modalLevel">1</span>
+            </div>
+            <div class="detail-item">
+              <span data-translate="price">Price:</span>
+              <span id="modalPrice">0.0015 BNB</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="confirmPurchase" class="confirm-btn">Confirm</button>
+          <button id="cancelPurchase" class="cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрипты -->
+  <script src="src/js/cosmic-intro-translations.js"></script>
+  <script src="src/js/cosmic-intro.js"></script>
+  <script src="src/js/web3.js"></script>
+  <script src="src/js/contracts.js"></script>
+  <script src="src/js/ui.js"></script>
+  <script src="src/js/app.js"></script>
+
+  <!-- Cosmic Intro Translations (добавлено) -->
   <script>
-    const translations = {
+    const cosmicIntroTranslations = {
       en: {
-        club: { title: "GlobalWay Club", text: "A living ecosystem where generations connect." },
-        mission: { title: "Our Mission", text: "Building a fair economy for everyone." },
-        goals: { title: "Club Goals", text: "Creating personal income sources." },
-        roadmap: { title: "Roadmap", text: "2025 — platform launch and 8 projects." },
-        projects: { title: "Our Projects", text: "CardGift, GlobalTub, GlobalMarket..." },
-        skipButton: "Go to DApp"
+        club: { title: 'GlobalWay Club', text: 'GlobalWay is not just a platform. It\'s a living ecosystem where generations connect.' },
+        mission: { title: 'Our Mission', text: 'We build a fair economy where every person can realize themselves.' },
+        goals: { title: 'Club Goals', text: 'Create personal income sources and provide everyone with self-development tools.' },
+        roadmap: { title: 'Roadmap', text: '2025 — platform launch and 8 projects. 2026 — GWC token enters securities market.' },
+        projects: { title: 'Our Projects', text: 'CardGift, GlobalTub, GlobalMarket, GlobalGame, GlobalEdu, GlobalBank.' }
       },
       ru: {
-        club: { title: "Клуб GlobalWay", text: "Живая экосистема, где поколения соединяются." },
-        mission: { title: "Наша Миссия", text: "Мы строим справедливую экономику." },
-        goals: { title: "Цели Клуба", text: "Создавать личные источники дохода." },
-        roadmap: { title: "Дорожная Карта", text: "2025 — запуск платформы и 8 проектов." },
-        projects: { title: "Наши Проекты", text: "CardGift, GlobalTub, GlobalMarket..." },
-        skipButton: "Перейти к DApp"
+        club: { title: 'Клуб GlobalWay', text: 'GlobalWay — это не просто платформа. Это живая экосистема, где поколения соединяются.' },
+        mission: { title: 'Наша Миссия', text: 'Мы строим справедливую экономику, где каждый человек может реализовать себя.' },
+        goals: { title: 'Цели Клуба', text: 'Создавать личные источники дохода и давать каждому инструменты саморазвития.' },
+        roadmap: { title: 'Дорожная Карта', text: '2025 — запуск платформы и 8 проектов. 2026 — выход токена GWC на рынок ценных бумаг.' },
+        projects: { title: 'Наши Проекты', text: 'CardGift, GlobalTub, GlobalMarket, GlobalGame, GlobalEdu, GlobalBank.' }
       },
       uk: {
-        club: { title: "Клуб GlobalWay", text: "Жива екосистема, де покоління з'єднуються." },
-        mission: { title: "Наша Місія", text: "Ми будуємо справедливу економіку." },
-        goals: { title: "Цілі Клубу", text: "Створювати особисті джерела доходу." },
-        roadmap: { title: "Дорожня Карта", text: "2025 — запуск платформи та 8 проєктів." },
-        projects: { title: "Наші Проєкти", text: "CardGift, GlobalTub, GlobalMarket..." },
-        skipButton: "Перейти до DApp"
+        club: { title: 'Клуб GlobalWay', text: 'GlobalWay — це не просто платформа. Це жива екосистема, де покоління з\'єднуються.' },
+        mission: { title: 'Наша Місія', text: 'Ми будуємо справедливу економіку, де кожна людина може реалізувати себе.' },
+        goals: { title: 'Цілі Клубу', text: 'Створювати особисті джерела доходу та давати кожному інструменти саморозвитку.' },
+        roadmap: { title: 'Дорожня Карта', text: '2025 — запуск платформи та 8 проєктів. 2026 — вихід токена GWC на ринок цінних паперів.' },
+        projects: { title: 'Наші Проєкти', text: 'CardGift, GlobalTub, GlobalMarket, GlobalGame, GlobalEdu, GlobalBank.' }
       }
     };
   </script>
 
-  <!-- 🪐 СКРИПТ ИНТРО -->
+  <!-- Cosmic Intro Script (добавлено) -->
   <script>
-    let currentLang = 'en';
-    let planets = [];
+    let currentLang = localStorage.getItem('selectedLanguage') || 'en';
 
     function createPlanets() {
       const container = document.getElementById('planetsContainer');
       container.innerHTML = '';
-      planets = [];
 
       const data = [
         { id: 'club', color: '#4CAF50', size: 120, emoji: '🌍' },
@@ -326,10 +374,9 @@
         el.style.boxShadow = `0 0 20px ${p.color}66`;
         el.innerHTML = `
           <div class="planet-emoji">${p.emoji}</div>
-          <div class="planet-title">${translations[currentLang][p.id].title}</div>
+          <div class="planet-title">${cosmicIntroTranslations[currentLang][p.id].title}</div>
         `;
         container.appendChild(el);
-        planets.push({ element: el, ...p });
       });
 
       positionPlanets();
@@ -338,35 +385,22 @@
     function positionPlanets() {
       const cw = window.innerWidth;
       const ch = window.innerHeight;
-      planets.forEach((p, i) => {
-        const angle = (i / planets.length) * Math.PI * 2;
+      document.querySelectorAll('.cosmic-planet').forEach((el, i) => {
+        const angle = (i / 5) * Math.PI * 2;
         const radius = Math.min(cw, ch) * 0.25;
         const x = cw / 2 + Math.cos(angle) * radius + (Math.random() - 0.5) * 100;
         const y = ch / 2 + Math.sin(angle) * radius + (Math.random() - 0.5) * 100;
-        p.element.style.left = (x - p.size / 2) + 'px';
-        p.element.style.top = (y - p.size / 2) + 'px';
+        el.style.left = (x - parseFloat(el.style.width) / 2) + 'px';
+        el.style.top = (y - parseFloat(el.style.height) / 2) + 'px';
       });
-    }
-
-    function animatePlanets() {
-      function loop() {
-        planets.forEach(p => {
-          const x = parseFloat(p.element.style.left) + (Math.random() - 0.5) * 0.5;
-          const y = parseFloat(p.element.style.top) + (Math.random() - 0.5) * 0.5;
-          p.element.style.left = x + 'px';
-          p.element.style.top = y + 'px';
-        });
-        requestAnimationFrame(loop);
-      }
-      loop();
     }
 
     function showModal(topic) {
       const modal = document.getElementById('cosmic-modal');
       const title = document.getElementById('modal-title');
       const text = document.getElementById('modal-text');
-      title.textContent = translations[currentLang][topic].title;
-      text.textContent = translations[currentLang][topic].text;
+      title.textContent = cosmicIntroTranslations[currentLang][topic].title;
+      text.textContent = cosmicIntroTranslations[currentLang][topic].text;
       modal.classList.add('active');
     }
 
@@ -401,26 +435,14 @@
         document.querySelectorAll('.intro-lang-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         createPlanets();
-        document.getElementById('skip-intro').textContent = translations[currentLang].skipButton;
+        document.getElementById('skip-intro').textContent = cosmicIntroTranslations[currentLang].skipButton || 'Go to DApp';
       });
     });
 
     window.addEventListener('resize', positionPlanets);
 
     createPlanets();
-    animatePlanets();
   </script>
-
-  <!-- ====== ОСНОВНОЙ КАБИНЕТ (PLACEHOLDER) ====== -->
-  <div class="app-container">
-    <header style="padding: 20px; background: rgba(26,26,46,0.95); text-align: center;">
-      <h1>Welcome to GlobalWay DApp</h1>
-      <p>Connect your wallet to continue</p>
-    </header>
-    <main style="padding: 20px;">
-      <p>Here will be your Dashboard, Matrix, Tokens, etc.</p>
-    </main>
-  </div>
 
 </body>
 </html>
