@@ -25,76 +25,164 @@
    
    <!-- Web3 Library -->
    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+   
+   <!-- Встроенный интро стиль -->
+   <style>
+   .intro-overlay {
+     position: fixed;
+     top: 0;
+     left: 0;
+     right: 0;
+     bottom: 0;
+     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+     z-index: 10000;
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+     transition: opacity 1s ease, transform 1s ease;
+   }
+
+   .intro-overlay.hidden {
+     opacity: 0;
+     transform: scale(0.95);
+     pointer-events: none;
+   }
+
+   .intro-content {
+     text-align: center;
+     color: white;
+     max-width: 600px;
+     padding: 40px;
+   }
+
+   .intro-logo {
+     font-size: 3rem;
+     font-weight: bold;
+     color: #FFD700;
+     margin-bottom: 20px;
+     text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+   }
+
+   .intro-description {
+     font-size: 1.2rem;
+     margin-bottom: 30px;
+     line-height: 1.6;
+     opacity: 0.9;
+   }
+
+   .intro-actions {
+     display: flex;
+     gap: 20px;
+     justify-content: center;
+     flex-wrap: wrap;
+   }
+
+   .intro-btn {
+     padding: 12px 24px;
+     border: 2px solid #FFD700;
+     background: rgba(255, 215, 0, 0.1);
+     color: #FFD700;
+     border-radius: 25px;
+     cursor: pointer;
+     font-weight: 600;
+     transition: all 0.3s ease;
+     text-decoration: none;
+     display: inline-block;
+   }
+
+   .intro-btn:hover {
+     background: #FFD700;
+     color: #000;
+     transform: translateY(-2px);
+     box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
+   }
+
+   .intro-btn.primary {
+     background: #FFD700;
+     color: #000;
+   }
+
+   .intro-lang-selector {
+     position: absolute;
+     top: 20px;
+     right: 20px;
+     display: flex;
+     gap: 10px;
+   }
+
+   .intro-lang-btn {
+     padding: 8px 16px;
+     border: 1px solid rgba(255, 255, 255, 0.3);
+     background: rgba(255, 255, 255, 0.1);
+     color: white;
+     border-radius: 20px;
+     cursor: pointer;
+     transition: all 0.3s ease;
+   }
+
+   .intro-lang-btn.active,
+   .intro-lang-btn:hover {
+     background: #FFD700;
+     color: #000;
+     border-color: #FFD700;
+   }
+
+   .stars {
+     position: absolute;
+     width: 100%;
+     height: 100%;
+     overflow: hidden;
+   }
+
+   .star {
+     position: absolute;
+     width: 2px;
+     height: 2px;
+     background: white;
+     border-radius: 50%;
+     animation: twinkle 3s infinite;
+   }
+
+   @keyframes twinkle {
+     0%, 100% { opacity: 0.3; }
+     50% { opacity: 1; }
+   }
+
+   @media (max-width: 768px) {
+     .intro-logo { font-size: 2rem; }
+     .intro-description { font-size: 1rem; }
+     .intro-actions { flex-direction: column; align-items: center; }
+     .intro-lang-selector { top: 10px; right: 10px; }
+   }
+   </style>
 </head>
 <body>
 
-    <!-- Добавить в начало body в index.html -->
-<div id="cosmic-intro" class="cosmic-intro active">
-  <div class="stars-background"></div>
-  <div class="floating-elements">
-    
-    <div class="cosmic-card" data-topic="club">
-      <div class="card-glow"></div>
-      <h3>Клуб GlobalWay</h3>
-      <div class="particle-trail"></div>
-    </div>
-    
-    <div class="cosmic-card" data-topic="mission">
-      <div class="card-glow"></div>
-      <h3>Миссия Клуба</h3>
-      <div class="particle-trail"></div>
-    </div>
-    
-    <div class="cosmic-card" data-topic="goals">
-      <div class="card-glow"></div>
-      <h3>Цели клуба</h3>
-      <div class="particle-trail"></div>
-    </div>
-    
-    <div class="cosmic-card" data-topic="roadmap">
-      <div class="card-glow"></div>
-      <h3>Дорожная карта</h3>
-      <div class="particle-trail"></div>
-    </div>
-    
-    <div class="cosmic-card" data-topic="projects">
-      <div class="card-glow"></div>
-      <h3>Проекты</h3>
-      <div class="particle-trail"></div>
-    </div>
-    
-  </div>
-  
-  <div class="intro-controls">
-    <button id="skip-intro" class="skip-btn">Перейти к DApp</button>
-  </div>
-</div>
+   <!-- Объединенное интро -->
+   <div id="intro-overlay" class="intro-overlay">
+     <div class="stars" id="stars-background"></div>
+     
+     <div class="intro-lang-selector">
+       <button class="intro-lang-btn active" data-lang="en">EN</button>
+       <button class="intro-lang-btn" data-lang="ru">RU</button>
+       <button class="intro-lang-btn" data-lang="uk">UK</button>
+     </div>
 
-<!-- Модальное окно для контента -->
-<div id="cosmic-modal" class="cosmic-modal">
-  <div class="modal-content">
-    <button class="modal-close">&times;</button>
-    <div class="modal-body">
-      <h2 id="modal-title"></h2>
-      <p id="modal-text"></p>
-    </div>
-    <div class="modal-footer">
-      <button id="modal-back" class="modal-btn">Назад</button>
-    </div>
-  </div>
-</div>
-
-   <!-- Loading Screen -->
-   <div id="loading-screen" class="loading-screen">
-       <div class="cosmic-loader">
-           <div class="planet"></div>
-           <div class="orbit"></div>
-           <div class="loading-text">🌌 Connecting to the Universe...</div>
+     <div class="intro-content">
+       <div class="intro-logo">GlobalWay</div>
+       <div class="intro-description" id="intro-description">
+         Decentralized platform for global internet opportunities. Connect, grow, and build your future with blockchain technology.
        </div>
+       <div class="intro-actions">
+         <button class="intro-btn primary" id="start-app">Launch DApp</button>
+         <button class="intro-btn" id="learn-more">Learn More</button>
+       </div>
+     </div>
    </div>
 
    <!-- App Container -->
-   <div id="app" class="app-container">
+   <div id="app" class="app-container" style="display: none;">
        <!-- Header -->
        <header class="app-header">
            <div class="header-content">
@@ -113,7 +201,7 @@
                    
                    <div class="wallet-section">
                        <button id="connectWallet" class="connect-wallet-btn">
-                           🔗 Connect Wallet
+                           Connect Wallet
                        </button>
                        <div id="walletInfo" class="wallet-info hidden">
                            <span id="walletAddress">0x000...000</span>
@@ -163,57 +251,22 @@
              <i class="fas fa-cog"></i>
              <span>Admin</span>
            </button>
-           <!-- АДМИН КНОПКА - ПОЯВЛЯЕТСЯ ТОЛЬКО У ВЛАДЕЛЬЦА -->
-           <!-- Будет добавлена динамически через JavaScript -->
        </nav>
 
        <!-- Main Content -->
        <main class="main-content">
-           <!-- Dashboard Page -->
-           <section id="dashboard" class="page">
-           </section>
-           
-           <!-- Partners Page -->
-           <section id="partners" class="page">
-           </section>
-           
-           <!-- Matrix Page -->
-           <section id="matrix" class="page">
-           </section>
-           
-           <!-- Tokens Page -->
-           <section id="tokens" class="page">
-           </section>
-           
-           <!-- Settings Page -->
-           <section id="settings" class="page">
-           </section>
-           
-           <!-- Projects Page -->
-           <section id="projects" class="page">
-           </section>
-           
-           <!-- АДМИН СТРАНИЦА - ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА -->
-           <section id="admin" class="page admin-only">
-             <div class="container">
-               <h2>Панель администратора</h2>
-               <div class="admin-section">
-                 <h3>Управление пользователями</h3>
-                 <button id="batchRegisterBtn" class="admin-btn">Массовая регистрация</button>
-                 <button id="freeRegisterBtn" class="admin-btn">Бесплатная регистрация</button>
-               </div>
-               <div class="admin-section">
-                 <h3>Статистика контракта</h3>
-                 <div id="contractStats">Загрузка...</div>
-               </div>
-             </div>
-           </section>
+           <section id="dashboard" class="page"></section>
+           <section id="partners" class="page"></section>
+           <section id="matrix" class="page"></section>
+           <section id="tokens" class="page"></section>
+           <section id="settings" class="page"></section>
+           <section id="projects" class="page"></section>
+           <section id="admin" class="page admin-only"></section>
        </main>
       
-      <!-- Notifications Container -->
+      <!-- Остальные модальные окна -->
       <div id="notifications" class="notifications-container"></div>
       
-      <!-- Modal for Level Purchase -->
       <div id="levelModal" class="modal">
           <div class="modal-content">
               <div class="modal-header">
@@ -244,7 +297,6 @@
           </div>
       </div>
       
-      <!-- Modal for Multiple Levels Purchase -->
       <div id="multipleLevelsModal" class="modal">
           <div class="modal-content">
               <div class="modal-header">
@@ -279,7 +331,6 @@
           </div>
       </div>
       
-      <!-- Modal for Token Trading -->
       <div id="tokenModal" class="modal">
           <div class="modal-content">
               <div class="modal-header">
@@ -287,9 +338,7 @@
                   <button class="modal-close">&times;</button>
               </div>
               <div class="modal-body">
-                  <div id="tokenModalBody">
-                      <!-- Content will be populated dynamically -->
-                  </div>
+                  <div id="tokenModalBody"></div>
               </div>
               <div class="modal-footer">
                   <button id="confirmTokenAction" class="confirm-btn">
@@ -303,8 +352,93 @@
       </div>
   </div>
 
-    <!-- Scripts -->
-    <script>
+  <!-- Scripts -->
+  <script>
+  // Простой интро-менеджер
+  class SimpleIntro {
+    constructor() {
+      this.currentLang = localStorage.getItem('selectedLanguage') || 'en';
+      this.translations = {
+        en: "Decentralized platform for global internet opportunities. Connect, grow, and build your future with blockchain technology.",
+        ru: "Децентрализованная платформа для глобальных интернет-возможностей. Подключайтесь, развивайтесь и стройте свое будущее с технологией блокчейн.",
+        uk: "Децентралізована платформа для глобальних інтернет-можливостей. Підключайтеся, розвивайтеся та будуйте своє майбутнє з технологією блокчейн."
+      };
+      this.init();
+    }
+
+    init() {
+      this.createStars();
+      this.updateDescription();
+      this.bindEvents();
+      this.autoHide();
+    }
+
+    createStars() {
+      const stars = document.getElementById('stars-background');
+      for (let i = 0; i < 100; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        stars.appendChild(star);
+      }
+    }
+
+    updateDescription() {
+      document.getElementById('intro-description').textContent = this.translations[this.currentLang];
+    }
+
+    bindEvents() {
+      document.querySelectorAll('.intro-lang-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          this.switchLanguage(e.target.dataset.lang);
+        });
+      });
+
+      document.getElementById('start-app').addEventListener('click', () => {
+        this.hideIntro();
+      });
+
+      document.getElementById('learn-more').addEventListener('click', () => {
+        alert('GlobalWay - Building the future of decentralized internet opportunities!');
+      });
+    }
+
+    switchLanguage(lang) {
+      this.currentLang = lang;
+      localStorage.setItem('selectedLanguage', lang);
+      this.updateDescription();
+      
+      document.querySelectorAll('.intro-lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+      });
+    }
+
+    autoHide() {
+      setTimeout(() => {
+        this.hideIntro();
+      }, 8000);
+    }
+
+    hideIntro() {
+      const overlay = document.getElementById('intro-overlay');
+      const app = document.getElementById('app');
+      
+      overlay.classList.add('hidden');
+      
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        app.style.display = 'block';
+        
+        // Обновляем язык в основном приложении
+        if (window.globalWayApp && window.globalWayApp.switchLanguage) {
+          window.globalWayApp.switchLanguage(this.currentLang);
+        }
+      }, 1000);
+    }
+  }
+
   // Динамическая загрузка HTML компонентов
   async function loadComponent(id, file) {
     try {
@@ -330,16 +464,16 @@
     loadComponent('projects', 'src/html/projects.html')
   ]).then(() => {
     console.log('✅ Все HTML компоненты загружены');
-    // После загрузки компонентов инициализируем приложение
-    if (window.uiManager) {
-     window.uiManager.setupContractInteractionUI();
-   }
   }).catch(error => {
     console.error('❌ Ошибка загрузки компонентов:', error);
   });
+
+  // Инициализация интро
+  document.addEventListener('DOMContentLoaded', () => {
+    new SimpleIntro();
+  });
   </script>
-  <script src="src/js/cosmic-intro-translations.js"></script>
-  <script src="src/js/cosmic-intro.js"></script>
+  
   <script src="src/js/web3.js"></script>
   <script src="src/js/contracts.js"></script>
   <script src="src/js/ui.js"></script>
