@@ -3089,6 +3089,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.globalWayApp.loadAppState();
     
     console.log('GlobalWay Application запущен успешно');
+
+    // Скрыть заставку после полного запуска
+(function hideLoadingScreen() {
+  const el = document.getElementById('loading-screen');
+  if (!el) return;
+  el.style.opacity = '0';
+  el.style.pointerEvents = 'none';
+  // окончательно уберём из потока через 300мс, чтобы был плавный уход
+  setTimeout(() => { el.style.display = 'none'; }, 300);
+})();
+
     
   } catch (error) {
     console.error('Критическая ошибка запуска приложения:', error);
