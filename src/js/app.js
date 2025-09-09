@@ -2415,17 +2415,17 @@ class GlobalWayApp {
     }
   }
 
-  updateLevelDistribution{
-  try {
-    if (window.uiManager && typeof window.uiManager.updateLevelDistribution === 'function') {
-      window.uiManager.updateLevelDistribution(distribution);
-    } else {
-      console.warn('[compat] uiManager.updateLevelDistribution отсутствует — пропускаю обновление уровней');
+  updateLevelDistribution(distribution) {
+    try {
+      if (window.uiManager && typeof window.uiManager.updateLevelDistribution === 'function') {
+        window.uiManager.updateLevelDistribution(distribution);
+      } else {
+        console.warn('[compat] uiManager.updateLevelDistribution отсутствует — пропускаю обновление уровней');
+      }
+    } catch (e) {
+      console.error('[updateLevelDistribution]', e);
     }
-  } catch (e) {
-    console.error('[updateLevelDistribution]', e);
   }
-}
 
   // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
 
