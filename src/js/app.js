@@ -1,3 +1,29 @@
+// === COMPAT HELPERS (safe, minimal) ===
+(function(){
+  if (typeof window !== 'undefined') {
+    // Safe wrapper for fromWei: if method отсутствует — не ломаем UI
+    if (!window.web3Manager) window.web3Manager = {};
+    if (typeof window.web3Manager.fromWei !== 'function') {
+      console.warn('[compat] window.web3Manager.fromWei отсутствует — временный passthrough');
+      window.web3Manager.fromWei = function(v){ try { return String(v); } catch(e){ return ''+v; } };
+    }
+  }
+
+  // Глобальная функция, чтобы явно вызывать безопасную конвертацию
+  if (typeof window !== 'undefined' && !window.fromWeiSafe) {
+    window.fromWeiSafe = function(v){
+      try {
+        if (window.web3Manager && typeof window.web3Manager.fromWei === 'function') {
+          return fromWeiSafe(v);
+        }
+      } catch(e) {
+        console.error('[fromWeiSafe]', e);
+      }
+      return String(v);
+    };
+  }
+})();
+
 // ==================== ПОЛНЫЙ ВОССТАНОВЛЕННЫЙ APP.JS ====================
 
 class GlobalWayApp {
@@ -213,8 +239,8 @@ class GlobalWayApp {
     if (!this.user?.address) return;
 
     try {
-      const isOwner = window.contractManager.isOwner(this.user.address);
-      const isFounder = window.contractManager.isFounder(this.user.address);
+      const isOwner = await window.contractManager.isOwner(this.user.address);
+      const isFounder = await window.contractManager.isFounder(this.user.address);
       
       this.appState.isOwner = isOwner;
       this.appState.isFounder = isFounder;
@@ -552,7 +578,7 @@ class GlobalWayApp {
         </div>
         <div class="user-detail-item">
           <label>Всего заработано:</label>
-          <span>${userData.userData?.totalEarned ? window.web3Manager.fromWei(userData.userData.totalEarned) + ' BNB' : '0 BNB'}</span>
+          <span>${userData.userData?.totalEarned ? fromWeiSafe(userData.userData.totalEarned) + ' BNB' : '0 BNB'}</span>
         </div>
       `;
       
@@ -712,7 +738,7 @@ class GlobalWayApp {
     const { referrer, amount } = event.returnValues;
     
     if (referrer.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
-      const amountBNB = window.web3Manager.fromWei(amount);
+      const amountBNB = fromWeiSafe(amount);
       this.showNotification(`Получено вознаграждение: ${parseFloat(amountBNB).toFixed(4)} BNB`, 'success');
     }
   }
@@ -1616,7 +1642,7 @@ class GlobalWayApp {
     // Обновляем объем
     const volumeElement = document.getElementById('totalVolume');
     if (volumeElement && overview.totalVolume) {
-      const volumeInBNB = window.web3Manager.fromWei(overview.totalVolume);
+      const volumeInBNB = fromWeiSafe(overview.totalVolume);
       volumeElement.textContent = this.formatLargeNumber(volumeInBNB) + ' BNB';
     }
 
@@ -1812,7 +1838,7 @@ class GlobalWayApp {
     levels.forEach(level => {
       const price = window.contractManager.levelPricesOpBNB[level];
       if (price && window.web3Manager) {
-        totalPrice += parseFloat(window.web3Manager.fromWei(price));
+        totalPrice += parseFloat(fromWeiSafe(price));
       }
     });
 
@@ -2269,7 +2295,7 @@ class GlobalWayApp {
     }
 
     if (elements.totalEarned && this.user.stats?.totalEarned) {
-      const earned = window.web3Manager.fromWei(this.user.stats.totalEarned);
+      const earned = fromWeiSafe(this.user.stats.totalEarned);
       elements.totalEarned.textContent = parseFloat(earned).toFixed(4) + ' BNB';
     }
 
@@ -2278,7 +2304,7 @@ class GlobalWayApp {
     }
 
     if (elements.tokenBalance) {
-      const balance = window.web3Manager.fromWei(this.appState.tokenBalance);
+      const balance = fromWeiSafe(this.appState.tokenBalance);
       elements.tokenBalance.textContent = parseFloat(balance).toFixed(2) + ' GWT';
     }
 
@@ -2305,7 +2331,7 @@ class GlobalWayApp {
     }
 
     if (elements.referralEarnings && userStats.totalEarned) {
-      const earnings = window.web3Manager.fromWei(userStats.totalEarned);
+      const earnings = fromWeiSafe(userStats.totalEarned);
       elements.referralEarnings.textContent = parseFloat(earnings).toFixed(4) + ' BNB';
     }
 
@@ -2319,7 +2345,7 @@ class GlobalWayApp {
 
     if (elements.monthlyEarnings) {
       elements.monthlyEarnings.textContent = userStats.monthlyEarnings ? 
-        parseFloat(window.web3Manager.fromWei(userStats.monthlyEarnings)).toFixed(4) + ' BNB' : '0 BNB';
+        parseFloat(fromWeiSafe(userStats.monthlyEarnings)).toFixed(4) + ' BNB' : '0 BNB';
     }
   }
 
@@ -2336,8 +2362,8 @@ class GlobalWayApp {
       const totalSupply = await window.contractManager.getTokenTotalSupply();
       
       if (tokenPrice && totalSupply) {
-        const priceInBNB = parseFloat(window.web3Manager.fromWei(tokenPrice));
-        const supplyCount = parseFloat(window.web3Manager.fromWei(totalSupply));
+        const priceInBNB = parseFloat(fromWeiSafe(tokenPrice));
+        const supplyCount = parseFloat(fromWeiSafe(totalSupply));
         const marketCap = priceInBNB * supplyCount;
         
         const marketCapElement = document.getElementById('marketCap');
@@ -2369,17 +2395,17 @@ class GlobalWayApp {
     }
 
     if (elements.adminTotalVolume) {
-      const volume = window.web3Manager.fromWei(overview.totalVolume);
+      const volume = fromWeiSafe(overview.totalVolume);
       elements.adminTotalVolume.textContent = parseFloat(volume).toFixed(2) + ' BNB';
     }
 
     if (elements.adminContractBalance) {
-      const balance = window.web3Manager.fromWei(overview.contractBalance);
+      const balance = fromWeiSafe(overview.contractBalance);
       elements.adminContractBalance.textContent = parseFloat(balance).toFixed(4) + ' BNB';
     }
 
     if (elements.adminTokenSupply) {
-      const supply = window.web3Manager.fromWei(overview.tokenSupply || '0');
+      const supply = fromWeiSafe(overview.tokenSupply || '0');
       elements.adminTokenSupply.textContent = this.formatLargeNumber(supply) + ' GWT';
     }
 
@@ -2389,13 +2415,18 @@ class GlobalWayApp {
     }
   }
 
-  updateLevelDistribution(distribution) {
-  if (window.uiManager && typeof window.uiManager.updateLevelDistribution === 'function') {
-    window.uiManager.updateLevelDistribution(distribution);
-  } else {
-    console.warn('uiManager.updateLevelDistribution не готов, пропускаем');
+  updateLevelDistribution{
+  try {
+    if (window.uiManager && typeof window.uiManager.updateLevelDistribution === 'function') {
+      window.uiManager.updateLevelDistribution(distribution);
+    } else {
+      console.warn('[compat] uiManager.updateLevelDistribution отсутствует — пропускаю обновление уровней');
+    }
+  } catch (e) {
+    console.error('[updateLevelDistribution]', e);
   }
 }
+
   // ==================== ОБНОВЛЕНИЕ ДАННЫХ ====================
 
   async updateUserInfo() {
@@ -2463,7 +2494,7 @@ class GlobalWayApp {
 
     // Обновляем баланс токенов
     document.querySelectorAll('.token-balance').forEach(element => {
-      const balance = window.web3Manager.fromWei(this.appState.tokenBalance);
+      const balance = fromWeiSafe(this.appState.tokenBalance);
       element.textContent = parseFloat(balance).toFixed(2) + ' GWT';
     });
   }
@@ -2907,7 +2938,7 @@ class GlobalWayApp {
               Уровни: ${user.stats?.activeLevels?.length || 0}/12 |
               Рефералы: ${user.stats?.personalInvites || 0} |
               Заработано: ${user.userData?.totalEarned ? 
-                parseFloat(window.web3Manager.fromWei(user.userData.totalEarned)).toFixed(4) + ' BNB' : '0 BNB'}
+                parseFloat(fromWeiSafe(user.userData.totalEarned)).toFixed(4) + ' BNB' : '0 BNB'}
             </div>
           </div>
           <div class="list-user-actions">
