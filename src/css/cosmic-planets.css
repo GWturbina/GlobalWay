@@ -1,0 +1,270 @@
+/* Космическое интро с планетами */
+.cosmic-intro {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 50%, #1a0f2e 0%, #0a0a0a 100%);
+    z-index: 9999;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 1s ease;
+}
+
+.cosmic-intro.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Звездное небо */
+.stars-background {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    background-image: 
+        radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, #FFD700, transparent),
+        radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+        radial-gradient(1px 1px at 130px 80px, #FFD700, transparent);
+    background-repeat: repeat;
+    background-size: 200px 100px;
+    animation: starsTwinkle 20s linear infinite;
+}
+
+/* GWT монета в центре */
+.gwt-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #1a0f2e;
+    box-shadow: 
+        0 0 30px rgba(255, 215, 0, 0.5),
+        inset 0 0 20px rgba(255, 215, 0, 0.3);
+    animation: gwtPulse 3s ease-in-out infinite;
+}
+
+/* Планеты-кнопки */
+.cosmic-planet {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.cosmic-planet:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+}
+
+/* Позиции планет */
+.planet-club {
+    background-image: url('../assets/planets/planet-club.png');
+    top: 20%;
+    left: 15%;
+    animation: planetFloat1 12s ease-in-out infinite;
+}
+
+.planet-mission {
+    background-image: url('../assets/planets/planet-mission.png');
+    top: 25%;
+    right: 20%;
+    animation: planetFloat2 15s ease-in-out infinite;
+}
+
+.planet-goals {
+    background-image: url('../assets/planets/planet-goals.png');
+    bottom: 30%;
+    left: 10%;
+    animation: planetFloat3 18s ease-in-out infinite;
+}
+
+.planet-roadmap {
+    background-image: url('../assets/planets/planet-roadmap.png');
+    bottom: 25%;
+    right: 15%;
+    animation: planetFloat4 14s ease-in-out infinite;
+}
+
+.planet-projects {
+    background-image: url('../assets/planets/planet-projects.png');
+    top: 60%;
+    left: 70%;
+    animation: planetFloat5 16s ease-in-out infinite;
+}
+
+/* Анимации планет */
+@keyframes planetFloat1 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(30px, -20px) rotate(90deg); }
+    50% { transform: translate(-10px, 40px) rotate(180deg); }
+    75% { transform: translate(-25px, -15px) rotate(270deg); }
+}
+
+@keyframes planetFloat2 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(-40px, 25px) rotate(120deg); }
+    66% { transform: translate(20px, -30px) rotate(240deg); }
+}
+
+@keyframes planetFloat3 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    20% { transform: translate(35px, 15px) rotate(72deg); }
+    40% { transform: translate(-15px, -35px) rotate(144deg); }
+    60% { transform: translate(-30px, 20px) rotate(216deg); }
+    80% { transform: translate(25px, -10px) rotate(288deg); }
+}
+
+@keyframes planetFloat4 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    30% { transform: translate(-20px, -35px) rotate(108deg); }
+    70% { transform: translate(40px, 25px) rotate(252deg); }
+}
+
+@keyframes planetFloat5 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-35px, -20px) rotate(90deg); }
+    50% { transform: translate(15px, 35px) rotate(180deg); }
+    75% { transform: translate(30px, -25px) rotate(270deg); }
+}
+
+@keyframes gwtPulse {
+    0%, 100% { 
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    }
+    50% { 
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+    }
+}
+
+@keyframes starsTwinkle {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-200px, -100px); }
+}
+
+/* Modal для планет */
+.planet-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.planet-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.planet-modal-content {
+    background: linear-gradient(135deg, #1a0f2e 0%, #2d1b4e 100%);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    color: white;
+    border: 2px solid #FFD700;
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+.planet-modal h2 {
+    color: #FFD700;
+    margin-bottom: 20px;
+    font-size: 28px;
+}
+
+.planet-modal p {
+    line-height: 1.6;
+    font-size: 16px;
+    margin-bottom: 30px;
+}
+
+.modal-close-btn {
+    background: #FFD700;
+    color: #1a0f2e;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-close-btn:hover {
+    background: #FFA500;
+    transform: translateY(-2px);
+}
+
+/* Кнопка входа */
+.enter-dapp-btn {
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #1a0f2e;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 30px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
+}
+
+.enter-dapp-btn:hover {
+    transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .cosmic-planet {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .gwt-center {
+        width: 90px;
+        height: 90px;
+        font-size: 18px;
+    }
+    
+    .planet-modal-content {
+        padding: 20px;
+    }
+    
+    .planet-modal h2 {
+        font-size: 24px;
+    }
+}
