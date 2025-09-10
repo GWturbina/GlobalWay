@@ -1,0 +1,417 @@
+<!-- Projects Component -->
+<div class="projects-content">
+ <!-- Projects Grid -->
+ <div class="projects-grid">
+   <div class="project-card">
+     <div class="project-icon">🎁</div>
+     <h3>KardGift</h3>
+     <p data-translate="kardgift_desc">Gift cards and bonus system for seamless transactions and rewards</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">💳</span>
+         <span data-translate="digital_cards">Digital Gift Cards</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🎯</span>
+         <span data-translate="loyalty_program">Loyalty Program</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🔄</span>
+         <span data-translate="instant_exchange">Instant Exchange</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">📺</div>
+     <h3>GlobalTub</h3>
+     <p data-translate="globaltub_desc">Decentralized video platform without censorship and with monetization</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">🎥</span>
+         <span data-translate="video_streaming">Video Streaming</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">💰</span>
+         <span data-translate="monetization">Creator Monetization</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🚫</span>
+         <span data-translate="no_censorship">No Censorship</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">🛒</div>
+     <h3>GlobalMarket</h3>
+     <p data-translate="globalmarket_desc">Decentralized marketplace for secure peer-to-peer transactions</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">🏪</span>
+         <span data-translate="marketplace">P2P Marketplace</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🔒</span>
+         <span data-translate="escrow_system">Escrow System</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">⭐</span>
+         <span data-translate="rating_system">Rating System</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">🎮</div>
+     <h3>GlobalGame</h3>
+     <p data-translate="globalgame_desc">Play-to-earn gaming platform with NFT rewards and tournaments</p>
+     <div class="project-status">
+       <span class="status-badge development" data-translate="development">Development</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">🕹️</span>
+         <span data-translate="play_to_earn">Play to Earn</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🏆</span>
+         <span data-translate="tournaments">Tournaments</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🖼️</span>
+         <span data-translate="nft_rewards">NFT Rewards</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">🌍</div>
+     <h3>GlobalSocial</h3>
+     <p data-translate="globalsocial_desc">Decentralized social network with privacy and reward system</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">👥</span>
+         <span data-translate="social_network">Social Network</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🔐</span>
+         <span data-translate="privacy_first">Privacy First</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">💎</span>
+         <span data-translate="content_rewards">Content Rewards</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">🏦</div>
+     <h3>GlobalBank</h3>
+     <p data-translate="globalbank_desc">Decentralized banking services with lending and staking</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">💰</span>
+         <span data-translate="lending">Lending</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🔒</span>
+         <span data-translate="staking">Staking</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">📊</span>
+         <span data-translate="defi_services">DeFi Services</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">🎓</div>
+     <h3>GlobalEdu</h3>
+     <p data-translate="globaledu_desc">Blockchain education platform with certificates and rewards</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">📚</span>
+         <span data-translate="courses">Courses</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🏅</span>
+         <span data-translate="certificates">Certificates</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🎁</span>
+         <span data-translate="learn_rewards">Learn & Earn</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <div class="project-card">
+     <div class="project-icon">🚀</div>
+     <h3>GlobalLaunch</h3>
+     <p data-translate="globallaunch_desc">Launchpad for new blockchain projects and token sales</p>
+     <div class="project-status">
+       <span class="status-badge coming-soon" data-translate="coming_soon">Coming Soon</span>
+     </div>
+     <div class="project-features">
+       <div class="feature-item">
+         <span class="feature-icon">🌟</span>
+         <span data-translate="ido_platform">IDO Platform</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">⚡</span>
+         <span data-translate="token_sales">Token Sales</span>
+       </div>
+       <div class="feature-item">
+         <span class="feature-icon">🔍</span>
+         <span data-translate="project_vetting">Project Vetting</span>
+       </div>
+     </div>
+     <button class="project-btn disabled">
+       <span data-translate="open_project">Open Project</span>
+     </button>
+   </div>
+   
+   <!-- Add Project Card -->
+   <div class="project-card add-project">
+     <div class="project-icon">➕</div>
+     <h3 data-translate="suggest_project">Suggest Project</h3>
+     <p data-translate="suggest_desc">Have an idea for a new GlobalWay project? Share it with us!</p>
+     <button class="project-btn" id="suggestProjectBtn">
+       <span data-translate="submit_idea">Submit Idea</span>
+     </button>
+   </div>
+ </div>
+ 
+ <!-- Ecosystem Statistics -->
+ <div class="cosmic-card">
+   <h3>📊 <span data-translate="ecosystem_stats">Ecosystem Statistics</span></h3>
+   <div class="ecosystem-stats">
+     <div class="stat-item">
+       <span class="stat-number">8</span>
+       <span class="stat-label" data-translate="total_projects">Total Projects</span>
+     </div>
+     <div class="stat-item">
+       <span class="stat-number">1</span>
+       <span class="stat-label" data-translate="active_projects">Active Projects</span>
+     </div>
+     <div class="stat-item">
+       <span class="stat-number">1</span>
+       <span class="stat-label" data-translate="in_development">In Development</span>
+     </div>
+     <div class="stat-item">
+       <span class="stat-number">6</span>
+       <span class="stat-label" data-translate="coming_soon">Coming Soon</span>
+     </div>
+   </div>
+ </div>
+ 
+ <!-- Roadmap -->
+ <div class="cosmic-card">
+   <h3>🗺️ <span data-translate="roadmap">Roadmap</span></h3>
+   <div class="roadmap-timeline">
+     <div class="timeline-item completed">
+       <div class="timeline-marker"></div>
+       <div class="timeline-content">
+         <h4>Q1 2024</h4>
+         <p data-translate="q1_2024">GlobalWay Platform Launch</p>
+         <span class="timeline-status completed" data-translate="completed">Completed</span>
+       </div>
+     </div>
+     
+     <div class="timeline-item active">
+       <div class="timeline-marker"></div>
+       <div class="timeline-content">
+         <h4>Q2 2024</h4>
+         <p data-translate="q2_2024">GWT Token Launch & Trading</p>
+         <span class="timeline-status active" data-translate="in_progress">In Progress</span>
+       </div>
+     </div>
+     
+     <div class="timeline-item">
+       <div class="timeline-marker"></div>
+       <div class="timeline-content">
+         <h4>Q3 2024</h4>
+         <p data-translate="q3_2024">GlobalGame Beta Release</p>
+         <span class="timeline-status upcoming" data-translate="upcoming">Upcoming</span>
+       </div>
+     </div>
+     
+     <div class="timeline-item">
+       <div class="timeline-marker"></div>
+       <div class="timeline-content">
+         <h4>Q4 2024</h4>
+         <p data-translate="q4_2024">KardGift & GlobalMarket Launch</p>
+         <span class="timeline-status upcoming" data-translate="upcoming">Upcoming</span>
+       </div>
+     </div>
+     
+     <div class="timeline-item">
+       <div class="timeline-marker"></div>
+       <div class="timeline-content">
+         <h4>Q1 2025</h4>
+         <p data-translate="q1_2025">GlobalTub & GlobalSocial Launch</p>
+         <span class="timeline-status upcoming" data-translate="upcoming">Upcoming</span>
+       </div>
+     </div>
+     
+     <div class="timeline-item">
+       <div class="timeline-marker"></div>
+       <div class="timeline-content">
+         <h4>Q2 2025</h4>
+         <p data-translate="q2_2025">GlobalBank & GlobalEdu Launch</p>
+         <span class="timeline-status upcoming" data-translate="upcoming">Upcoming</span>
+       </div>
+     </div>
+   </div>
+ </div>
+ 
+ <!-- Project Voting -->
+ <div class="cosmic-card">
+   <h3>🗳️ <span data-translate="project_voting">Project Voting</span></h3>
+   <div class="voting-section">
+     <p data-translate="voting_description">
+       GWT token holders can vote on project development priorities and new features.
+     </p>
+     <div class="voting-requirement">
+       <span data-translate="minimum_tokens">Minimum tokens required:</span>
+       <span class="requirement-amount">1000 GWT</span>
+     </div>
+     <div class="current-votes">
+       <div class="vote-item">
+         <span class="vote-project">GlobalGame Priority</span>
+         <div class="vote-progress">
+           <div class="progress-bar" style="width: 65%"></div>
+         </div>
+         <span class="vote-percentage">65%</span>
+       </div>
+       <div class="vote-item">
+         <span class="vote-project">KardGift Features</span>
+         <div class="vote-progress">
+           <div class="progress-bar" style="width: 45%"></div>
+         </div>
+         <span class="vote-percentage">45%</span>
+       </div>
+       <div class="vote-item">
+         <span class="vote-project">GlobalTub Launch</span>
+         <div class="vote-progress">
+           <div class="progress-bar" style="width: 30%"></div>
+         </div>
+         <span class="vote-percentage">30%</span>
+       </div>
+     </div>
+     <button class="vote-btn" id="openVotingBtn">
+       🗳️ <span data-translate="vote_now">Vote Now</span>
+     </button>
+   </div>
+ </div>
+ 
+ <!-- Developer Program -->
+ <div class="cosmic-card">
+   <h3>👨‍💻 <span data-translate="developer_program">Developer Program</span></h3>
+   <div class="developer-section">
+     <p data-translate="developer_description">
+       Join our developer program to build on the GlobalWay ecosystem and earn rewards.
+     </p>
+     <div class="developer-benefits">
+       <div class="benefit-item">
+         <span class="benefit-icon">💰</span>
+         <span data-translate="developer_rewards">Developer Rewards</span>
+       </div>
+       <div class="benefit-item">
+         <span class="benefit-icon">🛠️</span>
+         <span data-translate="development_tools">Development Tools</span>
+       </div>
+       <div class="benefit-item">
+         <span class="benefit-icon">👥</span>
+         <span data-translate="community_support">Community Support</span>
+       </div>
+       <div class="benefit-item">
+         <span class="benefit-icon">📚</span>
+         <span data-translate="documentation">Documentation</span>
+       </div>
+     </div>
+     <div class="developer-actions">
+       <button class="developer-btn" id="joinDeveloperBtn">
+         🚀 <span data-translate="join_program">Join Program</span>
+       </button>
+       <button class="docs-btn" id="openDocsBtn">
+         📖 <span data-translate="view_docs">View Docs</span>
+       </button>
+     </div>
+   </div>
+ </div>
+ 
+ <!-- Partner Program -->
+ <div class="cosmic-card">
+   <h3>🤝 <span data-translate="partner_program">Partner Program</span></h3>
+   <div class="partner-section">
+     <p data-translate="partner_description">
+       Become a strategic partner and help grow the GlobalWay ecosystem.
+     </p>
+     <div class="partner-tiers">
+       <div class="tier-item">
+         <div class="tier-badge bronze">🥉</div>
+         <span class="tier-name">Bronze Partner</span>
+         <span class="tier-requirement">10,000 GWT</span>
+       </div>
+       <div class="tier-item">
+         <div class="tier-badge silver">🥈</div>
+         <span class="tier-name">Silver Partner</span>
+         <span class="tier-requirement">50,000 GWT</span>
+       </div>
+       <div class="tier-item">
+         <div class="tier-badge gold">🥇</div>
+         <span class="tier-name">Gold Partner</span>
+         <span class="tier-requirement">100,000 GWT</span>
+       </div>
+       <div class="tier-item">
+         <div class="tier-badge platinum">💎</div>
+         <span class="tier-name">Platinum Partner</span>
+         <span class="tier-requirement">500,000 GWT</span>
+       </div>
+     </div>
+     <button class="partner-btn" id="applyPartnershipBtn">
+       🤝 <span data-translate="apply_partnership">Apply for Partnership</span>
+     </button>
+   </div>
+ </div>
+</div>
