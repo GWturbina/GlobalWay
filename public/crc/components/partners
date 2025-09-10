@@ -1,0 +1,162 @@
+<!-- Partners Component -->
+<div class="partners-content">
+  <!-- Level Navigation -->
+  <div class="cosmic-card">
+    <h3>🎯 <span data-translate="select_level">Select Level</span></h3>
+    <div class="level-tabs">
+      <button class="level-tab active" data-level="1">1</button>
+      <button class="level-tab" data-level="2">2</button>
+      <button class="level-tab" data-level="3">3</button>
+      <button class="level-tab" data-level="4">4</button>
+      <button class="level-tab" data-level="5">5</button>
+      <button class="level-tab" data-level="6">6</button>
+      <button class="level-tab" data-level="7">7</button>
+      <button class="level-tab" data-level="8">8</button>
+      <button class="level-tab" data-level="9">9</button>
+      <button class="level-tab" data-level="10">10</button>
+      <button class="level-tab" data-level="11">11</button>
+      <button class="level-tab" data-level="12">12</button>
+    </div>
+  </div>
+  
+  <!-- Team Statistics -->
+  <div class="cosmic-card">
+    <h3>📊 <span data-translate="team_statistics">Team Statistics</span></h3>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <span id="totalInvited" class="stat-number">0</span>
+        <span class="stat-label" data-translate="total_invited">Total Invited</span>
+      </div>
+      <div class="stat-item">
+        <span id="activePartners" class="stat-number">0</span>
+        <span class="stat-label" data-translate="active_partners">Active Partners</span>
+      </div>
+      <div class="stat-item">
+        <span id="generalTeam" class="stat-number">0</span>
+        <span class="stat-label" data-translate="general_team">General Team</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Qualification -->
+  <div class="cosmic-card">
+    <h3>🏆 <span data-translate="qualification">Qualification</span></h3>
+    <div class="qualification-badges">
+      <div class="badge bronze">
+        🥉 <span data-translate="bronze">Bronze</span>
+      </div>
+      <div class="badge silver">
+        🥈 <span data-translate="silver">Silver</span>
+      </div>
+      <div class="badge gold">
+        🥇 <span data-translate="gold">Gold</span>
+      </div>
+      <div class="badge platinum">
+        💎 <span data-translate="platinum">Platinum</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Current Level Info -->
+  <div class="cosmic-card">
+    <h3>📋 <span data-translate="current_level_info">Current Level Info</span></h3>
+    <div class="level-info-display">
+      <div class="info-item">
+        <span class="label" data-translate="selected_level">Selected Level:</span>
+        <span id="selectedLevelNumber" class="value">1</span>
+      </div>
+      <div class="info-item">
+        <span class="label" data-translate="level_price">Level Price:</span>
+        <span id="selectedLevelPrice" class="value">0.0015 BNB</span>
+      </div>
+      <div class="info-item">
+        <span class="label" data-translate="participants">Participants:</span>
+        <span id="selectedLevelParticipants" class="value">0</span>
+      </div>
+      <div class="info-item">
+        <span class="label" data-translate="max_capacity">Max Capacity:</span>
+        <span id="selectedLevelCapacity" class="value">2</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Team Structure -->
+  <div class="cosmic-card">
+    <h3>🔍 <span data-translate="team_structure">Team Structure</span></h3>
+    <div class="search-container">
+      <input type="text" id="searchPartnerId" placeholder="🔍 Search by ID..." class="search-input">
+    </div>
+    <div class="team-table">
+      <div class="table-header">
+        <span>№</span>
+        <span>ID</span>
+        <span data-translate="address">Address</span>
+        <span data-translate="sponsor_id">Sponsor ID</span>
+        <span data-translate="activation_date">Activation Date</span>
+        <span data-translate="level">Level</span>
+        <span data-translate="direct_team">Direct Team</span>
+      </div>
+      <div class="table-body" id="partnersTableBody">
+        <div class="no-data wallet-required">
+          🔗 <span data-translate="connect_wallet_to_view">Connect wallet to view data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Referral Tools -->
+  <div class="cosmic-card">
+    <h3>🔗 <span data-translate="referral_tools">Referral Tools</span></h3>
+    <div class="referral-tools">
+      <div class="tool-item">
+        <label data-translate="referral_link">Referral Link:</label>
+        <div class="referral-input-group">
+          <input type="text" id="partnerReferralLink" readonly>
+          <button class="copy-btn" id="copyPartnerRefLink">📋</button>
+        </div>
+      </div>
+      <div class="tool-item">
+        <label data-translate="qr_code">QR Code:</label>
+        <div class="qr-code-container">
+          <div id="qrCode" class="qr-code">📱 QR Code</div>
+          <button class="generate-qr-btn" id="generateQRBtn">Generate QR</button>
+        </div>
+      </div>
+      <div class="tool-item">
+        <label data-translate="social_share">Social Share:</label>
+        <div class="social-buttons">
+          <button class="social-btn telegram" id="shareToTelegram">📱 Telegram</button>
+          <button class="social-btn twitter" id="shareToTwitter">🐦 Twitter</button>
+          <button class="social-btn whatsapp" id="shareToWhatsApp">💬 WhatsApp</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Partner Rewards -->
+  <div class="cosmic-card">
+    <h3>💰 <span data-translate="partner_rewards">Partner Rewards</span></h3>
+    <div class="rewards-summary">
+      <div class="reward-item">
+        <span class="reward-label" data-translate="direct_bonus">Direct Bonus (10%):</span>
+        <span id="directBonusEarned" class="reward-amount">0 BNB</span>
+      </div>
+      <div class="reward-item">
+        <span class="reward-label" data-translate="partner_bonus">Partner Bonus (2%):</span>
+        <span id="partnerBonusEarned" class="reward-amount">0 BNB</span>
+      </div>
+      <div class="reward-item">
+        <span class="reward-label" data-translate="matrix_bonus">Matrix Bonus (48%):</span>
+        <span id="matrixBonusEarned" class="reward-amount">0 BNB</span>
+      </div>
+      <div class="reward-item">
+        <span class="reward-label" data-translate="leadership_bonus">Leadership Bonus (6%):</span>
+        <span id="leadershipBonusEarned" class="reward-amount">0 BNB</span>
+      </div>
+      <div class="reward-item total-reward">
+        <span class="reward-label" data-translate="total_earned">Total Earned:</span>
+        <span id="totalPartnerEarned" class="reward-amount">0 BNB</span>
+      </div>
+    </div>
+  </div>
+</div>
