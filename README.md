@@ -19,3 +19,10 @@
 - **Frontend**: Vanilla JavaScript + Web3.js
 - **CSS**: Космический дизайн с адаптивностью
 - **Wallet**: SafePal, MetaMask совместимость
+
+## 🔧 Установка
+
+1. Клонировать репозиторий:
+```bash
+git clone https://github.com/globalway/dapp.git
+cd globalway-dapp
