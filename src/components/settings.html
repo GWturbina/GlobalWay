@@ -1,0 +1,336 @@
+<!-- Settings Component -->
+<div class="settings-content">
+  <!-- Profile Settings -->
+  <div class="cosmic-card">
+    <h3>👤 <span data-translate="profile_settings">Profile Settings</span></h3>
+    <div class="settings-group">
+      <label data-translate="interface_language">Interface Language:</label>
+      <select id="languageSettingsSelect" class="language-select">
+        <option value="en">🇺🇸 English</option>
+        <option value="uk">🇺🇦 Українська</option>
+        <option value="ru">🇷🇺 Русский</option>
+      </select>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="auto_upgrade">Auto Upgrade:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="autoUpgradeSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="notifications">Notifications:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="notificationsSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="dark_mode">Dark Mode:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="darkModeSettings" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="sound_effects">Sound Effects:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="soundEffectsSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+  
+  <!-- Security Settings -->
+  <div class="cosmic-card">
+    <h3>🔒 <span data-translate="security">Security</span></h3>
+    <div class="security-info">
+      <div class="security-item">
+        <span class="label" data-translate="wallet">Wallet:</span>
+        <span id="connectedWallet" class="value">Not Connected</span>
+      </div>
+      <div class="security-item">
+        <span class="label" data-translate="network">Network:</span>
+        <span id="currentNetwork" class="value">opBNB</span>
+      </div>
+      <div class="security-item">
+        <span class="label" data-translate="connection_status">Status:</span>
+        <span id="connectionStatus" class="value disconnected">Disconnected</span>
+      </div>
+      <div class="security-item">
+        <span class="label" data-translate="wallet_address">Wallet Address:</span>
+        <span id="settingsWalletAddress" class="value">0x000...000</span>
+      </div>
+    </div>
+    <div class="security-actions">
+      <button id="disconnectWallet" class="disconnect-btn">
+        🚫 <span data-translate="disconnect_wallet">Disconnect Wallet</span>
+      </button>
+      <button id="changeWallet" class="change-wallet-btn">
+        🔄 <span data-translate="change_wallet">Change Wallet</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Privacy Settings -->
+  <div class="cosmic-card">
+    <h3>🛡️ <span data-translate="privacy_settings">Privacy Settings</span></h3>
+    <div class="settings-group">
+      <label data-translate="hide_balance">Hide Balance:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="hideBalanceSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="hide_referrals">Hide Referrals:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="hideReferralsSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="anonymous_mode">Anonymous Mode:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="anonymousModeSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="data_collection">Data Collection:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="dataCollectionSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+  
+  <!-- Transaction Settings -->
+  <div class="cosmic-card">
+    <h3>💰 <span data-translate="transaction_settings">Transaction Settings</span></h3>
+    <div class="settings-group">
+      <label data-translate="gas_price">Gas Price:</label>
+      <select id="gasPriceSettings" class="settings-select">
+        <option value="slow">🐌 Slow (Lower Cost)</option>
+        <option value="normal" selected>⚡ Normal</option>
+        <option value="fast">🚀 Fast (Higher Cost)</option>
+      </select>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="auto_confirm">Auto Confirm:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="autoConfirmSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="transaction_timeout">Transaction Timeout:</label>
+      <select id="transactionTimeoutSettings" class="settings-select">
+        <option value="60">1 Minute</option>
+        <option value="300" selected>5 Minutes</option>
+        <option value="600">10 Minutes</option>
+        <option value="1800">30 Minutes</option>
+      </select>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="slippage_tolerance">Slippage Tolerance:</label>
+      <select id="slippageSettings" class="settings-select">
+        <option value="0.5">0.5%</option>
+        <option value="1" selected>1%</option>
+        <option value="3">3%</option>
+        <option value="5">5%</option>
+      </select>
+    </div>
+  </div>
+  
+  <!-- Contract Information -->
+  <div class="cosmic-card">
+    <h3>📄 <span data-translate="contract_info">Contract Information</span></h3>
+    <div class="contract-info">
+      <div class="contract-item">
+        <span class="label" data-translate="main_contract">Main Contract:</span>
+        <span class="value contract-address">0x000...000</span>
+        <button class="copy-btn" id="copyMainContract">📋</button>
+      </div>
+      <div class="contract-item">
+        <span class="label" data-translate="token_contract">Token Contract:</span>
+        <span class="value contract-address">0x000...000</span>
+        <button class="copy-btn" id="copyTokenContract">📋</button>
+      </div>
+      <div class="contract-item">
+        <span class="label" data-translate="version">Version:</span>
+        <span class="value">1.0.0</span>
+      </div>
+      <div class="contract-item">
+        <span class="label" data-translate="deployment_date">Deployment Date:</span>
+        <span class="value">2024-01-01</span>
+      </div>
+    </div>
+    <div class="contract-actions">
+      <button class="verify-btn" id="verifyContractsBtn">
+        ✅ <span data-translate="verify_contracts">Verify Contracts</span>
+      </button>
+      <button class="view-source-btn" id="viewSourceBtn">
+        👁️ <span data-translate="view_source">View Source Code</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Advanced Settings -->
+  <div class="cosmic-card">
+    <h3>⚙️ <span data-translate="advanced_settings">Advanced Settings</span></h3>
+    <div class="settings-group">
+      <label data-translate="developer_mode">Developer Mode:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="developerModeSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="debug_mode">Debug Mode:</label>
+      <label class="cosmic-toggle">
+        <input type="checkbox" id="debugModeSettings">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="cache_size">Cache Size:</label>
+      <select id="cacheSizeSettings" class="settings-select">
+        <option value="10">10 MB</option>
+        <option value="50" selected>50 MB</option>
+        <option value="100">100 MB</option>
+        <option value="500">500 MB</option>
+      </select>
+    </div>
+    
+    <div class="settings-group">
+      <label data-translate="backup_frequency">Backup Frequency:</label>
+      <select id="backupFrequencySettings" class="settings-select">
+        <option value="daily">Daily</option>
+        <option value="weekly" selected>Weekly</option>
+        <option value="monthly">Monthly</option>
+        <option value="never">Never</option>
+      </select>
+    </div>
+  </div>
+  
+  <!-- App Information -->
+  <div class="cosmic-card">
+    <h3>ℹ️ <span data-translate="app_info">App Information</span></h3>
+    <div class="app-info">
+      <div class="info-item">
+        <span class="label" data-translate="app_version">App Version:</span>
+        <span class="value">1.0.0</span>
+      </div>
+      <div class="info-item">
+        <span class="label" data-translate="build_date">Build Date:</span>
+        <span class="value">2024-01-01</span>
+      </div>
+      <div class="info-item">
+        <span class="label" data-translate="last_update">Last Update:</span>
+        <span class="value">2024-01-01</span>
+      </div>
+      <div class="info-item">
+        <span class="label" data-translate="storage_used">Storage Used:</span>
+        <span class="value">15.2 MB</span>
+      </div>
+    </div>
+    <div class="app-actions">
+      <button class="update-btn" id="checkUpdatesBtn">
+        🔄 <span data-translate="check_updates">Check for Updates</span>
+      </button>
+      <button class="clear-cache-btn" id="clearCacheBtn">
+        🗑️ <span data-translate="clear_cache">Clear Cache</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Support & Help -->
+  <div class="cosmic-card">
+    <h3>🆘 <span data-translate="support_help">Support & Help</span></h3>
+    <div class="support-links">
+      <a href="#" class="support-link" id="openWhitepaperBtn">
+        📄 <span data-translate="whitepaper">Whitepaper</span>
+      </a>
+      <a href="#" class="support-link" id="openDocumentationBtn">
+        📚 <span data-translate="documentation">Documentation</span>
+      </a>
+      <a href="#" class="support-link" id="openFAQBtn">
+        ❓ <span data-translate="faq">FAQ</span>
+      </a>
+      <a href="#" class="support-link" id="openSupportBtn">
+        💬 <span data-translate="contact_support">Contact Support</span>
+      </a>
+      <a href="#" class="support-link" id="openTelegramBtn">
+        📱 <span data-translate="telegram">Telegram</span>
+      </a>
+      <a href="#" class="support-link" id="openTwitterBtn">
+        🐦 <span data-translate="twitter">Twitter</span>
+      </a>
+    </div>
+    <div class="support-info">
+      <p data-translate="support_description">
+        For technical support and questions, please contact our support team or join our community channels.
+      </p>
+      <div class="support-contact">
+        <span class="label" data-translate="support_email">Support Email:</span>
+        <span class="value">support@globalway.io</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Data Management -->
+  <div class="cosmic-card">
+    <h3>💾 <span data-translate="data_management">Data Management</span></h3>
+    <div class="data-actions">
+      <button class="export-btn" id="exportDataBtn">
+        📤 <span data-translate="export_data">Export Data</span>
+      </button>
+      <button class="import-btn" id="importDataBtn">
+        📥 <span data-translate="import_data">Import Data</span>
+      </button>
+      <button class="backup-btn" id="createBackupBtn">
+        💾 <span data-translate="create_backup">Create Backup</span>
+      </button>
+      <button class="restore-btn" id="restoreBackupBtn">
+        🔄 <span data-translate="restore_backup">Restore Backup</span>
+      </button>
+    </div>
+    <div class="data-warning">
+      <p data-translate="data_warning">
+        ⚠️ Data export includes your transaction history and settings. 
+        Keep your backup files secure and never share them with others.
+      </p>
+    </div>
+  </div>
+  
+  <!-- Reset Settings -->
+  <div class="cosmic-card">
+    <h3>🔄 <span data-translate="reset_settings">Reset Settings</span></h3>
+    <div class="reset-actions">
+      <button class="reset-settings-btn" id="resetSettingsBtn">
+        🔄 <span data-translate="reset_to_default">Reset to Default</span>
+      </button>
+      <button class="clear-data-btn" id="clearAllDataBtn">
+        🗑️ <span data-translate="clear_all_data">Clear All Data</span>
+      </button>
+    </div>
+    <div class="reset-warning">
+      <p data-translate="reset_warning">
+        ⚠️ These actions cannot be undone. Make sure to backup your data before proceeding.
+      </p>
+    </div>
+  </div>
+</div>
