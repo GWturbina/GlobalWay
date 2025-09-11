@@ -2066,35 +2066,48 @@ class GlobalWayApp {
   }
 
   // ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
-
-  setupEventListeners() {
-    // Обработчики Web3Manager
-    if (window.web3Manager) {
-      window.web3Manager.on('connected', async (data) => {
+setupEventListeners() {
+  // Обработчики Web3Manager
+  if (window.web3Manager) {
+    // Используем правильные методы вместо .on()
+    
+    // Обработчик подключения кошелька
+    if (window.web3Manager.onConnect) {
+      window.web3Manager.onConnect(async (data) => {
         console.log('Кошелек подключен, обновляем приложение');
         await this.handleWalletConnected();
         this.enableAutoUpdate();
       });
-
-      window.web3Manager.on('disconnected', () => {
+    }
+    
+    // Обработчик отключения кошелька
+    if (window.web3Manager.onDisconnect) {
+      window.web3Manager.onDisconnect(() => {
         console.log('Кошелек отключен');
         this.handleWalletDisconnected();
       });
-
-      window.web3Manager.on('accountChanged', async (data) => {
+    }
+    
+    // Обработчик изменения аккаунта
+    if (window.web3Manager.onAccountChange) {
+      window.web3Manager.onAccountChange(async (data) => {
         console.log('Аккаунт изменен:', data);
         await this.handleAccountChanged(data);
       });
-
-      window.web3Manager.on('chainChanged', async (data) => {
+    }
+    
+    // Обработчик изменения сети
+    if (window.web3Manager.onNetworkChange) {
+      window.web3Manager.onNetworkChange(async (data) => {
         console.log('Сеть изменена:', data);
         await this.handleNetworkChanged(data);
       });
     }
-
-    // Глобальные обработчики
-    this.setupGlobalEventListeners();
   }
+  
+  // Глобальные обработчики
+  this.setupGlobalEventListeners();
+}
 
   setupGlobalEventListeners() {
     // Обработка ошибок
