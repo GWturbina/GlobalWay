@@ -34,7 +34,7 @@ class GlobalWayApp {
       selectedUser: null,
       showStructure: true,
       autoRefresh: true,
-      viewMode: 'tree'
+      viewMode: 'tree' // tree, list, grid
     };
     
     // Кэш для оптимизации
@@ -118,9 +118,6 @@ class GlobalWayApp {
       
       // Инициализируем матрицу
       this.initializeInteractiveMatrix();
-
-      // ИСПРАВЛЕНО: Принудительно показываем дашборд
-      this.navigateToPage('dashboard');
       
     } catch (error) {
       console.error('Ошибка инициализации приложения:', error);
@@ -132,7 +129,1209 @@ class GlobalWayApp {
     }
   }
 
-  // ==================== НАВИГАЦИЯ (ИСПРАВЛЕНО) ====================
+  // ==================== ОБРАБОТКА ПОДКЛЮЧЕНИЯ КОШЕЛЬКА ====================
+
+  async handleWalletConnected() {
+    console.log('Обработка подключенного кошелька...');
+    
+    try {
+      // Проверяем правильную сеть opBNB
+      if (!window.web3Manager.isCorrectNetwork()) {
+        this.showNetworkWarning();
+      }
+
+      // Загружаем данные пользователя
+      await this.loadUserData();
+      
+      // Проверяем админские права
+      await this.checkAdminRights();
+      
+      // Обновляем UI
+      this.updateUserInterface();
+      
+      // Подписываемся на события
+      this.subscribeToContractEvents();
+      
+      // Показываем приветствие
+      this.showWelcomeMessage();
+      
+    } catch (error) {
+      console.error('Ошибка обработки подключения:', error);
+      this.showError('Ошибка загрузки данных пользователя', error.message);
+    }
+  }
+
+  async loadUserData() {
+    if (!window.web3Manager?.isConnected || !window.contractManager?.isContractsReady()) {
+      return;
+    }
+
+    const userAddress = window.web3Manager.account;
+    
+    try {
+      // Используем правильные методы из contractManager
+      const [userData, userStats, isRegistered, tokenBalance, bnbBalance] = await Promise.all([
+        window.contractManager.getUserData(userAddress).catch(() => null),
+        window.contractManager.getUserStats(userAddress).catch(() => null),
+        window.contractManager.isUserRegistered(userAddress).catch(() => false),
+        window.contractManager.getTokenBalance(userAddress).catch(() => '0'),
+        window.web3Manager.getBalance().catch(() => ({ formatted: '0' }))
+      ]);
+
+      // Обновляем состояние приложения
+      this.appState.userRegistered = isRegistered;
+      this.appState.tokenBalance = tokenBalance;
+      this.appState.bnbBalance = bnbBalance.formatted || '0';
+      this.appState.connectionState = 'connected';
+      
+      if (userStats) {
+        this.appState.userActive = userStats.isRegistered;
+        this.appState.activeLevels = userStats.activeLevels || [];
+      }
+
+      this.user = {
+        address: userAddress,
+        isRegistered,
+        userData: userData,
+        stats: userStats,
+        tokenBalance,
+        bnbBalance: bnbBalance.formatted || '0'
+      };
+
+      // Кэшируем данные пользователя
+      this.cacheUserData(userAddress, this.user);
+
+      console.log('Данные пользователя загружены:', this.user);
+      
+    } catch (error) {
+      console.error('Ошибка загрузки данных пользователя:', error);
+      throw error;
+    }
+  }
+
+  async checkAdminRights() {
+    if (!this.user?.address) return;
+
+    try {
+      const isOwner = await window.contractManager.isOwner(this.user.address);
+      const isFounder = await window.contractManager.isFounder(this.user.address);
+      
+      this.appState.isOwner = isOwner;
+      this.appState.isFounder = isFounder;
+      
+      if (isOwner || isFounder) {
+        console.log(`Пользователь имеет админские права: ${isOwner ? 'Владелец' : 'Основатель'}`);
+        
+        if (window.uiManager) {
+          window.uiManager.toggleAdminFeatures(true);
+        }
+      }
+      
+    } catch (error) {
+      console.error('Ошибка проверки админских прав:', error);
+    }
+  }
+
+  // ==================== ИНТЕРАКТИВНАЯ МАТРИЦА ====================
+
+  initializeInteractiveMatrix() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    // Создаем интерактивную матрицу
+    this.createInteractiveMatrix();
+    
+    // Настраиваем обработчики
+    this.setupMatrixEventListeners();
+  }
+
+  createInteractiveMatrix() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    matrixContainer.innerHTML = `
+      <div class="interactive-matrix">
+        <div class="matrix-header">
+          <div class="matrix-controls">
+            <select id="levelSelect" class="matrix-level-selector">
+              ${Array.from({length: 12}, (_, i) => 
+                `<option value="${i + 1}">Уровень ${i + 1}</option>`
+              ).join('')}
+            </select>
+            <div class="matrix-view-controls">
+              <button class="view-btn ${this.matrixConfig.viewMode === 'tree' ? 'active' : ''}" data-view="tree">🌳 Дерево</button>
+              <button class="view-btn ${this.matrixConfig.viewMode === 'grid' ? 'active' : ''}" data-view="grid">📊 Сетка</button>
+              <button class="view-btn ${this.matrixConfig.viewMode === 'list' ? 'active' : ''}" data-view="list">📋 Список</button>
+            </div>
+            <button class="matrix-refresh-btn" id="refreshMatrix">🔄 Обновить</button>
+          </div>
+          <div class="matrix-info">
+            <span class="current-user" id="currentMatrixUser">Выберите пользователя</span>
+            <span class="matrix-stats" id="matrixStats"></span>
+          </div>
+        </div>
+        <div class="matrix-content" id="matrixContent">
+          ${this.renderMatrixContent()}
+        </div>
+        <div class="matrix-details" id="matrixDetails">
+          <div class="user-details-panel hidden">
+            <h4>Детали пользователя</h4>
+            <div class="user-info" id="selectedUserInfo"></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Удаляем дублирующие кнопки уровней внизу
+    const levelButtonsContainer = document.getElementById('levelsContainer');
+    if (levelButtonsContainer) {
+      levelButtonsContainer.remove();
+    }
+  }
+
+  renderMatrixContent() {
+    if (!window.web3Manager?.isConnected) {
+      return this.renderMatrixDemo();
+    }
+
+    switch (this.matrixConfig.viewMode) {
+      case 'tree':
+        return this.renderTreeView();
+      case 'grid':
+        return this.renderGridView();
+      case 'list':
+        return this.renderListView();
+      default:
+        return this.renderTreeView();
+    }
+  }
+
+  renderTreeView() {
+    const currentLevel = this.matrixConfig.currentLevel;
+    const selectedUser = this.matrixConfig.selectedUser || window.web3Manager.account;
+
+    return `
+      <div class="matrix-tree-view">
+        <div class="tree-level level-${currentLevel}">
+          <div class="tree-node root-node" data-address="${selectedUser}">
+            <div class="node-avatar">
+              <div class="user-avatar"></div>
+            </div>
+            <div class="node-info">
+              <div class="node-address">${this.formatAddress(selectedUser)}</div>
+              <div class="node-level">Уровень ${currentLevel}</div>
+              <div class="node-status active">Активен</div>
+            </div>
+          </div>
+          <div class="tree-children" id="treeChildren">
+            <div class="loading-tree">Загрузка структуры...</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderGridView() {
+    return `
+      <div class="matrix-grid-view">
+        <div class="grid-container" id="gridContainer">
+          ${Array.from({length: 12}, (_, i) => {
+            const level = i + 1;
+            const isActive = this.appState.activeLevels.includes(level);
+            const price = window.contractManager?.levelPricesOpBNB[level];
+            const priceInBNB = price ? window.web3Manager?.fromWei(price) : '0';
+            
+            return `
+              <div class="grid-level-card ${isActive ? 'active' : 'inactive'}" data-level="${level}">
+                <div class="level-header">
+                  <span class="level-number">${level}</span>
+                  <span class="level-status">${isActive ? '✅' : '❌'}</span>
+                </div>
+                <div class="level-info">
+                  <div class="level-price">${parseFloat(priceInBNB).toFixed(4)} BNB</div>
+                  <div class="level-participants" id="levelParticipants${level}">0</div>
+                </div>
+                ${!isActive ? `
+                  <button class="activate-level-btn" data-level="${level}">
+                    Активировать
+                  </button>
+                ` : `
+                  <button class="view-level-btn" data-level="${level}">
+                    Просмотр
+                  </button>
+                `}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  renderListView() {
+    return `
+      <div class="matrix-list-view">
+        <div class="list-header">
+          <div class="list-controls">
+            <input type="text" placeholder="Поиск по адресу..." id="userSearch" class="search-input">
+            <select id="filterSelect" class="filter-select">
+              <option value="all">Все пользователи</option>
+              <option value="active">Активные</option>
+              <option value="referrals">Мои рефералы</option>
+            </select>
+          </div>
+        </div>
+        <div class="list-content" id="listContent">
+          <div class="loading-list">Загрузка пользователей...</div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderMatrixDemo() {
+    return `
+      <div class="matrix-demo">
+        <div class="demo-message">
+          <h3>Демо-версия матрицы</h3>
+          <p>Подключите кошелек и зарегистрируйтесь для просмотра интерактивной матрицы</p>
+        </div>
+        <div class="demo-preview">
+          ${Array.from({length: 6}, (_, i) => `
+            <div class="demo-level-card" data-level="${i + 1}">
+              <div class="demo-level-number">${i + 1}</div>
+              <div class="demo-level-status">Демо</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  setupMatrixEventListeners() {
+    const matrixContainer = document.getElementById('matrixContainer');
+    if (!matrixContainer) return;
+
+    // Переключение уровней
+    const levelSelect = document.getElementById('levelSelect');
+    if (levelSelect) {
+      levelSelect.addEventListener('change', (e) => {
+        this.matrixConfig.currentLevel = parseInt(e.target.value);
+        this.refreshMatrix();
+      });
+    }
+
+    // Переключение видов
+    matrixContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('view-btn')) {
+        this.matrixConfig.viewMode = e.target.dataset.view;
+        this.updateViewButtons();
+        this.refreshMatrix();
+      }
+    });
+
+    // Обновление матрицы
+    const refreshBtn = document.getElementById('refreshMatrix');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        this.refreshMatrix();
+      });
+    }
+
+    // Клики по узлам дерева
+    matrixContainer.addEventListener('click', (e) => {
+      if (e.target.closest('.tree-node')) {
+        const node = e.target.closest('.tree-node');
+        const address = node.dataset.address;
+        this.selectMatrixUser(address);
+      }
+    });
+
+    // Активация уровней из грида
+    matrixContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('activate-level-btn')) {
+        const level = parseInt(e.target.dataset.level);
+        if (window.uiManager) {
+          window.uiManager.handleLevelPurchase(level);
+        }
+      }
+    });
+
+    // Поиск пользователей
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.filterMatrixUsers(e.target.value);
+      });
+    }
+  }
+
+  async selectMatrixUser(address) {
+    this.matrixConfig.selectedUser = address;
+    
+    try {
+      // Загружаем данные выбранного пользователя
+      const userData = await this.loadUserMatrixData(address);
+      
+      // Обновляем отображение
+      this.updateMatrixDisplay(userData);
+      
+      // Показываем детали пользователя
+      this.showUserDetails(userData);
+      
+    } catch (error) {
+      console.error('Ошибка выбора пользователя матрицы:', error);
+    }
+  }
+
+  async loadUserMatrixData(address) {
+    // Проверяем кэш
+    if (this.dataCache.users.has(address)) {
+      return this.dataCache.users.get(address);
+    }
+
+    try {
+      const [userData, userStats] = await Promise.all([
+        window.contractManager.getUserData(address),
+        window.contractManager.getUserStats(address)
+      ]);
+
+      const userInfo = {
+        address,
+        userData,
+        stats: userStats,
+        timestamp: Date.now()
+      };
+
+      // Кэшируем данные
+      this.dataCache.users.set(address, userInfo);
+      
+      return userInfo;
+    } catch (error) {
+      console.error('Ошибка загрузки данных пользователя матрицы:', error);
+      return null;
+    }
+  }
+
+  updateMatrixDisplay(userData) {
+    const currentUserElement = document.getElementById('currentMatrixUser');
+    if (currentUserElement && userData) {
+      currentUserElement.textContent = this.formatAddress(userData.address);
+    }
+
+    const statsElement = document.getElementById('matrixStats');
+    if (statsElement && userData?.stats) {
+      statsElement.innerHTML = `
+        <span>Уровни: ${userData.stats.activeLevels?.length || 0}/12</span>
+        <span>Рефералы: ${userData.stats.personalInvites || 0}</span>
+      `;
+    }
+  }
+
+  showUserDetails(userData) {
+    const detailsPanel = document.querySelector('.user-details-panel');
+    const userInfoElement = document.getElementById('selectedUserInfo');
+    
+    if (detailsPanel && userInfoElement && userData) {
+      userInfoElement.innerHTML = `
+        <div class="user-detail-item">
+          <label>Адрес:</label>
+          <span>${userData.address}</span>
+          <button onclick="window.uiManager.copyToClipboard('${userData.address}')">📋</button>
+        </div>
+        <div class="user-detail-item">
+          <label>Спонсор:</label>
+          <span>${this.formatAddress(userData.userData?.sponsor || '0x000...000')}</span>
+        </div>
+        <div class="user-detail-item">
+          <label>Дата регистрации:</label>
+          <span>${userData.userData?.registrationTime ? new Date(userData.userData.registrationTime * 1000).toLocaleDateString() : 'Не зарегистрирован'}</span>
+        </div>
+        <div class="user-detail-item">
+          <label>Активные уровни:</label>
+          <span>${userData.stats?.activeLevels?.join(', ') || 'Нет'}</span>
+        </div>
+        <div class="user-detail-item">
+          <label>Всего заработано:</label>
+          <span>${userData.userData?.totalEarned ? window.web3Manager.fromWei(userData.userData.totalEarned) + ' BNB' : '0 BNB'}</span>
+        </div>
+      `;
+      
+      detailsPanel.classList.remove('hidden');
+    }
+  }
+
+  async refreshMatrix() {
+    const matrixContent = document.getElementById('matrixContent');
+    if (!matrixContent) return;
+
+    matrixContent.innerHTML = '<div class="matrix-loading">Обновление матрицы...</div>';
+    
+    try {
+      // Очищаем кэш
+      this.clearMatrixCache();
+      
+      // Перерендериваем содержимое
+      matrixContent.innerHTML = this.renderMatrixContent();
+      
+      // Загружаем свежие данные
+      await this.loadMatrixData();
+      
+    } catch (error) {
+      console.error('Ошибка обновления матрицы:', error);
+      matrixContent.innerHTML = '<div class="matrix-error">Ошибка загрузки матрицы</div>';
+    }
+  }
+
+  async loadMatrixData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      const currentUser = this.matrixConfig.selectedUser || window.web3Manager.account;
+      const level = this.matrixConfig.currentLevel;
+
+      // Загружаем данные в зависимости от режима отображения
+      switch (this.matrixConfig.viewMode) {
+        case 'tree':
+          await this.loadTreeData(currentUser, level);
+          break;
+        case 'grid':
+          await this.loadGridData();
+          break;
+        case 'list':
+          await this.loadListData();
+          break;
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных матрицы:', error);
+    }
+  }
+
+  async loadTreeData(userAddress, level) {
+    const treeChildren = document.getElementById('treeChildren');
+    if (!treeChildren) return;
+
+    try {
+      // Загружаем структуру пользователя
+      const userStats = await window.contractManager.getUserStats(userAddress);
+      
+      if (userStats && userStats.referrals) {
+        const referralsHtml = userStats.referrals.map(referralAddress => `
+          <div class="tree-node referral-node" data-address="${referralAddress}">
+            <div class="node-avatar">
+              <div class="user-avatar"></div>
+            </div>
+            <div class="node-info">
+              <div class="node-address">${this.formatAddress(referralAddress)}</div>
+              <div class="node-level">Уровень ${level}</div>
+              <div class="node-status">Активен</div>
+            </div>
+          </div>
+        `).join('');
+
+        treeChildren.innerHTML = referralsHtml || '<div class="no-referrals">Нет рефералов</div>';
+      } else {
+        treeChildren.innerHTML = '<div class="no-referrals">Нет рефералов</div>';
+      }
+    } catch (error) {
+      treeChildren.innerHTML = '<div class="tree-error">Ошибка загрузки структуры</div>';
+    }
+  }
+
+  updateViewButtons() {
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === this.matrixConfig.viewMode);
+    });
+  }
+
+  clearMatrixCache() {
+    this.dataCache.users.clear();
+    this.dataCache.stats.clear();
+  }
+
+  // ==================== СОБЫТИЯ КОНТРАКТОВ ====================
+
+  setupContractEvents() {
+    if (!window.contractManager?.isContractsReady()) return;
+
+    try {
+      // Подписываемся на события регистрации
+      this.subscribeToEvent('UserRegistered', this.handleUserRegistered.bind(this));
+      
+      // Подписываемся на события активации уровней
+      this.subscribeToEvent('LevelActivated', this.handleLevelActivated.bind(this));
+      
+      // Подписываемся на события рефералов
+      this.subscribeToEvent('ReferralReward', this.handleReferralReward.bind(this));
+      
+    } catch (error) {
+      console.log('События контракта недоступны:', error);
+    }
+  }
+
+  subscribeToEvent(eventName, handler) {
+    try {
+      const contract = window.contractManager.contracts.globalWay;
+      if (contract && contract.events && contract.events[eventName]) {
+        const eventEmitter = contract.events[eventName]({
+          fromBlock: 'latest'
+        });
+        
+        eventEmitter.on('data', handler);
+        eventEmitter.on('error', console.error);
+        
+        this.eventListeners.set(eventName, eventEmitter);
+      }
+    } catch (error) {
+      console.warn(`Не удалось подписаться на событие ${eventName}:`, error);
+    }
+  }
+
+  handleUserRegistered(event) {
+    const userAddress = event.returnValues.user;
+    
+    if (userAddress.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
+      this.showNotification('Вы успешно зарегистрированы!', 'success');
+      this.updateUserInfo();
+    }
+    
+    // Обновляем матрицу если пользователь в нашей структуре
+    this.refreshMatrix();
+  }
+
+  handleLevelActivated(event) {
+    const { user, level } = event.returnValues;
+    
+    if (user.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
+      this.showNotification(`Уровень ${level} активирован!`, 'success');
+      this.updateUserInfo();
+      this.refreshMatrix();
+    }
+  }
+
+  handleReferralReward(event) {
+    const { referrer, amount } = event.returnValues;
+    
+    if (referrer.toLowerCase() === window.web3Manager.account?.toLowerCase()) {
+      const amountBNB = window.web3Manager.fromWei(amount);
+      this.showNotification(`Получено вознаграждение: ${parseFloat(amountBNB).toFixed(4)} BNB`, 'success');
+    }
+  }
+
+  // ==================== КЭШИРОВАНИЕ ====================
+
+  setupCaching() {
+    // Настройка системы кэширования
+    this.cache.clear();
+    
+    // Автоочистка кэша каждые 5 минут
+    setInterval(() => {
+      this.cleanupCache();
+    }, 300000);
+  }
+
+  cacheUserData(address, data) {
+    this.dataCache.users.set(address, {
+      ...data,
+      timestamp: Date.now()
+    });
+  }
+
+  getCachedUserData(address) {
+    const cached = this.dataCache.users.get(address);
+    if (cached && Date.now() - cached.timestamp < 60000) { // 1 минута
+      return cached;
+    }
+    return null;
+  }
+
+  cleanupCache() {
+    const now = Date.now();
+    const maxAge = 300000; // 5 минут
+
+    // Очищаем старые данные пользователей
+    for (const [key, value] of this.dataCache.users.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.dataCache.users.delete(key);
+      }
+    }
+
+    // Очищаем старую статистику
+    for (const [key, value] of this.dataCache.stats.entries()) {
+      if (now - value.timestamp > maxAge) {
+        this.dataCache.stats.delete(key);
+      }
+    }
+  }
+
+  // ==================== ОФЛАЙН РЕЖИМ ====================
+
+  setupOfflineMode() {
+    // Проверка состояния сети
+    window.addEventListener('online', () => {
+      this.offlineMode = false;
+      this.showNotification('Подключение восстановлено', 'success');
+      this.performAutoUpdate();
+    });
+
+    window.addEventListener('offline', () => {
+      this.offlineMode = true;
+      this.showNotification('Работа в офлайн режиме', 'warning');
+    });
+
+    // Инициализация Service Worker
+    // this.initializeServiceWorker();
+  }
+
+  async initializeServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker зарегистрирован:', registration);
+      } catch (error) {
+        console.log('Ошибка регистрации Service Worker:', error);
+      }
+    }
+  }
+
+  // ==================== РАСШИРЕННАЯ СТАТИСТИКА ====================
+
+  async loadAdvancedStats() {
+    if (!window.contractManager?.isContractsReady()) return null;
+
+    try {
+      const overview = await window.contractManager.getContractOverview();
+      const userAddress = window.web3Manager.account;
+      
+      let userStats = null;
+      if (userAddress) {
+        userStats = await window.contractManager.getUserStats(userAddress);
+      }
+
+      const stats = {
+        global: overview,
+        user: userStats,
+        performance: await this.calculatePerformanceStats(),
+        trends: await this.calculateTrendStats(),
+        timestamp: Date.now()
+      };
+
+      // Кэшируем статистику
+      this.dataCache.stats.set('advanced', stats);
+      
+      return stats;
+    } catch (error) {
+      console.error('Ошибка загрузки расширенной статистики:', error);
+      return null;
+    }
+  }
+
+  async calculatePerformanceStats() {
+    try {
+      const stats = {
+        avgResponseTime: 0,
+        successRate: 0,
+        gasEfficiency: 0,
+        userGrowth: 0,
+        volumeGrowth: 0
+      };
+
+      // Измеряем среднее время отклика контракта
+      const startTime = Date.now();
+      await window.contractManager.getContractOverview();
+      stats.avgResponseTime = Date.now() - startTime;
+
+      // Рассчитываем эффективность газа
+      const gasData = await this.analyzeGasUsage();
+      stats.gasEfficiency = gasData.efficiency;
+
+      // Анализируем рост пользователей
+      stats.userGrowth = await this.calculateUserGrowth();
+      
+      return stats;
+    } catch (error) {
+      console.error('Ошибка расчета статистики производительности:', error);
+      return null;
+    }
+  }
+
+  async calculateTrendStats() {
+    try {
+      const trends = {
+        registrations: [],
+        activations: [],
+        volume: [],
+        period: '7d'
+      };
+
+      // Здесь можно добавить анализ трендов за последние дни/недели
+      // Пока возвращаем базовую структуру
+      
+      return trends;
+    } catch (error) {
+      console.error('Ошибка расчета трендов:', error);
+      return null;
+    }
+  }
+
+  async analyzeGasUsage() {
+    // Анализ использования газа для оптимизации
+    return {
+      efficiency: 85,
+      avgGasPrice: '5000000000',
+      recommendations: []
+    };
+  }
+
+  async calculateUserGrowth() {
+    // Расчет роста пользователей
+    return 12.5; // Процент роста
+  }
+
+  // ==================== СИСТЕМА ПОИСКА И ФИЛЬТРАЦИИ ====================
+
+  setupSearchAndFilters() {
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        this.debounce(() => {
+          this.performSearch(e.target.value);
+        }, 300)();
+      });
+    }
+
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        this.applyFilter(filter);
+        this.updateFilterButtons(btn);
+      });
+    });
+
+    // Продвинутые фильтры
+    this.setupAdvancedFilters();
+  }
+
+  setupAdvancedFilters() {
+    const advancedFilters = document.getElementById('advancedFilters');
+    if (!advancedFilters) return;
+
+    advancedFilters.innerHTML = `
+      <div class="advanced-filter-panel">
+        <div class="filter-group">
+          <label>Дата регистрации:</label>
+          <input type="date" id="dateFrom" class="date-filter">
+          <input type="date" id="dateTo" class="date-filter">
+        </div>
+        <div class="filter-group">
+          <label>Активные уровни:</label>
+          <select id="levelFilter" multiple class="level-filter">
+            ${Array.from({length: 12}, (_, i) => 
+              `<option value="${i + 1}">Уровень ${i + 1}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Заработано (BNB):</label>
+          <input type="number" id="earningsMin" placeholder="От" class="earnings-filter">
+          <input type="number" id="earningsMax" placeholder="До" class="earnings-filter">
+        </div>
+        <div class="filter-actions">
+          <button class="cosmic-btn primary" id="applyAdvancedFilters">Применить</button>
+          <button class="cosmic-btn secondary" id="clearAdvancedFilters">Очистить</button>
+        </div>
+      </div>
+    `;
+
+    // Обработчики для продвинутых фильтров
+    document.getElementById('applyAdvancedFilters')?.addEventListener('click', () => {
+      this.applyAdvancedFilters();
+    });
+
+    document.getElementById('clearAdvancedFilters')?.addEventListener('click', () => {
+      this.clearAdvancedFilters();
+    });
+  }
+
+  async performSearch(query) {
+    if (!query.trim()) {
+      this.clearSearch();
+      return;
+    }
+
+    const searchResults = await this.searchUsers(query);
+    this.displaySearchResults(searchResults);
+  }
+
+  async searchUsers(query) {
+    try {
+      // Поиск по адресу
+      if (query.startsWith('0x')) {
+        const userData = await this.loadUserMatrixData(query);
+        return userData ? [userData] : [];
+      }
+
+      // Поиск по ID или другим параметрам
+      const allUsers = await this.getAllUsers();
+      return allUsers.filter(user => 
+        user.address.toLowerCase().includes(query.toLowerCase())
+      );
+    } catch (error) {
+      console.error('Ошибка поиска пользователей:', error);
+      return [];
+    }
+  }
+
+  applyAdvancedFilters() {
+    const filters = {
+      dateFrom: document.getElementById('dateFrom')?.value,
+      dateTo: document.getElementById('dateTo')?.value,
+      levels: Array.from(document.getElementById('levelFilter')?.selectedOptions || [])
+        .map(option => parseInt(option.value)),
+      earningsMin: parseFloat(document.getElementById('earningsMin')?.value || 0),
+      earningsMax: parseFloat(document.getElementById('earningsMax')?.value || Infinity)
+    };
+
+    this.filterUsersByAdvancedCriteria(filters);
+  }
+
+  // ==================== ЭКСПОРТ И ИМПОРТ ДАННЫХ ====================
+
+  async exportUserData() {
+    if (!window.web3Manager.isConnected) {
+      this.showNotification('Подключите кошелек для экспорта', 'warning');
+      return;
+    }
+
+    try {
+      if (window.uiManager) {
+        window.uiManager.showPageLoader();
+      }
+      
+      const userData = await this.gatherExportData();
+      
+      const exportData = {
+        version: '1.0',
+        exportTime: new Date().toISOString(),
+        network: window.web3Manager.getNetworkInfo().name,
+        user: userData,
+        format: 'json'
+      };
+
+      this.downloadExportFile(exportData);
+      
+      this.showNotification('Данные успешно экспортированы', 'success');
+      
+    } catch (error) {
+      console.error('Ошибка экспорта:', error);
+      this.showNotification('Ошибка экспорта данных', 'error');
+    } finally {
+      if (window.uiManager) {
+        window.uiManager.hidePageLoader();
+      }
+    }
+  }
+
+  async gatherExportData() {
+    const userAddress = window.web3Manager.account;
+    
+    const [userData, userStats, referrals, earnings] = await Promise.all([
+      window.contractManager.getUserData(userAddress),
+      window.contractManager.getUserStats(userAddress),
+      this.getUserReferrals(userAddress),
+      this.getUserEarnings(userAddress)
+    ]);
+
+    return {
+      address: userAddress,
+      personalData: userData,
+      statistics: userStats,
+      referrals: referrals,
+      earnings: earnings,
+      activeLevels: this.appState.activeLevels,
+      registrationTime: userData?.registrationTime
+    };
+  }
+
+  downloadExportFile(data) {
+    const fileName = `globalway_export_${this.formatAddress(window.web3Manager.account)}_${Date.now()}.json`;
+    const dataStr = JSON.stringify(data, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = fileName;
+    link.click();
+    
+    // Очистка URL
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  // Экспорт в разных форматах
+  async exportToCSV() {
+    const data = await this.gatherExportData();
+    const csvData = this.convertToCSV(data);
+    
+    const fileName = `globalway_export_${this.formatAddress(window.web3Manager.account)}_${Date.now()}.csv`;
+    const dataBlob = new Blob([csvData], { type: 'text/csv' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = fileName;
+    link.click();
+  }
+
+  convertToCSV(data) {
+    const headers = ['Адрес', 'Дата регистрации', 'Активные уровни', 'Рефералы', 'Заработано'];
+    const rows = [
+      headers.join(','),
+      [
+        data.address,
+        data.registrationTime ? new Date(data.registrationTime * 1000).toLocaleDateString() : '',
+        data.activeLevels.join(';'),
+        data.referrals.length,
+        data.earnings.total || 0
+      ].join(',')
+    ];
+    
+    return rows.join('\n');
+  }
+
+  // ==================== УВЕДОМЛЕНИЯ В РЕАЛЬНОМ ВРЕМЕНИ ====================
+
+  setupRealTimeNotifications() {
+    // Настройка уведомлений браузера
+    this.requestNotificationPermission();
+    
+    // Настройка WebSocket соединения (если доступно)
+    this.setupWebSocketConnection();
+    
+    // Настройка периодических проверок
+    this.setupPeriodicChecks();
+  }
+
+  async requestNotificationPermission() {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      console.log('Разрешение на уведомления:', permission);
+    }
+  }
+
+  setupWebSocketConnection() {
+    // Здесь можно добавить WebSocket соединение для real-time обновлений
+    // if (window.WebSocket) {
+    //   this.ws = new WebSocket('wss://api.globalway.io/ws');
+    //   this.ws.onmessage = this.handleWebSocketMessage.bind(this);
+    // }
+  }
+
+  setupPeriodicChecks() {
+    // Проверяем новые события каждые 30 секунд
+    setInterval(async () => {
+      if (window.web3Manager?.isConnected) {
+        await this.checkForNewEvents();
+      }
+    }, 30000);
+  }
+
+  async checkForNewEvents() {
+    try {
+      const currentBlock = await window.web3Manager.web3.eth.getBlockNumber();
+      
+      if (currentBlock > this.appState.lastBlockNumber) {
+        await this.processNewBlocks(this.appState.lastBlockNumber + 1, currentBlock);
+        this.appState.lastBlockNumber = currentBlock;
+      }
+    } catch (error) {
+      console.error('Ошибка проверки новых событий:', error);
+    }
+  }
+
+  async processNewBlocks(fromBlock, toBlock) {
+    // Обработка новых блоков и событий
+    console.log(`Обработка блоков с ${fromBlock} по ${toBlock}`);
+  }
+
+  showBrowserNotification(title, message, icon) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body: message,
+        icon: icon || '/favicon.ico',
+        badge: '/favicon.ico'
+      });
+    }
+  }
+
+  // ==================== МОБИЛЬНАЯ АДАПТАЦИЯ ====================
+
+  setupMobileAdaptation() {
+    // Определение мобильного устройства
+    this.isMobile = this.detectMobileDevice();
+    
+    if (this.isMobile) {
+      this.enableMobileFeatures();
+    }
+    
+    // Обработка ориентации
+    this.setupOrientationHandling();
+    
+    // Touch события
+    this.setupTouchEvents();
+  }
+
+  detectMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth <= 768;
+  }
+
+  enableMobileFeatures() {
+    document.body.classList.add('mobile-device');
+    
+    // Мобильная навигация
+    this.setupMobileNavigation();
+    
+    // Оптимизация для touch
+    this.optimizeForTouch();
+  }
+
+  setupMobileNavigation() {
+    const nav = document.querySelector('.bottom-nav');
+    if (nav) {
+      nav.classList.add('mobile-nav');
+    }
+  }
+
+  setupTouchEvents() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    });
+
+    document.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      
+      this.handleSwipeGesture(touchStartX, touchStartY, touchEndX, touchEndY);
+    });
+  }
+
+  handleSwipeGesture(startX, startY, endX, endY) {
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    
+    // Горизонтальный свайп для навигации
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        this.handleSwipeRight();
+      } else {
+        this.handleSwipeLeft();
+      }
+    }
+  }
+
+  handleSwipeRight() {
+    // Свайп вправо - предыдущая страница
+    const pages = ['dashboard', 'matrix', 'profile', 'referrals', 'tokens'];
+    const currentIndex = pages.indexOf(this.currentPage);
+    if (currentIndex > 0) {
+      this.navigateToPage(pages[currentIndex - 1]);
+    }
+  }
+
+  handleSwipeLeft() {
+    // Свайп влево - следующая страница
+    const pages = ['dashboard', 'matrix', 'profile', 'referrals', 'tokens'];
+    const currentIndex = pages.indexOf(this.currentPage);
+    if (currentIndex < pages.length - 1) {
+      this.navigateToPage(pages[currentIndex + 1]);
+    }
+  }
+
+  setupOrientationHandling() {
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        this.handleOrientationChange();
+      }, 100);
+    });
+  }
+
+  handleOrientationChange() {
+    // Адаптация интерфейса при смене ориентации
+    if (window.uiManager) {
+      window.uiManager.handleResize();
+    }
+    
+    // Обновление матрицы для новой ориентации
+    this.refreshMatrix();
+  }
+
+  // ==================== НАВИГАЦИЯ (ПРОДОЛЖЕНИЕ) ====================
+
+  showWelcomeMessage() {
+    if (!this.user) return;
+
+    let message = 'Добро пожаловать в GlobalWay!';
+    let type = 'info';
+
+    if (this.appState.isOwner) {
+      message = 'Добро пожаловать, владелец системы!';
+      type = 'admin';
+    } else if (this.appState.isFounder) {
+      message = 'Добро пожаловать, основатель!';
+      type = 'admin';
+    } else if (this.appState.userRegistered) {
+      message = `Добро пожаловать обратно! Активных уровней: ${this.appState.activeLevels.length}`;
+      type = 'success';
+    } else {
+      message = 'Для начала работы пройдите регистрацию';
+      type = 'warning';
+    }
+
+    this.showNotification(message, type, 5000);
+  }
+
+  showWelcomeScreen() {
+    this.navigateToPage('welcome');
+    
+    this.showNotification(
+      'Подключите кошелек для начала работы с GlobalWay', 
+      'info', 
+      0,
+      [{
+        id: 'connect',
+        label: 'Подключить',
+        callback: () => {
+          if (window.web3Manager) {
+            window.web3Manager.connectWallet();
+          }
+        }
+      }]
+    );
+  }
+
+  showNetworkWarning() {
+    const networkInfo = window.web3Manager.getNetworkInfo();
+    
+    this.showNotification(
+      `Подключена сеть ${networkInfo.name}. Рекомендуется opBNB для корректной работы.`,
+      'warning',
+      0,
+      [{
+        id: 'switch',
+        label: 'Переключить на opBNB',
+        callback: async () => {
+          try {
+            await window.web3Manager.switchToOpBNB();
+          } catch (error) {
+            console.error('Ошибка переключения сети:', error);
+          }
+        }
+      }]
+    );
+  }
 
   setupNavigation() {
     // Настройка кнопок навигации
@@ -151,10 +1350,8 @@ class GlobalWayApp {
       }
     });
 
-    // ИСПРАВЛЕНО: Принудительная загрузка дашборда
-    setTimeout(() => {
-      this.navigateToPage('dashboard', false);
-    }, 100);
+    // Загружаем страницу из URL
+    this.loadPageFromURL();
   }
 
   navigateToPage(page, updateHistory = true) {
@@ -190,51 +1387,9 @@ class GlobalWayApp {
     this.loadPageData(page);
   }
 
-  hidePage(page) {
-    const pageElement = document.getElementById(page);
-    if (pageElement) {
-      pageElement.classList.remove('active');
-    }
-  }
-
-  showPage(page) {
-    const pageElement = document.getElementById(page);
-    if (pageElement) {
-      pageElement.classList.add('active');
-    }
-  }
-
-  updateNavigation() {
-    // Обновляем активную кнопку навигации
-    document.querySelectorAll('[data-page]').forEach(btn => {
-      if (btn.dataset.page === this.currentPage) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-
-    // Обновляем заголовок страницы
-    this.updatePageTitle();
-  }
-
-  updatePageTitle() {
-    const titles = {
-      dashboard: 'GlobalWay - Главная',
-      matrix: 'GlobalWay - Матрица',
-      partners: 'GlobalWay - Партнеры',
-      tokens: 'GlobalWay - GWT Токены',
-      admin: 'GlobalWay - Администрирование',
-      settings: 'GlobalWay - Настройки',
-      projects: 'GlobalWay - Проекты'
-    };
-
-    document.title = titles[this.currentPage] || 'GlobalWay';
-  }
-
   canAccessPage(page) {
     // Публичные страницы
-    const publicPages = ['dashboard', 'matrix', 'partners', 'tokens', 'settings', 'projects'];
+    const publicPages = ['welcome', 'dashboard', 'about', 'docs'];
     if (publicPages.includes(page)) return true;
 
     // Страницы требующие подключения кошелька
@@ -264,92 +1419,334 @@ class GlobalWayApp {
     this.showNotification(message, 'warning');
   }
 
-  // ==================== ОСТАЛЬНЫЕ МЕТОДЫ ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ ====================
-
-  async handleWalletConnected() {
-    console.log('Обработка подключенного кошелька...');
-    
-    try {
-      if (!window.web3Manager.isCorrectNetwork()) {
-        this.showNetworkWarning();
-      }
-
-      await this.loadUserData();
-      await this.checkAdminRights();
-      this.updateUserInterface();
-      this.subscribeToContractEvents();
-      this.showWelcomeMessage();
-      
-    } catch (error) {
-      console.error('Ошибка обработки подключения:', error);
-      this.showError('Ошибка загрузки данных пользователя', error.message);
+  hidePage(page) {
+    const pageElement = document.getElementById(`${page}-page`);
+    if (pageElement) {
+      pageElement.classList.remove('active');
+      pageElement.classList.add('hidden');
     }
   }
 
-  async loadUserData() {
-    if (!window.web3Manager?.isConnected || !window.contractManager?.isContractsReady()) {
+  showPage(page) {
+    const pageElement = document.getElementById(`${page}-page`);
+    if (pageElement) {
+      pageElement.classList.remove('hidden');
+      pageElement.classList.add('active');
+    }
+  }
+
+  updateNavigation() {
+    // Обновляем активную кнопку навигации
+    document.querySelectorAll('[data-page]').forEach(btn => {
+      if (btn.dataset.page === this.currentPage) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Обновляем заголовок страницы
+    this.updatePageTitle();
+  }
+
+  updatePageTitle() {
+    const titles = {
+      dashboard: 'GlobalWay - Главная',
+      matrix: 'GlobalWay - Матрица',
+      profile: 'GlobalWay - Профиль',
+      referrals: 'GlobalWay - Рефералы',
+      tokens: 'GlobalWay - GWT Токены',
+      admin: 'GlobalWay - Администрирование',
+      welcome: 'GlobalWay - Добро пожаловать'
+    };
+
+    document.title = titles[this.currentPage] || 'GlobalWay';
+  }
+
+  loadPageFromURL() {
+    const hash = window.location.hash.slice(1);
+    const page = hash || 'dashboard';
+    this.navigateToPage(page, false);
+  }
+
+  // ==================== ЗАГРУЗКА ДАННЫХ ДЛЯ СТРАНИЦ ====================
+
+  async loadPageData(page) {
+    try {
+      switch (page) {
+        case 'dashboard':
+          await this.loadDashboardData();
+          break;
+        case 'matrix':
+          await this.loadMatrixData();
+          break;
+        case 'profile':
+          await this.loadProfileData();
+          break;
+        case 'referrals':
+          await this.loadReferralsData();
+          break;
+        case 'tokens':
+          await this.loadTokensData();
+          break;
+        case 'admin':
+          await this.loadAdminData();
+          break;
+      }
+    } catch (error) {
+      console.error(`Ошибка загрузки данных для страницы ${page}:`, error);
+    }
+  }
+
+  async loadDashboardData() {
+    try {
+      // Загружаем общую статистику
+      await this.loadPublicStats();
+      
+      // Если пользователь подключен, загружаем его данные
+      if (window.web3Manager?.isConnected) {
+        await this.updateUserInfo();
+      }
+      
+    } catch (error) {
+      console.error('Ошибка загрузки данных дашборда:', error);
+    }
+  }
+
+  async loadMatrixData() {
+    if (!window.web3Manager?.isConnected) {
+      this.createInteractiveMatrix();
       return;
     }
 
-    const userAddress = window.web3Manager.account;
-    
     try {
-      const [userData, userStats, isRegistered, tokenBalance, bnbBalance] = await Promise.all([
-        window.contractManager.getUserData(userAddress).catch(() => null),
-        window.contractManager.getUserStats(userAddress).catch(() => null),
-        window.contractManager.isUserRegistered(userAddress).catch(() => false),
-        window.contractManager.getTokenBalance(userAddress).catch(() => '0'),
-        window.web3Manager.getBalance().catch(() => ({ formatted: '0' }))
-      ]);
-
-      this.appState.userRegistered = isRegistered;
-      this.appState.tokenBalance = tokenBalance;
-      this.appState.bnbBalance = bnbBalance.formatted || '0';
-      this.appState.connectionState = 'connected';
+      const userStats = await window.contractManager.getUserStats(window.web3Manager.account);
       
-      if (userStats) {
-        this.appState.userActive = userStats.isRegistered;
-        this.appState.activeLevels = userStats.activeLevels || [];
+      if (userStats && userStats.isRegistered) {
+        await this.loadMatrixData();
+      } else {
+        this.showRegistrationPrompt();
       }
-
-      this.user = {
-        address: userAddress,
-        isRegistered,
-        userData: userData,
-        stats: userStats,
-        tokenBalance,
-        bnbBalance: bnbBalance.formatted || '0'
-      };
-
-      this.cacheUserData(userAddress, this.user);
-      console.log('Данные пользователя загружены:', this.user);
       
     } catch (error) {
-      console.error('Ошибка загрузки данных пользователя:', error);
-      throw error;
+      console.error('Ошибка загрузки матрицы:', error);
+      this.createInteractiveMatrix();
     }
   }
 
-  showWelcomeScreen() {
-    this.navigateToPage('dashboard');
+  async loadProfileData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      await this.updateUserInfo();
+      this.displayUserProfile();
+      
+    } catch (error) {
+      console.error('Ошибка загрузки профиля:', error);
+    }
+  }
+
+  async loadReferralsData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      const userStats = await window.contractManager.getUserStats(window.web3Manager.account);
+      
+      if (userStats) {
+        this.displayReferralStats(userStats);
+      }
+      
+    } catch (error) {
+      console.error('Ошибка загрузки рефералов:', error);
+    }
+  }
+
+  async loadTokensData() {
+    if (!window.web3Manager?.isConnected) return;
+
+    try {
+      if (window.uiManager) {
+        await window.uiManager.updateTokenInfo();
+      }
+      
+      this.displayTokenInfo();
+      
+    } catch (error) {
+      console.error('Ошибка загрузки токенов:', error);
+    }
+  }
+
+  async loadAdminData() {
+    if (!this.appState.isOwner && !this.appState.isFounder) return;
+
+    try {
+      const overview = await window.contractManager.getContractOverview();
+      this.displayAdminStats(overview);
+      
+    } catch (error) {
+      console.error('Ошибка загрузки админских данных:', error);
+    }
+  }
+
+  // ==================== ОТОБРАЖЕНИЕ ДАННЫХ ====================
+
+  async loadPublicStats() {
+    try {
+      if (!window.contractManager?.isContractsReady()) {
+        this.displayDemoStats();
+        return;
+      }
+
+      const overview = await window.contractManager.getContractOverview();
+      this.displayStats(overview);
+      
+    } catch (error) {
+      console.error('Ошибка загрузки публичной статистики:', error);
+      this.displayDemoStats();
+    }
+  }
+
+  displayStats(overview) {
+    // Обновляем счетчики на главной странице
+    if (window.uiManager) {
+      window.uiManager.updateCounter('totalUsers', parseInt(overview.totalUsers));
+      window.uiManager.updateCounter('activeUsers', parseInt(overview.activeUsers));
+    }
+
+    // Обновляем объем
+    const volumeElement = document.getElementById('totalVolume');
+    if (volumeElement && overview.totalVolume) {
+      const volumeInBNB = window.web3Manager?.fromWei ? window.web3Manager.fromWei(overview.totalVolume) : '0';
+      volumeElement.textContent = this.formatLargeNumber(volumeInBNB) + ' BNB';
+    }
+
+    // Обновляем распределение уровней
+    this.updateLevelDistribution(overview.levelDistribution);
+  }
+
+  displayDemoStats() {
+    // Показываем демо-статистику если контракты недоступны
+    if (window.uiManager) {
+      window.uiManager.updateCounter('totalUsers', 1234);
+      window.uiManager.updateCounter('activeUsers', 567);
+    }
+
+    const volumeElement = document.getElementById('totalVolume');
+    if (volumeElement) {
+      volumeElement.textContent = '1,234.56 BNB';
+    }
+  }
+
+  // ==================== ПРОДОЛЖЕНИЕ СЛЕДУЕТ... ====================
+
+  // ==================== АВТООБНОВЛЕНИЕ ====================
+
+  setupAutoUpdate() {
+    // Автообновление каждые 30 секунд
+    this.updateInterval = setInterval(() => {
+      if (this.autoUpdateEnabled && window.web3Manager?.isConnected) {
+        this.performAutoUpdate();
+      }
+    }, 30000);
+
+    // Обновление при фокусе на странице
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && window.web3Manager?.isConnected) {
+        this.performAutoUpdate();
+      }
+    });
+
+    console.log('Автообновление настроено');
+  }
+
+  async performAutoUpdate() {
+    const now = Date.now();
+    
+    // Ограничиваем частоту обновлений
+    if (now - this.lastUpdateTime < 10000) return;
+    
+    this.lastUpdateTime = now;
+
+    try {
+      // Обновляем только если пользователь активен
+      if (this.isUserActive()) {
+        await this.loadPublicStats();
+        
+        if (window.web3Manager.isConnected) {
+          await this.updateUserInfo();
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка автообновления:', error);
+      
+      // При повторных ошибках отключаем автообновление
+      this.retryAttempts++;
+      if (this.retryAttempts >= this.maxRetries) {
+        this.disableAutoUpdate();
+      }
+    }
+  }
+
+  isUserActive() {
+    // Проверяем активность пользователя
+    return !document.hidden && 
+           (Date.now() - this.lastUpdateTime) < 300000; // 5 минут
+  }
+
+  enableAutoUpdate() {
+    this.autoUpdateEnabled = true;
+    this.retryAttempts = 0;
+    console.log('Автообновление включено');
+  }
+
+  disableAutoUpdate() {
+    this.autoUpdateEnabled = false;
+    console.log('Автообновление отключено из-за ошибок');
     
     this.showNotification(
-      'Подключите кошелек для начала работы с GlobalWay', 
-      'info', 
-      0,
-      [{
-        id: 'connect',
-        label: 'Подключить',
-        callback: () => {
-          if (window.web3Manager) {
-            window.web3Manager.connectWallet();
-          }
-        }
-      }]
+      'Автообновление отключено. Проверьте подключение.',
+      'warning'
     );
   }
 
+  // ==================== УТИЛИТЫ ====================
+
+  formatAddress(address, start = 6, end = 4) {
+    if (!address) return '0x000...000';
+    return `${address.slice(0, start)}...${address.slice(-end)}`;
+  }
+
+  formatLargeNumber(value) {
+    const num = parseFloat(value);
+    if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+    return num.toFixed(0);
+  }
+
+  debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
   showNotification(message, type, duration = 5000, actions = null) {
+    if (window.uiManager) {
+      window.uiManager.showNotification(message, type, duration, actions);
+      } else {
+      // Fallback если uiManager недоступен
+      console.log(`[${type.toUpperCase()}] ${message}`);
+      if (type === 'error') {
+        alert(message);
+      }
+    }
+  }
 
   // ==================== ИНИЦИАЛИЗАЦИЯ UI КОМПОНЕНТОВ ====================
 
