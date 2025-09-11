@@ -64,6 +64,12 @@ class GlobalWayApp {
       console.log('GlobalWay App инициализирован успешно');
       this.isInitialized = true;
 
+      } catch (error) {
+      console.error('Ошибка инициализации приложения:', error);
+      this.handleInitializationError(error);
+    }
+  }
+
   async waitForManagers() {
     console.log('Ожидание готовности менеджеров...');
     
