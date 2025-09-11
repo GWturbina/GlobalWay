@@ -13,7 +13,7 @@
    <meta name="apple-mobile-web-app-title" content="GlobalWay">
    
    <!-- Icons -->
-   <link rel="icon" href="./assets/icons/favicon.ico">
+   <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png">
    <link rel="manifest" href="manifest.json">
@@ -27,6 +27,7 @@
    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 </head>
 <body>
+
    <!-- Loading Screen -->
    <div id="loading-screen" class="loading-screen">
        <div class="cosmic-loader">
@@ -42,8 +43,11 @@
        <header class="app-header">
            <div class="header-content">
                <div class="logo">
-                   <img src="assets/images/logo.png" alt="GlobalWay" style="height: 40px;">
-                   <span class="tagline">Your Global Path</span>
+                   <img src="assets/images/logo.png" alt="GlobalWay" class="logo-img">
+                   <div class="logo-text">
+                       <h1>GlobalWay</h1>
+                       <span class="tagline">Your Global Path</span>
+                   </div>
                </div>
                
                <div class="header-actions">
@@ -58,6 +62,7 @@
                        <div id="walletInfo" class="wallet-info hidden">
                            <span id="walletAddress">0x000...000</span>
                            <span id="walletBalance">0.000 BNB</span>
+                           <span id="walletType" class="wallet-type">No Wallet</span>
                        </div>
                    </div>
                    
@@ -98,12 +103,16 @@
                <img src="assets/icons/projects.png" class="nav-icon" alt="Projects">
                <span class="nav-text" data-translate="projects">Projects</span>
            </button>
+           <button class="nav-btn" data-page="admin" style="display: none;">
+             <i class="fas fa-cog"></i>
+             <span>Admin</span>
+           </button>
        </nav>
 
        <!-- Main Content -->
        <main class="main-content">
            <!-- Dashboard Page -->
-           <section id="dashboard" class="page">
+           <section id="dashboard" class="page active">
            </section>
            
            <!-- Partners Page -->
@@ -124,6 +133,22 @@
            
            <!-- Projects Page -->
            <section id="projects" class="page">
+           </section>
+           
+           <!-- АДМИН СТРАНИЦА - ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА -->
+           <section id="admin" class="page admin-only">
+             <div class="container">
+               <h2>Панель администратора</h2>
+               <div class="admin-section">
+                 <h3>Управление пользователями</h3>
+                 <button id="batchRegisterBtn" class="admin-btn">Массовая регистрация</button>
+                 <button id="freeRegisterBtn" class="admin-btn">Бесплатная регистрация</button>
+               </div>
+               <div class="admin-section">
+                 <h3>Статистика контракта</h3>
+                 <div id="contractStats">Загрузка...</div>
+               </div>
+             </div>
            </section>
        </main>
       
@@ -220,7 +245,58 @@
       </div>
   </div>
 
-  <!-- Scripts -->
+    <!-- Scripts -->
+    <script>
+  // Динамическая загрузка HTML компонентов
+  async function loadComponent(id, file) {
+    try {
+      const response = await fetch(file);
+      const html = await response.text();
+      const element = document.getElementById(id);
+      if (element) {
+        element.innerHTML = html;
+      }
+    } catch (error) {
+      console.error(`Error loading ${file}:`, error);
+    }
+  }
+
+  // Загружаем все компоненты
+  Promise.all([
+    loadComponent('dashboard', 'src/html/dashboard.html'),
+    loadComponent('matrix', 'src/html/matrix.html'), 
+    loadComponent('partners', 'src/html/partners.html'),
+    loadComponent('tokens', 'src/html/tokens.html'),
+    loadComponent('settings', 'src/html/settings.html'),
+    loadComponent('admin', 'src/html/admin.html'),
+    loadComponent('projects', 'src/html/projects.html')
+  ]).then(() => {
+    console.log('✅ Все HTML компоненты загружены');
+    // После загрузки компонентов инициализируем приложение
+    if (window.uiManager) {
+     window.uiManager.setupContractInteractionUI();
+   }
+   // Автоматически показываем дашборд
+   showDashboard();
+  }).catch(error => {
+    console.error('❌ Ошибка загрузки компонентов:', error);
+  });
+
+  // Функция показа дашборда
+  function showDashboard() {
+    document.querySelectorAll('.page').forEach(page => {
+      page.classList.remove('active');
+    });
+    document.getElementById('dashboard').classList.add('active');
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector('[data-page="dashboard"]').classList.add('active');
+    
+    console.log('Dashboard activated automatically');
+  }
+  </script>
   <script src="src/js/web3.js"></script>
   <script src="src/js/contracts.js"></script>
   <script src="src/js/ui.js"></script>
