@@ -1,59 +1,95 @@
-// web3.js — SafePal-first provider bootstrap for opBNB
-(function (global) {
-  'use strict';
+// src/js/web3.js
+(() => {
+  const OPBNB_CHAIN_ID_DEC = 204;
+  const OPBNB_CHAIN_ID_HEX = '0xCC'; // 204 в hex
 
-  const OPBNB_PARAMS = {
-    chainId: '0xCC', // 204
-    chainName: 'opBNB Mainnet',
-    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
-    rpcUrls: ['https://opbnb-mainnet-rpc.bnbchain.org'],
-    blockExplorerUrls: ['https://opbnbscan.com/'],
-  };
+  let _provider = null;
+  let _web3 = null;
+  let _account = null;
 
-  class Web3Manager {
-    constructor() {
-      this.provider = null;
-      this.web3 = null;
-    }
+  function isEIP1193(p) {
+    return !!p && typeof p.request === 'function';
+  }
 
-    _detectProvider() {
-      if (global.safepal && global.safepal.isSafePal) return global.safepal; // SafePal first
-      if (global.BinanceChain) return global.BinanceChain;
-      if (global.ethereum) return global.ethereum;
-      return null;
-    }
-
-    async init() {
-      console.log('🔌 Initializing Web3Manager...');
-      const prov = this._detectProvider();
-      if (!prov) throw new Error('No Web3 provider found (SafePal/BNB/ethereum missing)');
-      this.provider = prov;
-
-      try { await prov.request({ method: 'eth_requestAccounts' }); } catch (e) { console.warn('Account request rejected:', e); }
-
-      const net = await prov.request({ method: 'eth_chainId' });
-      if (net !== OPBNB_PARAMS.chainId) {
-        try {
-          await prov.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: OPBNB_PARAMS.chainId }] });
-          console.log('✅ Switched to opBNB 204');
-        } catch (err) {
-          if (err && err.code === 4902) {
-            await prov.request({ method: 'wallet_addEthereumChain', params: [OPBNB_PARAMS] });
-          } else {
-            console.warn('Chain switch failed:', err);
-          }
-        }
+  async function ensureChain204() {
+    const chainId = await _provider.request({ method: 'eth_chainId' });
+    if (parseInt(chainId, 16) !== OPBNB_CHAIN_ID_DEC) {
+      try {
+        await _provider.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: OPBNB_CHAIN_ID_HEX }],
+        });
+      } catch (err) {
+        // Показываем понятную ошибку; блокируем операции до переключения сети
+        window.UI?.notify('Переключите сеть на opBNB (204) в кошельке.', 'error');
+        throw err;
       }
-
-      this.web3 = new global.Web3(prov);
-      return this.web3;
-    }
-
-    getWeb3() {
-      if (!this.web3) throw new Error('Web3 not initialized');
-      return this.web3;
     }
   }
 
-  global.Web3Manager = Web3Manager;
-})(window);
+  async function connectSafePalFirst() {
+    const eth = window.ethereum;
+    if (!isEIP1193(eth)) {
+      throw new Error('EIP-1193 провайдер не найден. Открой в браузере SafePal.');
+    }
+
+    _provider = eth;
+    await ensureChain204();
+
+    const accounts = await _provider.request({ method: 'eth_requestAccounts' });
+    _account = (accounts && accounts[0]) || null;
+    if (!_account) throw new Error('Аккаунт не получен.');
+
+    // Ленивая инициализация web3 только после выдачи аккаунта
+    if (!_web3) {
+      // web3.js ты уже подключаешь глобально через <script>, как и раньше
+      _web3 = new window.Web3(_provider);
+    }
+
+    // Хэндлеры смены аккаунта/сети
+    _provider.on?.('accountsChanged', (accs) => {
+      _account = (accs && accs[0]) || null;
+      window.App?.onAccountsChanged(_account);
+    });
+    _provider.on?.('chainChanged', async () => {
+      try {
+        await ensureChain204();
+        window.App?.onChainChanged();
+      } catch (e) {
+        // уже показали нотификацию в ensureChain204
+      }
+    });
+
+    localStorage.setItem('gw_isConnected', 'true');
+    localStorage.setItem('gw_address', _account);
+    return _account;
+  }
+
+  async function getWeb3() {
+    if (_web3) return _web3;
+    if (!_provider && window.ethereum) {
+      _provider = window.ethereum;
+      _web3 = new window.Web3(_provider);
+    }
+    return _web3;
+  }
+
+  function getCurrentAddress() {
+    return _account || localStorage.getItem('gw_address') || null;
+  }
+
+  async function getBNBBalance(address) {
+    const w3 = await getWeb3();
+    const wei = await w3.eth.getBalance(address);
+    return w3.utils.fromWei(wei, 'ether');
+  }
+
+  window.Web3GW = {
+    connectSafePalFirst,
+    getWeb3,
+    getCurrentAddress,
+    getBNBBalance,
+    ensureChain204,
+    OPBNB_CHAIN_ID_DEC,
+  };
+})();
