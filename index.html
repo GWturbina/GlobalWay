@@ -38,7 +38,7 @@
     </nav>
   </header>
 
-  <main id="app" class="gw-container main-content"></main>
+    <main id="app" class="gw-container main-content"></main>
 
   <footer class="gw-footer" style="visibility:hidden">
     <span>opBNB · SafePal-first · © GlobalWay</span>
@@ -53,6 +53,7 @@
     <a class="nav-btn admin-only" href="#/admin"><img class="nav-icon" src="/assets/icons/settings.png" alt=""><span class="nav-text" data-translate="admin">Админ</span></a>
   </nav>
 
+  <!-- Подключение библиотек и скриптов -->
   <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
   <script src="/src/js/i18n.js"></script>
   <script src="/src/js/router.js"></script>
@@ -61,9 +62,14 @@
   <script src="/src/js/contracts.js"></script>
   <script src="/src/js/ui.js"></script>
   <script src="/src/js/app.js"></script>
+
+  <!-- Регистрация Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(console.warn);
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then(() => console.log('✅ Service Worker зарегистрирован'))
+        .catch(err => console.error('❌ Ошибка регистрации SW', err));
     }
   </script>
 </body>
