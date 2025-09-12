@@ -1,0 +1,373 @@
+<!-- Tokens Component -->
+<div class="tokens-content">
+  <!-- Token Balance -->
+  <div class="cosmic-card">
+    <h3>💰 <span data-translate="token_balance">Token Balance</span></h3>
+    <div class="token-balance-section">
+      <div class="balance-display">
+        <span id="tokenBalanceDisplay" class="token-amount">0 GWT</span>
+        <span id="tokenValueDisplay" class="token-value">≈ $0.00</span>
+      </div>
+      <div class="token-price-display">
+        <span data-translate="current_price">Current Price:</span>
+        <span id="tokenPriceDisplay" class="price">$0.01</span>
+      </div>
+      <div class="trading-status">
+        <span data-translate="trading_status">Trading Status:</span>
+        <span id="tradingStatus" class="status inactive">Inactive until $0.001</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Token Statistics -->
+  <div class="cosmic-card">
+    <h3>📊 <span data-translate="token_statistics">Token Statistics</span></h3>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <span id="totalSupply" class="stat-number">1B</span>
+        <span class="stat-label" data-translate="total_supply">Total Supply</span>
+      </div>
+      <div class="stat-item">
+        <span id="circulatingSupply" class="stat-number">0</span>
+        <span class="stat-label" data-translate="circulating_supply">Circulating Supply</span>
+      </div>
+      <div class="stat-item">
+        <span id="burnedTokens" class="stat-number">0</span>
+        <span class="stat-label" data-translate="burned_tokens">Burned Tokens</span>
+      </div>
+      <div class="stat-item">
+        <span id="marketCap" class="stat-number">$0</span>
+        <span class="stat-label" data-translate="market_cap">Market Cap</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Token Trading - НЕАКТИВНО до $0.001 -->
+  <div class="cosmic-card">
+    <h3>📈 <span data-translate="token_trading">Token Trading</span></h3>
+    <div class="trading-section disabled">
+      <div class="trading-tabs">
+        <button class="tab-btn active disabled" data-tab="buy">
+          💰 <span data-translate="buy">Buy</span>
+        </button>
+        <button class="tab-btn disabled" data-tab="sell">
+          💸 <span data-translate="sell">Sell</span>
+        </button>
+      </div>
+      
+      <div class="trading-disabled-notice">
+        <p>⚠️ <span data-translate="trading_disabled_notice">Trading will be activated when token price reaches $0.001</span></p>
+        <p><span data-translate="current_price_status">Current price: $0.01 (waiting for activation)</span></p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Token Pools - НЕАКТИВНО -->
+  <div class="cosmic-card">
+    <h3>🏦 <span data-translate="token_pools">Token Pools</span></h3>
+    <div class="pools-grid disabled">
+      <div class="pool-item">
+        <div class="pool-header">
+          <span class="pool-name" data-translate="tokenomics_pool">Tokenomics Pool</span>
+          <span class="pool-percentage">80%</span>
+        </div>
+        <div class="pool-balance">
+          <span id="tokenomicsPoolBalance" class="pool-amount">800M GWT</span>
+          <span class="pool-status locked">Coming Soon</span>
+        </div>
+      </div>
+      <div class="pool-item">
+        <div class="pool-header">
+          <span class="pool-name" data-translate="airdrop_pool">Airdrop Pool</span>
+          <span class="pool-percentage">10%</span>
+        </div>
+        <div class="pool-balance">
+          <span id="airdropPoolBalance" class="pool-amount">100M GWT</span>
+          <span class="pool-status locked">Coming Soon</span>
+        </div>
+      </div>
+      <div class="pool-item">
+        <div class="pool-header">
+          <span class="pool-name" data-translate="team_pool">Team Pool</span>
+          <span class="pool-percentage">5%</span>
+        </div>
+        <div class="pool-balance">
+          <span id="teamPoolBalance" class="pool-amount">50M GWT</span>
+          <span class="pool-status locked">Locked</span>
+        </div>
+      </div>
+      <div class="pool-item">
+        <div class="pool-header">
+          <span class="pool-name" data-translate="reserve_pool">Reserve Pool</span>
+          <span class="pool-percentage">5%</span>
+        </div>
+        <div class="pool-balance">
+          <span id="reservePoolBalance" class="pool-amount">50M GWT</span>
+          <span class="pool-status locked">Coming Soon</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Token History -->
+  <div class="cosmic-card">
+    <h3>📋 <span data-translate="token_history">Token History</span></h3>
+    <div class="history-filters">
+      <select id="historyFilter" class="filter-select">
+        <option value="all" data-translate="all_transactions">All Transactions</option>
+        <option value="received" data-translate="received_rewards">Received Rewards</option>
+        <option value="level_rewards" data-translate="level_rewards">Level Rewards</option>
+      </select>
+    </div>
+    <div class="token-history-table">
+      <div class="table-header">
+        <span data-translate="date">Date</span>
+        <span data-translate="type">Type</span>
+        <span data-translate="level">Level</span>
+        <span data-translate="amount">Amount</span>
+        <span data-translate="status">Status</span>
+      </div>
+      <div class="table-body" id="tokenHistoryBody">
+        <div class="no-data wallet-required">
+          🔗 <span data-translate="connect_wallet_to_view">Connect wallet to view data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Token Rewards -->
+  <div class="cosmic-card">
+    <h3>🎁 <span data-translate="token_rewards">Token Rewards</span></h3>
+    <div class="rewards-section">
+      <div class="reward-explanation">
+        <p data-translate="reward_explanation">
+          Earn GWT tokens by activating levels in the GlobalWay platform. 
+          Each level gives you a specific amount of tokens automatically.
+        </p>
+      </div>
+      <div class="level-rewards">
+        <div class="reward-item">
+          <span class="level-name">Level 1:</span>
+          <span class="reward-amount">5 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 2:</span>
+          <span class="reward-amount">5 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 3:</span>
+          <span class="reward-amount">10 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 4:</span>
+          <span class="reward-amount">15 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 5:</span>
+          <span class="reward-amount">35 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 6:</span>
+          <span class="reward-amount">75 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 7:</span>
+          <span class="reward-amount">150 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 8:</span>
+          <span class="reward-amount">300 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 9:</span>
+          <span class="reward-amount">600 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 10:</span>
+          <span class="reward-amount">1200 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 11:</span>
+          <span class="reward-amount">2400 GWT</span>
+        </div>
+        <div class="reward-item">
+          <span class="level-name">Level 12:</span>
+          <span class="reward-amount">4500 GWT</span>
+        </div>
+      </div>
+      <div class="total-rewards-info">
+        <div class="info-item" style="margin-top: 15px; padding: 10px; background: rgba(255, 215, 0, 0.1); border-radius: 8px;">
+          <span class="label" data-translate="total_possible_rewards">Total Possible Rewards:</span>
+          <span class="value" style="color: var(--accent-gold); font-weight: 700;">9,300 GWT</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Token Staking - COMING SOON -->
+  <div class="cosmic-card">
+    <h3>🔒 <span data-translate="token_staking">Token Staking</span></h3>
+    <div class="staking-section">
+      <div class="coming-soon-badge">
+        <span data-translate="coming_soon">Coming Soon</span>
+      </div>
+      <div class="staking-info">
+        <p data-translate="staking_description">
+          Stake your GWT tokens to earn additional rewards and participate in governance.
+        </p>
+        <div class="staking-benefits">
+          <div class="benefit-item">
+            <span class="benefit-icon">📈</span>
+            <span data-translate="earn_rewards">Earn Additional Rewards</span>
+          </div>
+          <div class="benefit-item">
+            <span class="benefit-icon">🗳️</span>
+            <span data-translate="governance_rights">Governance Rights</span>
+          </div>
+          <div class="benefit-item">
+            <span class="benefit-icon">🎯</span>
+            <span data-translate="exclusive_access">Exclusive Access</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token Utility -->
+  <div class="cosmic-card">
+    <h3>🛠️ <span data-translate="token_utility">Token Utility</span></h3>
+    <div class="utility-section">
+      <div class="utility-grid">
+        <div class="utility-item">
+          <div class="utility-icon">💰</div>
+          <div class="utility-title" data-translate="payment_method">Payment Method</div>
+          <div class="utility-description" data-translate="payment_method_desc">Use GWT tokens to pay for platform services</div>
+        </div>
+        <div class="utility-item">
+          <div class="utility-icon">🎁</div>
+          <div class="utility-title" data-translate="rewards_program">Rewards Program</div>
+          <div class="utility-description" data-translate="rewards_program_desc">Earn tokens for platform activity and referrals</div>
+        </div>
+        <div class="utility-item">
+          <div class="utility-icon">🗳️</div>
+          <div class="utility-title" data-translate="governance">Governance</div>
+          <div class="utility-description" data-translate="governance_desc">Vote on platform improvements and changes</div>
+        </div>
+        <div class="utility-item">
+          <div class="utility-icon">🔒</div>
+          <div class="utility-title" data-translate="staking_rewards">Staking Rewards</div>
+          <div class="utility-description" data-translate="staking_rewards_desc">Stake tokens to earn passive income</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Token Contract Info -->
+  <div class="cosmic-card">
+    <h3>📄 <span data-translate="contract_info">Contract Information</span></h3>
+    <div class="contract-info-section">
+      <div class="contract-details">
+        <div class="info-item">
+          <span class="label" data-translate="contract_address">Contract Address:</span>
+          <span class="value contract-address" id="gwtContractAddress">0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc</span>
+          <button class="copy-btn" onclick="window.UI.Copy.copyToClipboard('0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc')" title="Copy Address">📋</button>
+        </div>
+        <div class="info-item">
+          <span class="label" data-translate="token_name">Token Name:</span>
+          <span class="value">GlobalWay Token</span>
+        </div>
+        <div class="info-item">
+          <span class="label" data-translate="token_symbol">Symbol:</span>
+          <span class="value">GWT</span>
+        </div>
+        <div class="info-item">
+          <span class="label" data-translate="decimals">Decimals:</span>
+          <span class="value">18</span>
+        </div>
+        <div class="info-item">
+          <span class="label" data-translate="network">Network:</span>
+          <span class="value">opBNB</span>
+        </div>
+      </div>
+      <div class="external-links">
+        <a href="https://opbnbscan.com/token/0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc" target="_blank" class="link-btn" data-translate="view_on_explorer">View on Explorer</a>
+        <button onclick="addTokenToWallet()" class="link-btn" data-translate="add_to_wallet">Add to Wallet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Стили для неактивных секций */
+.trading-section.disabled,
+.pools-grid.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.trading-disabled-notice {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.trading-disabled-notice p {
+  margin: 10px 0;
+  color: var(--text-secondary);
+}
+
+.tab-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.coming-soon-badge {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(45deg, rgba(255, 215, 0, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.coming-soon-badge span {
+  font-size: 18px;
+  color: var(--accent-gold);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+</style>
+
+<script>
+// Функция добавления токена в кошелек
+async function addTokenToWallet() {
+    if (!window.ethereum) {
+        window.UI.Notification.show('Please connect your wallet first', 'warning');
+        return;
+    }
+    
+    try {
+        const wasAdded = await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+                type: 'ERC20',
+                options: {
+                    address: '0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc',
+                    symbol: 'GWT',
+                    decimals: 18,
+                    image: window.location.origin + '/assets/icons/icon-192x192.png'
+                }
+            }
+        });
+        
+        if (wasAdded) {
+            window.UI.Notification.show('Token added successfully!', 'success');
+        }
+    } catch (error) {
+        console.error('Error adding token:', error);
+        window.UI.Notification.show('Error adding token', 'error');
+    }
+}
+</script>
