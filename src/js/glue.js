@@ -1,603 +1,134 @@
-(function () {
-  const GLUE = {
-    wireCurrentPage(route, root) {
-      switch (route) {
-        case "/dashboard": return this._wireDashboard(root);
-        case "/partners":  return this._wirePartners(root);
-        case "/matrix":    return this._wireMatrix(root);
-        case "/tokens":    return this._wireTokens(root);
-        case "/projects":  return this._wireProjects(root);
-        case "/settings":  return this._wireSettings(root);
-        case "/admin":     return this._wireAdmin(root);
-      }
-    },
+// glue.js — UI glue (full) with anti-skip validation & packages
+(function (global) {
+  'use strict';
 
-    // ---------- DASHBOARD ----------
-    _wireDashboard(root) {
-      this._renderQuarterReminder(root);
-      // Подтянем цены и состояния кнопок
-      hydrateLevelPrices(root);
-      // Пакетные кнопки (1-4 / 1-7 / 1-10 / 1-12)
-      hydrateBulkPrices(root, [4,7,10,12]);
-    },
+  const $  = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-    // Квартальный напоминатель
-    async _renderQuarterReminder(root) {
-      const box  = root.querySelector("#quarterReminder");
-      const addr = window.web3Manager.getAddress();
-      if (!addr) { if (box) box.innerHTML = ""; return; }
+  const clickLock = new WeakMap(); // element -> true
 
-      try {
-        const data = await window.contractManager.getUserData(addr);
-        const last = Number(data.lastActivity || 0);
-        if (!last) { if (box) box.innerHTML = ""; return; }
+  function lockClicks(el, ms=1200) {
+    if (!el) return false;
+    if (clickLock.get(el)) return false;
+    clickLock.set(el, true);
+    el.classList.add('disabled', 'paused');
+    setTimeout(() => { clickLock.delete(el); el.classList.remove('disabled', 'paused'); }, ms);
+    return true;
+  }
 
-        const MS = 1000, DAY = 86400000;
-        const nextDueMs = last * MS + 90 * DAY;
-        const daysLeft  = Math.ceil((nextDueMs - Date.now()) / DAY);
-
-        const html = (daysLeft <= 10)
-          ? `<div class="cosmic-card">
-               <b>Внимание:</b> до квартальной оплаты осталось <b>${Math.max(0, daysLeft)}</b> дн.
-               <div><small>Нажмите «Оплатить квартал», чтобы избежать остановки начислений.</small></div>
-               <div class="mt-sm"><button class="activate-btn" data-pay-quarter>Оплатить квартал</button></div>
-             </div>`
-          : "";
-
-        if (box) box.innerHTML = html;
-        else if (html) {
-          const host = document.getElementById("app");
-          const div = document.createElement("div");
-          div.innerHTML = html;
-          host.prepend(div.firstElementChild);
-        }
-      } catch (e) {
-        console.warn("quarter reminder error", e);
-      }
-    },
-
-    // ---------- PARTNERS ----------
-    _wirePartners(root) {
-      const tabs = root.querySelectorAll(".level-tab");
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", async () => {
-          tabs.forEach((t) => t.classList.remove("active"));
-          tab.classList.add("active");
-          const level = Number(tab.getAttribute("data-level")) || 1;
-          await this._loadPartners(level, root);
-        });
-      });
-
-      const first = root.querySelector('.level-tab[data-level="1"]') || tabs[0];
-      if (first) first.click();
-    },
-
-    async _loadPartners(level, root) {
-      const addr = window.web3Manager.getAddress();
-      const tbody = root.querySelector("#partnersTableBody");
-      if (!tbody) return;
-
-      try {
-        const stats = await window.contractManager.getMatrixStats(addr, level);
-        const nodes = stats?.positions || stats?.nodes || stats?.slots || [];
-
-        const rows = (nodes || []).map((n, i) => {
-          const id  = n.userId || n.id || (n.addr ? n.addr.slice(2, 8) : `#${i + 1}`);
-          const a   = n.addr || n.wallet || n.account || "";
-          const sId = n.sponsorId || n.parentId || "-";
-          const act = n.active ? "yes" : (n.isActive ? "yes" : "no");
-          const lvl = n.level || level;
-          return `
-            <tr>
-              <td>${i + 1}</td>
-              <td>${id}</td>
-              <td>${a ? a.slice(0, 6) + "…" + a.slice(-4) : "-"}</td>
-              <td>${sId}</td>
-              <td>${act}</td>
-              <td>${lvl}</td>
-            </tr>`;
-        }).join("");
-
-        tbody.innerHTML = rows || `<tr><td colspan="6">No data</td></tr>`;
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" style="color:#d33">Ошибка загрузки уровня L${level}</td></tr>`;
-        console.error(e);
-      }
-    },
-
-    // ---------- MATRIX (заглушка под ваш рендер) ----------
-    _wireMatrix(_root) {},
-
-    // ---------- TOKENS/PROJECTS/SETTINGS (пока без JS) ----------
-    _wireTokens(_root) {},
-    _wireProjects(_root) {},
-    _wireSettings(_root) {},
-
-    // ---------- ADMIN ----------
-    _wireAdmin(root) {
-      (async () => {
-        const isOwner = await window.contractManager.isOwner(
-          window.web3Manager.getAddress()
-        );
-        if (!isOwner) {
-          root.innerHTML = '<div class="cosmic-card">Owner only</div>';
-          return;
-        }
-
-        // --- Free Activate
-        const faBtn = root.querySelector("#activateUserBtn");
-        if (faBtn) {
-          faBtn.addEventListener("click", async () => {
-            const user    = root.querySelector("#fa_user")?.value.trim();
-            const sponsor = root.querySelector("#fa_sponsor")?.value.trim();
-            const maxL    = Number(root.querySelector("#fa_level")?.value || 3);
-            const rx = /^0x[a-fA-F0-9]{40}$/;
-
-            if (!rx.test(user) || !rx.test(sponsor))
-              return uiManager.showNotification("Введите корректные адреса", "error");
-
-            await withBusy(faBtn, async () => {
-              uiManager.setLoading(true, "Free activate…");
-              try {
-                const receipt = await window.contractManager.admin_freeActivate({ user, sponsor, maxLevel: maxL });
-                showTxToast("Готово", receipt);
-              } catch (e) {
-                uiManager.showNotification("Ошибка freeActivate", "error");
-                console.error(e);
-              } finally {
-                uiManager.setLoading(false);
-              }
-            });
-          });
-        }
-
-        // --- Batch Activate
-        const baBtn = root.querySelector("#batchActivateBtn");
-        if (baBtn) {
-          baBtn.addEventListener("click", async () => {
-            const ta = root.querySelector("#ba_list");
-            if (!ta) return;
-
-            // формат строк: user,sponsor,maxLevel
-            const lines = ta.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-            const users = [], sponsors = [], maxLevels = [];
-            const rx = /^0x[a-fA-F0-9]{40}$/;
-
-            for (const line of lines) {
-              const [u, s, l] = line.split(",").map(x => x.trim());
-              if (!rx.test(u) || !rx.test(s) || !Number(l)) {
-                return uiManager.showNotification("Неверная строка: " + line, "error");
-              }
-              users.push(u); sponsors.push(s); maxLevels.push(Number(l));
-            }
-
-            await withBusy(baBtn, async () => {
-              uiManager.setLoading(true, "Batch activate…");
-              try {
-                const receipt = await window.contractManager.admin_batchActivate({ users, sponsors, maxLevels });
-                showTxToast("Batch готово", receipt);
-              } catch (e) {
-                uiManager.showNotification("Ошибка batchActivate", "error");
-                console.error(e);
-              } finally {
-                uiManager.setLoading(false);
-              }
-            });
-          });
-        }
-
-        // --- Authorization toggle
-        const authBtn = root.querySelector("#authSubmit");
-        if (authBtn) {
-          authBtn.addEventListener("click", async () => {
-            const addr = root.querySelector("#authAddress")?.value.trim();
-            const en   = root.querySelector("#authToggle")?.checked;
-            const rx = /^0x[a-fA-F0-9]{40}$/;
-
-            if (!rx.test(addr))
-              return uiManager.showNotification("Некорректный адрес", "error");
-
-            await withBusy(authBtn, async () => {
-              uiManager.setLoading(true, "Authorization…");
-              try {
-                const receipt = await window.contractManager.admin_setAuthorization({ addr, enabled: !!en });
-                showTxToast("Готово", receipt);
-              } catch (e) {
-                uiManager.showNotification("Ошибка authorization", "error");
-                console.error(e);
-              } finally {
-                uiManager.setLoading(false);
-              }
-            });
-          });
-        }
-
-        // Pause/Unpause
-        const pauseBtn = root.querySelector("#pauseBtn");
-        if (pauseBtn) pauseBtn.addEventListener("click", () =>
-          withBusy(pauseBtn, async () => {
-            try {
-              const r = await window.contractManager.admin_pause();
-              showTxToast("Paused", r);
-            } catch (e) { uiManager.showNotification("Ошибка pause", "error"); }
-          })
-        );
-        const unpauseBtn = root.querySelector("#unpauseBtn");
-        if (unpauseBtn) unpauseBtn.addEventListener("click", () =>
-          withBusy(unpauseBtn, async () => {
-            try {
-              const r = await window.contractManager.admin_unpause();
-              showTxToast("Unpaused", r);
-            } catch (e) { uiManager.showNotification("Ошибка unpause", "error"); }
-          })
-        );
-
-        // Connect Project
-        const cpBtn = root.querySelector("#connectProjectBtn");
-        if (cpBtn) {
-          cpBtn.addEventListener("click", async () => {
-            const projectAddress = root.querySelector("#projAddress")?.value.trim();
-            const projectName    = root.querySelector("#projName")?.value.trim();
-            const rx = /^0x[a-fA-F0-9]{40}$/;
-            if (!rx.test(projectAddress) || !projectName)
-              return uiManager.showNotification("Укажите адрес и имя проекта", "error");
-
-            await withBusy(cpBtn, async () => {
-              uiManager.setLoading(true, "Connect project…");
-              try {
-                const r = await window.contractManager.admin_connectProject({ projectAddress, projectName });
-                showTxToast("Проект подключён", r);
-              } catch (e) {
-                uiManager.showNotification("Ошибка connectProject", "error");
-                console.error(e);
-              } finally { uiManager.setLoading(false); }
-            });
-          });
-        }
-      })();
-    },
-  };
-
-  // ====== Общие делегирования: покупка уровней/пакетов, квартал ======
-  document.addEventListener('click', async (e) => {
-    // Одиночный уровень
-    const buyBtn = e.target.closest('[data-buy-level]');
-    if (buyBtn) {
-      e.preventDefault();
-      const level = Number(buyBtn.getAttribute('data-buy-level'));
-      if (!level) return uiManager.showNotification('Не указан уровень', 'error');
-
-      await withBusy(buyBtn, async () => {
-        uiManager.setLoading(true, `Покупка уровня L${level}…`);
-        try {
-          const receipt = await contractManager.buyLevel(level);
-          showTxToast(`Уровень L${level} куплен`, receipt);
-          // актуализируем цены/состояние
-          const host = document.getElementById("app");
-          await hydrateLevelPrices(host);
-          await hydrateBulkPrices(host, [4,7,10,12]);
-        } catch (err) {
-          console.error(err);
-          uiManager.showNotification('Ошибка покупки уровня', 'error');
-        } finally {
-          uiManager.setLoading(false);
-        }
-      });
-      return;
+  async function ensureInited() {
+    if (!global.web3Manager) global.web3Manager = new global.Web3Manager();
+    if (!global.contractManager) {
+      const web3 = await global.web3Manager.init();
+      global.contractManager = new global.ContractManager(web3);
+      await global.contractManager.init();
     }
+  }
 
-    // Пакеты: 1-4 / 1-7 / 1-10 / 1-12
-    const bulkBtn = e.target.closest('[data-buy-bulk]');
-    if (bulkBtn) {
-      e.preventDefault();
-      const targetMax = Number(bulkBtn.getAttribute('data-buy-bulk'));
-      if (!targetMax) return uiManager.showNotification('Не указан target level', 'error');
-
-      await withBusy(bulkBtn, async () => {
-        uiManager.setLoading(true, `Покупка пакета до L${targetMax}…`);
-        try {
-          const r = await contractManager.buyLevelsSmart(targetMax);
-          showTxToast(`Куплены недостающие уровни до L${targetMax}`, r);
-          const host = document.getElementById("app");
-          await hydrateLevelPrices(host);
-          await hydrateBulkPrices(host, [4,7,10,12]);
-        } catch (err) {
-          console.error(err);
-          uiManager.showNotification('Ошибка покупки пакета уровней', 'error');
-        } finally {
-          uiManager.setLoading(false);
+  async function refreshOverview() {
+    try {
+      const cm = global.contractManager;
+      const [pricesBNB, overview] = await Promise.all([cm.getLevelPrices(), cm.getOverview()]);
+      $$('.level-button[data-level]').forEach(btn => {
+        const lvl = Number(btn.dataset.level);
+        const price = pricesBNB[lvl];
+        if (price) {
+          const holder = btn.querySelector('.level-price');
+          if (holder) holder.textContent = price + ' BNB';
         }
       });
-      return;
-    }
+      if (overview) {
+        const n = (v)=> (v!=null? String(v): '—');
+        $('[data-overview="totalUsers"]')?.replaceChildren(document.createTextNode(n(overview.totalUsers)));
+        $('[data-overview="activeUsers"]')?.replaceChildren(document.createTextNode(n(overview.activeUsers)));
+        $('[data-overview="totalVolume"]')?.replaceChildren(document.createTextNode(n(overview.totalVolume)));
+      }
+    } catch (e) { console.warn('refreshOverview failed', e); }
+  }
 
-    // Квартальный платёж
-    const qBtn = e.target.closest('[data-pay-quarter]');
-    if (qBtn) {
-      e.preventDefault();
-      await withBusy(qBtn, async () => {
-        uiManager.setLoading(true, 'Оплата квартала…');
-        try {
-          const r = await contractManager.payQuarterly();
-          showTxToast('Квартальный платёж выполнен', r);
-        } catch (err) {
-          console.error(err);
-          uiManager.showNotification('Ошибка квартального платежа', 'error');
-        } finally { uiManager.setLoading(false); }
-      });
+  function parseErr(err) {
+    const s = (err && (err.message || err.reason || err.toString())) || 'Unknown error';
+    if (/User denied|Rejected|denied/i.test(s)) return 'Пользователь отменил транзакцию';
+    if (/insufficient/i.test(s)) return 'Недостаточно средств на gas или value';
+    if (/not initialized/i.test(s)) return 'Кошелёк не подключён';
+    if (/revert/i.test(s)) return 'Транзакция отклонена контрактом';
+    return s;
+  }
+
+  function notify(type, message) {
+    console[type === 'error' ? 'error' : 'log'](`[${type}] ${message}`);
+    const cont = document.querySelector('.notifications-container');
+    if (!cont) return;
+    const el = document.createElement('div');
+    el.className = `notification ${type} notification-slide-in`;
+    el.textContent = message;
+    el.addEventListener('click', () => cont.removeChild(el));
+    cont.appendChild(el);
+    setTimeout(() => cont.contains(el) && cont.removeChild(el), 5000);
+  }
+
+  // ---- Actions ----
+
+  // Single level — only next (no skipping)
+  async function onBuyLevel(e) {
+    const btn = e.currentTarget;
+    if (!lockClicks(btn)) return;
+    const level = Number(btn.dataset.level);
+    if (!Number.isInteger(level) || level < 1 || level > 12) {
+      notify('error', 'Неверный уровень'); return;
     }
+    try {
+      await ensureInited();
+      const cm = global.contractManager;
+      const highest = await cm.getHighestActiveLevel();
+      const next = highest + 1;
+      if (level !== next) {
+        if (level <= highest) notify('info', `Уровень ${level} уже активен`);
+        else notify('warning', `Нельзя перепрыгивать. Доступен только уровень ${next}.`);
+        return;
+      }
+      await cm.buyLevel(level);
+      notify('success', `Уровень ${level} куплен`);
+      await refreshOverview();
+    } catch (err) { notify('error', parseErr(err)); }
+  }
+
+  // Package 1..N — pay only for missing levels
+  async function onBuyPackage(e) {
+    const btn = e.currentTarget;
+    if (!lockClicks(btn)) return;
+    const maxLevel = Number(btn.dataset.maxLevel);
+    if (!Number.isInteger(maxLevel) || maxLevel < 1 || maxLevel > 12) {
+      notify('error', 'Неверный пакет'); return;
+    }
+    try {
+      await ensureInited();
+      const cm = global.contractManager;
+      const wei = await cm.calculateMissingCost(maxLevel);
+      const BN = global.Web3.utils.toBN;
+      if (BN(wei).isZero()) {
+        notify('info', `Все уровни до ${maxLevel} уже активны`);
+        return;
+      }
+      const bnb = global.Web3.utils.fromWei(wei, 'ether');
+
+      if (!confirm(`Купить пакет 1–${maxLevel}\nНедостающие уровни: ~${bnb} BNB`)) return;
+      await cm.buyPackageByMaxLevel(maxLevel);
+      notify('success', `Пакет 1–${maxLevel}: покупка отправлена`);
+      await refreshOverview();
+    } catch (err) { notify('error', parseErr(err)); }
+  }
+
+  function wireButtons() {
+    $$('.level-button[data-level]').forEach(btn => btn.addEventListener('click', onBuyLevel));
+    $$('.package-button[data-max-level]').forEach(btn => btn.addEventListener('click', onBuyPackage));
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      await ensureInited();
+      wireButtons();
+      await refreshOverview();
+    } catch (e) { console.warn('[GW] init failed:', e); }
   });
-
-  // ====== Вспомогательные утилиты для UI ======
-  function bnb(wei) {
-    try { return (Number(wei) / 1e18).toFixed(5); }
-    catch { return '?'; }
-  }
-
-  function setBtnBusy(el, on) {
-    if (!el) return;
-    el.dataset.busy = on ? "1" : "";
-    try { el.disabled = !!on; } catch {}
-    if (on) el.classList.add('disabled');
-    else el.classList.remove('disabled');
-  }
-
-  async function withBusy(el, fn) {
-    if (el && el.dataset.busy === "1") return; // защита от дабл-клика
-    try {
-      setBtnBusy(el, true);
-      await fn();
-    } finally {
-      setBtnBusy(el, false);
-    }
-  }
-
-  function showTxToast(title, receiptOrObj) {
-    // пытаемся вытащить hash
-    const tx = receiptOrObj?.transactionHash || receiptOrObj?.tx || receiptOrObj?.transactionHash?.toString?.() || "";
-    if (tx) {
-      const url = window.contractManager.getExplorerTxUrl(tx);
-      uiManager.showNotification(`${title}. <a class="link" href="${url}" target="_blank" rel="noopener">Tx</a>`, "success", 6000);
-    } else {
-      uiManager.showNotification(title, "success", 3000);
-    }
-  }
-
-  // ====== Гидрация цен ======
-  async function hydrateLevelPrices(root) {
-    const addr = window.web3Manager.getAddress();
-    const current = addr ? await window.contractManager.getActiveMaxLevel(addr) : 0;
-
-    // Отрисуем цены на одиночных кнопках
-    const btns = root.querySelectorAll('[data-buy-level]');
-    for (const b of btns) {
-      const lvl = Number(b.getAttribute('data-buy-level')) || 0;
-      if (!lvl) continue;
-
-      // активные/купленные — задизейблим
-      if (lvl <= current) {
-        setBtnBusy(b, true);
-        b.title = "Уровень уже куплен";
-        continue;
-      }
-
-      // цена
-      try {
-        const wei = await contractManager.getLevelPrice(lvl);
-        b.setAttribute('data-price-wei', String(wei));
-        const priceEl = b.querySelector('.level-price');
-        if (priceEl) priceEl.textContent = `${bnb(wei)} BNB`;
-        else b.title = `${bnb(wei)} BNB`;
-      } catch {}
-    }
-  }
-
-  async function hydrateBulkPrices(root, targets = [4,7,10,12]) {
-    const addr = window.web3Manager.getAddress();
-    const current = addr ? await window.contractManager.getActiveMaxLevel(addr) : 0;
-
-    for (const t of targets) {
-      const bb = root.querySelector(`[data-buy-bulk="${t}"]`);
-      if (!bb) continue;
-
-      if (t <= current) {
-        setBtnBusy(bb, true);
-        bb.title = "Уже куплено";
-        const sub = bb.querySelector('.buy-price');
-        if (sub) sub.textContent = `0.00000 BNB`;
-        continue;
-      }
-
-      // сумма только недостающих уровней (current+1 .. t)
-      try {
-        const wei = await contractManager.computeRangePrice(current + 1, t);
-        bb.setAttribute('data-price-wei', String(wei));
-        const sub = bb.querySelector('.buy-price');
-        if (sub) sub.textContent = `${bnb(wei)} BNB`;
-        else bb.title = `${bnb(wei)} BNB`;
-      } catch (e) {
-        console.warn('bulk price hydrate failed', e);
-      }
-    }
-  }
-
-  // ====== Экспорт ======
-  window.GLUE = GLUE;
-
-  // Базовый uiManager если не подключен
-  window.uiManager = window.uiManager || {
-    showNotification(msg, type = "info") { console.log(`[${type}]`, msg); },
-    setLoading(on, text) { if (on) console.log("loading…", text); }
-  };
-
-  /* ======= GW PATCH — SafePal-first + покупки + дебаунс (не трогает существующий код) ======= */
-(function () {
-  if (window.__GW_GLUE_PATCH_APPLIED__) return; // защита от повторной вставки
-  window.__GW_GLUE_PATCH_APPLIED__ = true;
-
-  const ui = window.uiManager;
-  const wm = window.web3Manager;
-  const cm = window.contractManager;
-
-  // Мягкие геттеры
-  function _has(fn) { return typeof fn === 'function'; }
-  function _notify(msg, type = 'info', ms) { try { ui?.showNotification?.(msg, type, ms); } catch {} }
-
-  // Лок на дабл-клик
-  function _lock(btn, on = true) {
-    if (!btn) return;
-    btn.disabled = !!on;
-    if (on) { btn.setAttribute('data-busy', '1'); btn.classList.add('button-glow'); }
-    else { btn.removeAttribute('data-busy'); btn.classList.remove('button-glow'); }
-  }
-
-  async function _ensureReady() {
-    try {
-      if (!wm?.web3) await wm?.init?.();
-    } catch (e) { console.warn('[GW] web3 init warn:', e); }
-    try {
-      if (!cm?.web3) await cm?.init?.();
-    } catch (e) { console.warn('[GW] contracts init warn:', e); }
-  }
-
-  async function _connectWallet(btn) {
-    try {
-      _lock(btn, true);
-      await _ensureReady();
-      const addr = await wm.connect();
-      await cm.refreshAccount?.(addr);
-      _notify(`Подключено: ${addr}`, 'success');
-      // Обновляем цены/пакеты, если есть соответствующие методы
-      try { cm.hydrateLevelPrices?.(document); } catch {}
-      try { cm.hydrateBulkPrices?.(document); } catch {}
-      _toggleAdmin(addr);
-    } catch (e) {
-      console.error('[GW] connect failed:', e);
-      _notify(e?.message || 'Не удалось подключить кошелёк', 'error');
-    } finally {
-      _lock(btn, false);
-    }
-  }
-
-  async function _buyLevel(btn) {
-    const lvl = Number(btn.getAttribute('data-buy-level'));
-    if (!lvl) return;
-    if (!_has(cm?.buyLevel)) { _notify('Обнови contracts.js (нет buyLevel)', 'warning'); return; }
-    try {
-      _lock(btn, true);
-      await _ensureReady();
-      const hash = await cm.buyLevel(lvl);
-      if (hash) _notify(`L${lvl}: отправлено`, 'success');
-      try { cm.hydrateLevelPrices?.(document); } catch {}
-      try { cm.hydrateBulkPrices?.(document); } catch {}
-    } catch (e) {
-      console.error('[GW] buyLevel error:', e);
-      _notify(e?.message || 'Ошибка покупки уровня', 'error');
-    } finally {
-      _lock(btn, false);
-    }
-  }
-
-  async function _buyBulk(btn) {
-    const K = Number(btn.getAttribute('data-buy-bulk'));
-    if (!K) return;
-    if (!_has(cm?.buyLevelsBulk)) { _notify('Обнови contracts.js (нет buyLevelsBulk)', 'warning'); return; }
-    try {
-      _lock(btn, true);
-      await _ensureReady();
-      const hash = await cm.buyLevelsBulk(K);
-      if (hash) _notify(`Пакет 1–${K}: отправлено`, 'success');
-      try { cm.hydrateLevelPrices?.(document); } catch {}
-      try { cm.hydrateBulkPrices?.(document); } catch {}
-    } catch (e) {
-      console.error('[GW] buyBulk error:', e);
-      _notify(e?.message || 'Ошибка пакетной покупки', 'error');
-    } finally {
-      _lock(btn, false);
-    }
-  }
-
-  async function _payQuarter(btn) {
-    if (!_has(cm?.payQuarterly)) { _notify('Метод квартального платежа не найден', 'warning'); return; }
-    try {
-      _lock(btn, true);
-      await _ensureReady();
-      const hash = await cm.payQuarterly();
-      if (hash) _notify('Квартальный платёж отправлен', 'success');
-    } catch (e) {
-      console.error('[GW] payQuarterly error:', e);
-      _notify(e?.message || 'Ошибка оплаты', 'error');
-    } finally {
-      _lock(btn, false);
-    }
-  }
-
-  function _toggleAdmin(addr) {
-    (async () => {
-      try {
-        const isOwner = await cm.isOwner?.(addr);
-        document.querySelectorAll('.admin-only').forEach(el => {
-          el.classList.toggle('hidden', !isOwner);
-        });
-        const adminNav = document.querySelector('.bottom-nav .admin-only');
-        if (adminNav) adminNav.classList.toggle('hidden', !isOwner);
-      } catch (e) { console.warn('[GW] toggleAdmin warn:', e); }
-    })();
-  }
-
-  // Делегирование кликов — НЕ затирает твои старые слушатели
-  document.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-buy-level],[data-buy-bulk],[data-pay-quarter],.connect-wallet-btn');
-    if (!t) return;
-
-    // чтобы не ловить двойные срабатывания, если у тебя уже есть свой слушатель
-    if (t.getAttribute('data-gw-patched') === '1') return;
-    t.setAttribute('data-gw-patched', '1');
-
-    if (t.matches('.connect-wallet-btn')) {
-      e.preventDefault(); e.stopPropagation();
-      if (t.hasAttribute('data-busy')) return;
-      _connectWallet(t);
-      return;
-    }
-    if (t.matches('[data-buy-level]')) {
-      e.preventDefault(); e.stopPropagation();
-      if (t.hasAttribute('data-busy')) return;
-      _buyLevel(t);
-      return;
-    }
-    if (t.matches('[data-buy-bulk]')) {
-      e.preventDefault(); e.stopPropagation();
-      if (t.hasAttribute('data-busy')) return;
-      _buyBulk(t);
-      return;
-    }
-    if (t.matches('[data-pay-quarter]')) {
-      e.preventDefault(); e.stopPropagation();
-      if (t.hasAttribute('data-busy')) return;
-      _payQuarter(t);
-      return;
-    }
-  }, true); // useCapture=true — чтобы перехватить раньше дублей
-
-  // Гидратация цен при загрузке и при монтировании страниц
-  function _hydrate(root = document) {
-    try { cm?.hydrateLevelPrices?.(root); } catch {}
-    try { cm?.hydrateBulkPrices?.(root); } catch {}
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    _ensureReady().then(() => {
-      _hydrate(document);
-      const addr = wm?.getAddress?.();
-      if (addr) _toggleAdmin(addr);
-    });
-  });
-
-  window.addEventListener('gw:page:mounted', (e) => {
-    const root = e?.detail?.root || document;
-    _hydrate(root);
-  });
-})();
-
-})();
+})(window);
