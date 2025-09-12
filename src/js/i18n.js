@@ -1,7 +1,7 @@
 // src/js/i18n.js
 (() => {
   const STORAGE_KEY = 'gw_lang';
-  const DEFAULT_LANG = 'ru'; // можешь поменять на 'uk' или 'en'
+  const DEFAULT_LANG = 'ru';
 
   let _lang = localStorage.getItem(STORAGE_KEY) || DEFAULT_LANG;
   let _dict = {};
@@ -17,34 +17,24 @@
   }
 
   function t(key, vars = {}) {
-    // Поддержка "a.b.c" путей
     const val = key.split('.').reduce((o, k) => (o && o[k] != null ? o[k] : null), _dict);
     let out = (val == null ? key : String(val));
-    // Подстановка переменных: "Привет, {name}"
-    for (const [k, v] of Object.entries(vars)) {
-      out = out.replaceAll(`{${k}}`, v);
-    }
+    for (const [k, v] of Object.entries(vars)) out = out.replaceAll(`{${k}}`, v);
     return out;
   }
 
   async function setLang(lang) {
     if (lang === _lang && Object.keys(_dict).length) return;
     await _load(lang);
-    // Сообщим приложению, что словарь обновлён
     window.dispatchEvent(new CustomEvent('i18n:ready', { detail: { lang: _lang } }));
   }
 
-  // Перевод элементов с атрибутом data-i18n="key"
   function applyDOM(root = document) {
     root.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
       const txt = t(key);
-      // Если нужен плейсхолдер — поддержим data-i18n-placeholder
-      if (el.hasAttribute('data-i18n-placeholder')) {
-        el.setAttribute('placeholder', txt);
-      } else {
-        el.textContent = txt;
-      }
+      if (el.hasAttribute('data-i18n-placeholder')) el.setAttribute('placeholder', txt);
+      else el.textContent = txt;
     });
   }
 
@@ -52,20 +42,10 @@
     try {
       await _load(_lang);
     } catch (e) {
-      // Фолбэк на en
-      if (_lang !== 'en') {
-        await _load('en');
-      }
+      if (_lang !== 'en') await _load('en');
     }
     window.dispatchEvent(new CustomEvent('i18n:ready', { detail: { lang: _lang } }));
   }
 
-  // Глобальный объект
-  window.I18N = {
-    init,
-    t,
-    setLang,
-    applyDOM,
-    get lang() { return _lang; }
-  };
+  window.I18N = { init, t, setLang, applyDOM, apply: applyDOM, get lang(){ return _lang; } };
 })();
