@@ -1,42 +1,34 @@
-// Лёгкий i18n: подгружаем JSON по выбранному языку и проставляем тексты
-window.I18N = {
-  lang: localStorage.getItem("gw_lang") || "ru",
-  dicts: {},
+// i18n.js — lightweight translator
+(function (global) {
+  'use strict';
+  const LANGS = ['en','uk','ru'];
+  const storageKey = 'gw_lang';
 
-  async setLang(l) {
-    this.lang = l;
-    localStorage.setItem("gw_lang", l);
-    await this._load(l);
-    this.apply();
-  },
-
-  async _load(l) {
-    if (this.dicts[l]) return;
-    try {
-      const r = await fetch(`/translations/${l}.json`, { cache: "no-cache" });
-      this.dicts[l] = r.ok ? await r.json() : {};
-    } catch {
-      this.dicts[l] = {};
-    }
-  },
-
-  t(key) {
-    return (this.dicts[this.lang] && this.dicts[this.lang][key]) || key;
-  },
-
-  apply(root = document) {
-    root.querySelectorAll("[data-translate]").forEach((el) => {
-      el.textContent = this.t(el.getAttribute("data-translate"));
-    });
-  },
-};
-
-// Автоподключение на загрузке
-document.addEventListener("DOMContentLoaded", async () => {
-  const s = document.getElementById("langSelect");
-  if (s) {
-    s.value = I18N.lang;
-    s.onchange = (e) => I18N.setLang(e.target.value);
+  function getLang() {
+    const forced = location.hash.match(/lang=(en|uk|ru)/)?.[1];
+    if (forced) return forced;
+    return localStorage.getItem(storageKey) || 'ru';
   }
-  await I18N.setLang(I18N.lang);
-});
+
+  function setLang(lang) {
+    if (!LANGS.includes(lang)) return;
+    localStorage.setItem(storageKey, lang);
+    apply();
+  }
+
+  function t(key) {
+    const lang = getLang();
+    const dict = (global.__i18n && global.__i18n[lang]) || {};
+    return dict[key] || key;
+  }
+
+  function apply(root=document) {
+    root.querySelectorAll('[data-translate]').forEach(el => {
+      const k = el.getAttribute('data-translate');
+      el.textContent = t(k);
+    });
+  }
+
+  global.i18n = { t, apply, getLang, setLang };
+  document.addEventListener('DOMContentLoaded', ()=> apply());
+})(window);
