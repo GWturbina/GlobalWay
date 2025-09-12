@@ -2617,6 +2617,24 @@ to {
   }
 }
 
+/* ----- Desktop top nav visible & sticky ----- */
+.gw-topbar { position: sticky; top: 0; z-index: 100; }
+
+/* По умолчанию прячем .nav (мобилка), а на десктопе показываем */
+.nav { display: none; gap: 14px; justify-content: center; padding: 10px 16px; }
+.nav a {
+  color: #d6d6e7; text-decoration: none; padding: 8px 12px; border-radius: 10px;
+}
+.nav a.active, .nav a:hover {
+  background: rgba(255,215,0,.12); color: #fff;
+}
+
+/* Переключение навигации по брейкпойнту */
+@media (min-width: 900px) {
+  .nav { display: flex !important; }   /* показываем верхнее меню */
+  .bottom-nav { display: none !important; }  /* прячем нижнее меню на десктопе */
+}
+
 /* ==================== УТИЛИТЫ ==================== */
 
 .hidden { display: none !important; }
