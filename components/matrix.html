@@ -1,0 +1,209 @@
+<!-- Matrix Component -->
+<div class="matrix-content">
+  <!-- Matrix Navigation -->
+  <div class="cosmic-card">
+    <h3>🔍 <span data-translate="matrix_navigation">Matrix Navigation</span></h3>
+    <div class="search-container">
+      <input type="text" id="searchMatrixId" placeholder="🔍 Search by ID..." class="search-input">
+      <button id="searchMatrixBtn" class="search-btn">
+        <span data-translate="search">Search</span>
+      </button>
+    </div>
+    <div class="matrix-controls">
+      <button id="resetMatrixView" class="control-btn">
+        🏠 <span data-translate="home">Home</span>
+      </button>
+      <button id="matrixFullscreen" class="control-btn">
+        🖥️ <span data-translate="fullscreen">Fullscreen</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Interactive Matrix Canvas -->
+  <div class="cosmic-card">
+    <h3>🌌 <span data-translate="interactive_matrix">Interactive Matrix</span></h3>
+    <div class="matrix-canvas-container" id="matrixCanvasContainer">
+      <canvas id="matrixCanvas" width="800" height="600"></canvas>
+      
+      <!-- Tooltip для hover эффектов -->
+      <div id="matrixTooltip" class="matrix-tooltip hidden">
+        <div class="tooltip-content">
+          <div class="tooltip-row">
+            <span class="tooltip-label">ID:</span>
+            <span class="tooltip-value" id="tooltipId">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Sponsor ID:</span>
+            <span class="tooltip-value" id="tooltipSponsorId">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Address:</span>
+            <span class="tooltip-value" id="tooltipAddress">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Level:</span>
+            <span class="tooltip-value" id="tooltipLevel">-</span>
+          </div>
+          <div class="tooltip-row">
+            <span class="tooltip-label">Status:</span>
+            <span class="tooltip-value" id="tooltipStatus">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Легенда -->
+    <div class="matrix-legend">
+      <div class="legend-item">
+        <div class="legend-color active"></div>
+        <span data-translate="active_user">Active User</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color available"></div>
+        <span data-translate="available_spot">Available Spot</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color locked"></div>
+        <span data-translate="locked_spot">Locked Spot</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color charity"></div>
+        <span data-translate="charity_spot">Charity Spot</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color technical"></div>
+        <span data-translate="technical_spot">Technical Spot</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Matrix Level Selector - 12 уровней с горизонтальным скроллом -->
+  <div class="cosmic-card">
+    <h3>📊 <span data-translate="matrix_levels">Matrix Levels</span></h3>
+    <div class="matrix-level-scroll">
+      <div class="matrix-level-selector">
+        <button class="level-selector-btn active" data-level="1">Level 1</button>
+        <button class="level-selector-btn" data-level="2">Level 2</button>
+        <button class="level-selector-btn" data-level="3">Level 3</button>
+        <button class="level-selector-btn" data-level="4">Level 4</button>
+        <button class="level-selector-btn" data-level="5">Level 5</button>
+        <button class="level-selector-btn" data-level="6">Level 6</button>
+        <button class="level-selector-btn" data-level="7">Level 7</button>
+        <button class="level-selector-btn" data-level="8">Level 8</button>
+        <button class="level-selector-btn" data-level="9">Level 9</button>
+        <button class="level-selector-btn" data-level="10">Level 10</button>
+        <button class="level-selector-btn" data-level="11">Level 11</button>
+        <button class="level-selector-btn" data-level="12">Level 12</button>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Matrix Structure Table -->
+  <div class="cosmic-card">
+    <h3>📊 <span data-translate="matrix_structure">Matrix Structure</span></h3>
+    <div class="matrix-info">
+      <p data-translate="matrix_description">Matrix filling order: personal invites + spillover from sponsors + charity/technical spots from quarterly payments</p>
+    </div>
+    <div class="matrix-filters">
+      <select id="matrixLevelFilter" class="filter-select">
+        <option value="all" data-translate="all_levels">All Levels</option>
+        <option value="1">Level 1 (2 spots)</option>
+        <option value="2">Level 2 (4 spots)</option>
+        <option value="3">Level 3 (8 spots)</option>
+        <option value="4">Level 4 (16 spots)</option>
+        <option value="5">Level 5 (32 spots)</option>
+        <option value="6">Level 6 (64 spots)</option>
+        <option value="7">Level 7 (128 spots)</option>
+        <option value="8">Level 8 (256 spots)</option>
+        <option value="9">Level 9 (512 spots)</option>
+        <option value="10">Level 10 (1024 spots)</option>
+        <option value="11">Level 11 (2048 spots)</option>
+        <option value="12">Level 12 (4096 spots)</option>
+      </select>
+      <select id="matrixStatusFilter" class="filter-select">
+        <option value="all" data-translate="all_status">All Status</option>
+        <option value="active" data-translate="active">Active</option>
+        <option value="inactive" data-translate="inactive">Inactive</option>
+        <option value="charity" data-translate="charity">Charity</option>
+        <option value="technical" data-translate="technical">Technical</option>
+      </select>
+    </div>
+    <div class="matrix-table">
+      <div class="table-header">
+        <span>№</span>
+        <span>ID</span>
+        <span data-translate="address">Address</span>
+        <span data-translate="sponsor_id">Sponsor ID</span>
+        <span data-translate="activation_date">Activation Date</span>
+        <span data-translate="level">Level</span>
+        <span data-translate="position">Position</span>
+        <span data-translate="status">Status</span>
+      </div>
+      <div class="table-body" id="matrixTableBody">
+        <div class="no-data wallet-required">
+          🔗 <span data-translate="connect_wallet_to_view">Connect wallet to view data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Стили для горизонтального скролла уровней */
+.matrix-level-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: -10px;
+  padding: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-gold) rgba(255, 215, 0, 0.1);
+}
+
+.matrix-level-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.matrix-level-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 215, 0, 0.1);
+  border-radius: 4px;
+}
+
+.matrix-level-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent-gold);
+  border-radius: 4px;
+}
+
+.matrix-level-selector {
+  display: flex;
+  gap: 10px;
+  min-width: max-content;
+}
+
+/* Дополнительные цвета для легенды */
+.legend-color.charity {
+  background: #FF69B4;
+  border-color: #FF69B4;
+  box-shadow: 0 0 8px rgba(255, 105, 180, 0.4);
+}
+
+.legend-color.technical {
+  background: #00CED1;
+  border-color: #00CED1;
+  box-shadow: 0 0 8px rgba(0, 206, 209, 0.4);
+}
+
+.matrix-info {
+  padding: 15px;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.matrix-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+</style>
