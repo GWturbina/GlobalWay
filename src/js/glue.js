@@ -429,4 +429,175 @@
     showNotification(msg, type = "info") { console.log(`[${type}]`, msg); },
     setLoading(on, text) { if (on) console.log("loading…", text); }
   };
+
+  /* ======= GW PATCH — SafePal-first + покупки + дебаунс (не трогает существующий код) ======= */
+(function () {
+  if (window.__GW_GLUE_PATCH_APPLIED__) return; // защита от повторной вставки
+  window.__GW_GLUE_PATCH_APPLIED__ = true;
+
+  const ui = window.uiManager;
+  const wm = window.web3Manager;
+  const cm = window.contractManager;
+
+  // Мягкие геттеры
+  function _has(fn) { return typeof fn === 'function'; }
+  function _notify(msg, type = 'info', ms) { try { ui?.showNotification?.(msg, type, ms); } catch {} }
+
+  // Лок на дабл-клик
+  function _lock(btn, on = true) {
+    if (!btn) return;
+    btn.disabled = !!on;
+    if (on) { btn.setAttribute('data-busy', '1'); btn.classList.add('button-glow'); }
+    else { btn.removeAttribute('data-busy'); btn.classList.remove('button-glow'); }
+  }
+
+  async function _ensureReady() {
+    try {
+      if (!wm?.web3) await wm?.init?.();
+    } catch (e) { console.warn('[GW] web3 init warn:', e); }
+    try {
+      if (!cm?.web3) await cm?.init?.();
+    } catch (e) { console.warn('[GW] contracts init warn:', e); }
+  }
+
+  async function _connectWallet(btn) {
+    try {
+      _lock(btn, true);
+      await _ensureReady();
+      const addr = await wm.connect();
+      await cm.refreshAccount?.(addr);
+      _notify(`Подключено: ${addr}`, 'success');
+      // Обновляем цены/пакеты, если есть соответствующие методы
+      try { cm.hydrateLevelPrices?.(document); } catch {}
+      try { cm.hydrateBulkPrices?.(document); } catch {}
+      _toggleAdmin(addr);
+    } catch (e) {
+      console.error('[GW] connect failed:', e);
+      _notify(e?.message || 'Не удалось подключить кошелёк', 'error');
+    } finally {
+      _lock(btn, false);
+    }
+  }
+
+  async function _buyLevel(btn) {
+    const lvl = Number(btn.getAttribute('data-buy-level'));
+    if (!lvl) return;
+    if (!_has(cm?.buyLevel)) { _notify('Обнови contracts.js (нет buyLevel)', 'warning'); return; }
+    try {
+      _lock(btn, true);
+      await _ensureReady();
+      const hash = await cm.buyLevel(lvl);
+      if (hash) _notify(`L${lvl}: отправлено`, 'success');
+      try { cm.hydrateLevelPrices?.(document); } catch {}
+      try { cm.hydrateBulkPrices?.(document); } catch {}
+    } catch (e) {
+      console.error('[GW] buyLevel error:', e);
+      _notify(e?.message || 'Ошибка покупки уровня', 'error');
+    } finally {
+      _lock(btn, false);
+    }
+  }
+
+  async function _buyBulk(btn) {
+    const K = Number(btn.getAttribute('data-buy-bulk'));
+    if (!K) return;
+    if (!_has(cm?.buyLevelsBulk)) { _notify('Обнови contracts.js (нет buyLevelsBulk)', 'warning'); return; }
+    try {
+      _lock(btn, true);
+      await _ensureReady();
+      const hash = await cm.buyLevelsBulk(K);
+      if (hash) _notify(`Пакет 1–${K}: отправлено`, 'success');
+      try { cm.hydrateLevelPrices?.(document); } catch {}
+      try { cm.hydrateBulkPrices?.(document); } catch {}
+    } catch (e) {
+      console.error('[GW] buyBulk error:', e);
+      _notify(e?.message || 'Ошибка пакетной покупки', 'error');
+    } finally {
+      _lock(btn, false);
+    }
+  }
+
+  async function _payQuarter(btn) {
+    if (!_has(cm?.payQuarterly)) { _notify('Метод квартального платежа не найден', 'warning'); return; }
+    try {
+      _lock(btn, true);
+      await _ensureReady();
+      const hash = await cm.payQuarterly();
+      if (hash) _notify('Квартальный платёж отправлен', 'success');
+    } catch (e) {
+      console.error('[GW] payQuarterly error:', e);
+      _notify(e?.message || 'Ошибка оплаты', 'error');
+    } finally {
+      _lock(btn, false);
+    }
+  }
+
+  function _toggleAdmin(addr) {
+    (async () => {
+      try {
+        const isOwner = await cm.isOwner?.(addr);
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.classList.toggle('hidden', !isOwner);
+        });
+        const adminNav = document.querySelector('.bottom-nav .admin-only');
+        if (adminNav) adminNav.classList.toggle('hidden', !isOwner);
+      } catch (e) { console.warn('[GW] toggleAdmin warn:', e); }
+    })();
+  }
+
+  // Делегирование кликов — НЕ затирает твои старые слушатели
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-buy-level],[data-buy-bulk],[data-pay-quarter],.connect-wallet-btn');
+    if (!t) return;
+
+    // чтобы не ловить двойные срабатывания, если у тебя уже есть свой слушатель
+    if (t.getAttribute('data-gw-patched') === '1') return;
+    t.setAttribute('data-gw-patched', '1');
+
+    if (t.matches('.connect-wallet-btn')) {
+      e.preventDefault(); e.stopPropagation();
+      if (t.hasAttribute('data-busy')) return;
+      _connectWallet(t);
+      return;
+    }
+    if (t.matches('[data-buy-level]')) {
+      e.preventDefault(); e.stopPropagation();
+      if (t.hasAttribute('data-busy')) return;
+      _buyLevel(t);
+      return;
+    }
+    if (t.matches('[data-buy-bulk]')) {
+      e.preventDefault(); e.stopPropagation();
+      if (t.hasAttribute('data-busy')) return;
+      _buyBulk(t);
+      return;
+    }
+    if (t.matches('[data-pay-quarter]')) {
+      e.preventDefault(); e.stopPropagation();
+      if (t.hasAttribute('data-busy')) return;
+      _payQuarter(t);
+      return;
+    }
+  }, true); // useCapture=true — чтобы перехватить раньше дублей
+
+  // Гидратация цен при загрузке и при монтировании страниц
+  function _hydrate(root = document) {
+    try { cm?.hydrateLevelPrices?.(root); } catch {}
+    try { cm?.hydrateBulkPrices?.(root); } catch {}
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    _ensureReady().then(() => {
+      _hydrate(document);
+      const addr = wm?.getAddress?.();
+      if (addr) _toggleAdmin(addr);
+    });
+  });
+
+  window.addEventListener('gw:page:mounted', (e) => {
+    const root = e?.detail?.root || document;
+    _hydrate(root);
+  });
+})();
+
 })();
