@@ -1,430 +1,186 @@
-// src/js/web3.js
-
+// Web3 Module - GlobalWay Integration
 const Web3Module = {
+    state: {
+        web3: null,
+        account: null,
+        isConnected: false,
+        provider: null,
+        chainId: null,
+        balance: '0',
+        walletType: 'None'
+    },
+
     // Конфигурация сети opBNB
-    config: {
-        chainId: '0xCC', // 204 в hex
+    targetChainId: 204,
+    networkConfig: {
+        chainId: '0xCC',
         chainName: 'opBNB Mainnet',
-        rpcUrls: ['https://opbnb-mainnet-rpc.bnbchain.org'],
         nativeCurrency: {
             name: 'BNB',
             symbol: 'BNB',
             decimals: 18
         },
+        rpcUrls: ['https://opbnb-mainnet-rpc.bnbchain.org'],
         blockExplorerUrls: ['https://opbnbscan.com/']
     },
 
-    // Состояние подключения
-    state: {
-        web3: null,
-        account: null,
-        chainId: null,
-        walletType: null,
-        isConnected: false,
-        provider: null
-    },
+    // События
+    events: new EventTarget(),
 
-    // Реферальная система
-    referralSystem: {
-        currentUserId: null,
-        referralMapping: new Map(), // ID -> Address mapping
-        addressMapping: new Map(), // Address -> ID mapping
-        
-        // Генерация случайного 7-значного ID
-        generateRandomId() {
-            let id;
-            do {
-                id = Math.floor(1000000 + Math.random() * 9000000).toString();
-            } while (this.referralMapping.has(id)); // Проверка уникальности
-            return id;
-        },
-
-        // Сохранение маппинга ID
-        saveIdMapping(address, id, prefix = 'GW') {
-            const fullId = prefix + id;
-            this.referralMapping.set(id, address.toLowerCase());
-            this.addressMapping.set(address.toLowerCase(), id);
-            
-            // Сохранение в localStorage
-            const mappings = JSON.parse(localStorage.getItem('idMappings') || '{}');
-            mappings[id] = {
-                address: address.toLowerCase(),
-                prefix: prefix,
-                fullId: fullId,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('idMappings', JSON.stringify(mappings));
-            
-            // Отправка события для логирования
-            this.logIdEvent('ID_CREATED', { id, address, prefix, fullId });
-        },
-
-        // Получение ID по адресу
-        getIdByAddress(address) {
-            return this.addressMapping.get(address.toLowerCase());
-        },
-
-        // Получение адреса по ID
-        getAddressById(id) {
-            return this.referralMapping.get(id);
-        },
-
-        // Загрузка существующих маппингов
-        loadMappings() {
-            const mappings = JSON.parse(localStorage.getItem('idMappings') || '{}');
-            Object.entries(mappings).forEach(([id, data]) => {
-                this.referralMapping.set(id, data.address);
-                this.addressMapping.set(data.address, id);
-            });
-        },
-
-        // Обработка входящей реферальной ссылки
-        processReferralUrl() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const refParam = urlParams.get('ref');
-            
-            if (refParam) {
-                // Парсинг префикса и ID (например: GW5472846)
-                const match = refParam.match(/^([A-Z]{2})(\d{7})$/);
-                if (match) {
-                    const [, prefix, id] = match;
-                    const sponsorAddress = this.getAddressById(id);
-                    
-                    if (sponsorAddress) {
-                        localStorage.setItem('pendingSponsor', sponsorAddress);
-                        localStorage.setItem('referralPrefix', prefix);
-                        localStorage.setItem('referralId', id);
-                        
-                        UI.showNotification(`Referral link detected: ${prefix}${id}`, 'info');
-                        return { sponsorAddress, prefix, id };
-                    } else {
-                        UI.showNotification('Invalid referral link', 'error');
-                    }
-                }
-            }
-            return null;
-        },
-
-        // Генерация реферальной ссылки
-        generateReferralLink(address, prefix = 'GW') {
-            let id = this.getIdByAddress(address);
-            if (!id) {
-                id = this.generateRandomId();
-                this.saveIdMapping(address, id, prefix);
-            }
-            
-            const baseUrl = window.location.origin;
-            return `${baseUrl}/?ref=${prefix}${id}`;
-        },
-
-        // Логирование событий для backend/blockchain
-        logIdEvent(eventType, data) {
-            const logEntry = {
-                timestamp: Date.now(),
-                eventType,
-                data,
-                userAgent: navigator.userAgent,
-                url: window.location.href
-            };
-            
-            // Сохранение в localStorage для последующей синхронизации
-            const logs = JSON.parse(localStorage.getItem('idEventLogs') || '[]');
-            logs.push(logEntry);
-            // Ограничиваем размер лога
-            if (logs.length > 1000) {
-                logs.splice(0, 100);
-            }
-            localStorage.setItem('idEventLogs', JSON.stringify(logs));
-            
-            // Попытка отправки на backend (если будет реализован)
-            this.syncToBackend(logEntry);
-        },
-
-        // Синхронизация с backend (заготовка)
-        async syncToBackend(logEntry) {
-            // Здесь будет логика отправки на backend API
-            // Пока сохраняем локально
-            console.log('ID Event logged:', logEntry);
-        }
-    },
-
-    // Инициализация
+    // Инициализация модуля
     async init() {
         console.log('Web3Module: Initializing...');
         
-        // Загрузка существующих маппингов
-        this.referralSystem.loadMappings();
-        
-        // Обработка реферальной ссылки
-        this.referralSystem.processReferralUrl();
-
-        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Приоритет SafePal кошелька
-        await this.detectAndSetupWallet();
-
-        // Проверка сохраненного подключения
-        const savedAccount = localStorage.getItem('connectedAccount');
-        if (savedAccount && this.state.provider) {
-            await this.reconnect();
+        try {
+            await this.detectWalletProviders();
+            await this.initializeWeb3();
+            await this.tryReconnect();
+            this.setupEventListeners();
+            
+            console.log('Web3Module: Initialized successfully');
+            return true;
+        } catch (error) {
+            console.error('Web3Module initialization failed:', error);
+            return false;
         }
-
-        // Слушатели событий
-        this.setupEventListeners();
-        
-        console.log('Web3Module: Initialized successfully');
     },
 
-    // НОВЫЙ МЕТОД: Улучшенное обнаружение кошельков с приоритетом SafePal
-    async detectAndSetupWallet() {
+    // Детекция доступных кошельков
+    async detectWalletProviders() {
         console.log('Detecting wallet providers...');
         
-        // Функция определения типа устройства
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const isTablet = /iPad|Android/i.test(navigator.userAgent) && !isMobile;
-        
-        let preferredProvider = null;
-        let walletType = null;
-
-        // ПРИОРИТЕТ 1: SafePal (особенно важно на мобильных устройствах)
-        if (window.ethereum?.isSafePal) {
-            preferredProvider = window.ethereum;
-            walletType = 'SafePal';
+        // Приоритет SafePal для мобильных устройств
+        if (window.safePal && window.safePal.ethereum) {
             console.log('SafePal wallet detected as primary provider');
+            window.ethereum = window.safePal.ethereum;
+            this.state.walletType = 'SafePal';
+            return;
         }
-        // ПРИОРИТЕТ 2: Если несколько провайдеров, ищем SafePal среди них
-        else if (window.ethereum?.providers) {
-            const safePalProvider = window.ethereum.providers.find(p => p.isSafePal);
-            if (safePalProvider) {
-                preferredProvider = safePalProvider;
-                walletType = 'SafePal';
-                console.log('SafePal found among multiple providers');
+        
+        // Проверка других кошельков
+        if (window.ethereum) {
+            if (window.ethereum.isMetaMask) {
+                console.log('MetaMask detected');
+                this.state.walletType = 'MetaMask';
+            } else if (window.ethereum.isTrustWallet) {
+                console.log('Trust Wallet detected');
+                this.state.walletType = 'TrustWallet';
+            } else if (window.ethereum.isBinance) {
+                console.log('Binance Wallet detected');
+                this.state.walletType = 'Binance';
             } else {
-                // Fallback к первому доступному провайдеру
-                preferredProvider = window.ethereum.providers[0];
-                walletType = this.detectWalletType(preferredProvider);
-                console.log(`Fallback to: ${walletType}`);
+                console.log('Generic Web3 provider detected');
+                this.state.walletType = 'Web3';
             }
-        }
-        // ПРИОРИТЕТ 3: Единственный ethereum провайдер (не SafePal)
-        else if (window.ethereum) {
-            preferredProvider = window.ethereum;
-            walletType = this.detectWalletType(window.ethereum);
-            console.log(`Single provider detected: ${walletType}`);
-        }
-        // ПРИОРИТЕТ 4: Мобильные специфичные провайдеры
-        else if (isMobile) {
-            // На мобильных устройствах проверяем специфичные объекты
-            if (window.safepal) {
-                preferredProvider = window.safepal;
-                walletType = 'SafePal Mobile';
-                console.log('SafePal mobile provider detected');
-            } else if (window.trustwallet) {
-                preferredProvider = window.trustwallet;
-                walletType = 'Trust Wallet';
-                console.log('Trust Wallet mobile provider detected');
-            }
-        }
-
-        if (preferredProvider) {
-            this.state.provider = preferredProvider;
-            this.state.walletType = walletType;
-            
-            // Создание экземпляра Web3 с предпочтительным провайдером
-            this.state.web3 = new Web3(preferredProvider);
-            
-            console.log(`Web3 initialized with ${walletType}`);
-            return true;
         } else {
-            console.error('No Web3 wallet detected');
-            // Показываем специфичные инструкции в зависимости от устройства
-            if (isMobile) {
-                UI.showNotification('Please install SafePal mobile app or open this page in SafePal browser', 'error');
-            } else {
-                UI.showNotification('Please install SafePal browser extension or another Web3 wallet', 'error');
-            }
-            return false;
+            console.warn('No Web3 provider detected');
+            this.state.walletType = 'None';
         }
     },
 
-    // Определение типа кошелька
-    detectWalletType(provider) {
-        if (provider.isSafePal) return 'SafePal';
-        if (provider.isMetaMask) return 'MetaMask';
-        if (provider.isTrust) return 'Trust Wallet';
-        if (provider.isCoinbaseWallet) return 'Coinbase Wallet';
-        if (provider.isBinance) return 'Binance Wallet';
-        if (provider.isTokenPocket) return 'TokenPocket';
-        return 'Unknown Wallet';
-    },
-
-    // Улучшенное подключение кошелька
-    async connect() {
-        try {
-            console.log('Attempting wallet connection...');
-            
-            // Проверка наличия провайдера
-            if (!this.state.provider) {
-                await this.detectAndSetupWallet();
-                if (!this.state.provider) {
-                    throw new Error('No wallet provider found');
-                }
-            }
-
-            console.log(`Connecting to ${this.state.walletType}...`);
-
-            // Запрос подключения
-            let accounts;
-            
-            // Специальная обработка для SafePal
-            if (this.state.walletType.includes('SafePal')) {
-                try {
-                    // Для SafePal используем специфичный метод если доступен
-                    if (this.state.provider.request) {
-                        accounts = await this.state.provider.request({ 
-                            method: 'eth_requestAccounts' 
-                        });
-                    } else if (this.state.provider.enable) {
-                        accounts = await this.state.provider.enable();
-                    } else {
-                        throw new Error('SafePal provider methods not available');
-                    }
-                } catch (error) {
-                    console.error('SafePal specific connection failed:', error);
-                    // Fallback к стандартному методу
-                    accounts = await this.state.provider.request({ 
-                        method: 'eth_requestAccounts' 
-                    });
-                }
-            } else {
-                // Стандартный запрос для других кошельков
-                accounts = await this.state.provider.request({ 
-                    method: 'eth_requestAccounts' 
-                });
-            }
-
-            if (accounts && accounts.length > 0) {
-                this.state.account = accounts[0];
-                this.state.isConnected = true;
-
-                console.log(`Connected to ${this.state.walletType}: ${this.state.account}`);
-
-                // Проверка и переключение сети
-                await this.checkAndSwitchNetwork();
-
-                // Генерация ID для нового пользователя если нет
-                if (!this.referralSystem.getIdByAddress(this.state.account)) {
-                    const newId = this.referralSystem.generateRandomId();
-                    this.referralSystem.saveIdMapping(this.state.account, newId, 'GW');
-                    console.log(`Generated new ID: GW${newId} for ${this.state.account}`);
-                }
-
-                // Сохранение в localStorage
-                localStorage.setItem('connectedAccount', this.state.account);
-                localStorage.setItem('walletType', this.state.walletType);
-
-                // Обновление UI
-                await this.updateAccountInfo();
-
-                UI.showNotification(`Wallet connected successfully via ${this.state.walletType}`, 'success');
-                return true;
-            } else {
-                throw new Error('No accounts returned from wallet');
-            }
-        } catch (error) {
-            console.error('Wallet connection error:', error);
-            
-            // Более детальная обработка ошибок
-            let errorMessage = 'Failed to connect wallet';
-            
-            if (error.code === 4001) {
-                errorMessage = 'Connection rejected by user';
-            } else if (error.code === -32002) {
-                errorMessage = 'Connection request already pending';
-            } else if (error.message.includes('SafePal')) {
-                errorMessage = 'SafePal connection failed. Please try opening in SafePal browser';
-            }
-            
-            UI.showNotification(errorMessage, 'error');
-            return false;
+    // Инициализация Web3
+    async initializeWeb3() {
+        if (!window.ethereum) {
+            throw new Error('No Web3 provider available');
         }
+
+        this.state.web3 = new Web3(window.ethereum);
+        this.state.provider = window.ethereum;
+        console.log(`Web3 initialized with ${this.state.walletType}`);
     },
 
-    // Переподключение при загрузке
-    async reconnect() {
-        try {
+    // Попытка автоматического переподключения
+    async tryReconnect() {
+        const savedAccount = localStorage.getItem('connectedAccount');
+        const savedWallet = localStorage.getItem('walletType');
+        
+        if (savedAccount && savedWallet) {
             console.log('Attempting to reconnect...');
-            
-            if (!this.state.provider) {
-                await this.detectAndSetupWallet();
-                if (!this.state.provider) {
-                    console.log('No provider available for reconnection');
-                    return false;
-                }
-            }
-
-            // Получение аккаунтов без запроса разрешения
-            let accounts;
             try {
-                if (this.state.provider.request) {
-                    accounts = await this.state.provider.request({ method: 'eth_accounts' });
-                } else {
-                    // Fallback для некоторых кошельков
-                    accounts = await this.state.web3.eth.getAccounts();
+                const accounts = await window.ethereum.request({
+                    method: 'eth_accounts'
+                });
+                
+                if (accounts.length > 0 && accounts[0].toLowerCase() === savedAccount.toLowerCase()) {
+                    await this.setAccount(accounts[0]);
+                    await this.checkNetwork();
+                    this.updateAccountInfo();
+                    console.log(`Reconnected to ${this.state.walletType}: ${this.state.account}`);
                 }
             } catch (error) {
-                console.log('Failed to get accounts on reconnect:', error);
-                this.disconnect();
-                return false;
+                console.error('Reconnection failed:', error);
+                this.clearStoredConnection();
+            }
+        }
+    },
+
+    // Основная функция подключения кошелька
+    async connectWallet() {
+        try {
+            if (!window.ethereum) {
+                throw new Error('No Web3 wallet detected. Please install SafePal, MetaMask, or another Web3 wallet.');
             }
 
-            if (accounts && accounts.length > 0) {
-                this.state.account = accounts[0];
-                this.state.isConnected = true;
-                
-                await this.checkAndSwitchNetwork();
-                await this.updateAccountInfo();
-                
-                console.log(`Reconnected to ${this.state.walletType}: ${this.state.account}`);
-                return true;
-            } else {
-                console.log('No accounts available for reconnection');
-                this.disconnect();
-                return false;
+            console.log('Requesting wallet connection...');
+            
+            const accounts = await window.ethereum.request({
+                method: 'eth_requestAccounts'
+            });
+
+            if (!accounts || accounts.length === 0) {
+                throw new Error('No accounts returned from wallet');
             }
+
+            await this.setAccount(accounts[0]);
+            await this.checkNetwork();
+            this.updateAccountInfo();
+            this.saveConnection();
+
+            UI.showNotification(`Connected to ${this.state.walletType}`, 'success');
+            this.events.dispatchEvent(new CustomEvent('walletConnected', { 
+                detail: { account: this.state.account, walletType: this.state.walletType }
+            }));
+
+            return true;
         } catch (error) {
-            console.error('Reconnection error:', error);
-            this.disconnect();
+            console.error('Wallet connection failed:', error);
+            UI.showNotification(`Connection failed: ${error.message}`, 'error');
             return false;
         }
     },
 
-    // Отключение кошелька
-    disconnect() {
-        console.log('Disconnecting wallet...');
+    // Установка аккаунта
+    async setAccount(account) {
+        this.state.account = account.toLowerCase();
+        this.state.isConnected = true;
         
-        this.state.account = null;
-        this.state.isConnected = false;
-        this.state.walletType = null;
-        // НЕ сбрасываем provider, чтобы можно было переподключиться
-        
-        localStorage.removeItem('connectedAccount');
-        localStorage.removeItem('walletType');
-        
-        UI.updateWalletUI(null, null, null);
-        UI.showNotification('Wallet disconnected', 'info');
+        // Обновление UI
+        this.updateWalletDisplay();
     },
 
-    async checkAndSwitchNetwork() {
-    try {
-        const chainId = await this.state.web3.eth.getChainId();
-        console.log(`Current network: ${chainId}, required: ${this.targetChainId}`);
-        
-        if (chainId === this.targetChainId) {
-            console.log('Already on correct network (opBNB)');
-            return true; // ✅ УЖЕ НА ПРАВИЛЬНОЙ СЕТИ - НЕ ПЕРЕКЛЮЧАТЬ
+    // Проверка и переключение сети
+    async checkNetwork() {
+        try {
+            const chainId = await this.state.web3.eth.getChainId();
+            this.state.chainId = chainId;
+            
+            console.log(`Current network: ${chainId}, required: ${this.targetChainId}`);
+            
+            if (chainId === this.targetChainId) {
+                console.log('Already on correct network (opBNB)');
+                return true;
+            }
+            
+            console.log('Need to switch to opBNB network...');
+            return await this.switchToOpBNB();
+        } catch (error) {
+            console.error('Network check failed:', error);
+            return false;
         }
-        
-        console.log('Switching to opBNB network...');
-        
+    },
+
+    // Переключение на opBNB
+    async switchToOpBNB() {
         try {
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
@@ -432,365 +188,280 @@ const Web3Module = {
             });
             
             console.log('Network switched successfully');
+            this.state.chainId = this.targetChainId;
             return true;
         } catch (switchError) {
-            // Если сеть не добавлена, пытаемся добавить
             if (switchError.code === 4902) {
                 console.log('Adding opBNB network...');
-                await this.addOpBNBNetwork();
-                return true;
+                return await this.addOpBNBNetwork();
             }
-            throw switchError;
-        }
-    } catch (error) {
-        console.error('Network configuration error:', error);
-        // ⚠️ НЕ БРОСАТЬ ОШИБКУ - ПРОДОЛЖАТЬ РАБОТУ
-        return false;
-    }
-},
-                
-                // Повторная проверка после переключения
-                const newChainId = await this.state.web3.eth.getChainId();
-                if (newChainId !== 204) {
-                    throw new Error('Failed to switch to opBNB network');
-                }
-            }
-            return true;
-        } catch (error) {
-            console.error('Network configuration error:', error);
-            UI.showNotification('Please switch to opBNB network manually', 'error');
+            console.error('Network switch failed:', switchError);
             return false;
         }
     },
 
-    // Обновление информации аккаунта
-    async updateAccountInfo() {
-        if (!this.state.account) return;
-
+    // Добавление сети opBNB
+    async addOpBNBNetwork() {
         try {
-            console.log('Updating account info...');
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [this.networkConfig]
+            });
             
-            // Получение баланса
-            const balanceWei = await this.state.web3.eth.getBalance(this.state.account);
-            const balance = this.state.web3.utils.fromWei(balanceWei, 'ether');
-            
-            // Форматирование адреса
-            const shortAddress = this.formatAddress(this.state.account);
-
-            // Получение ID пользователя
-            const userId = this.referralSystem.getIdByAddress(this.state.account) || 'Not generated';
-
-            // Обновление UI
-            UI.updateWalletUI(shortAddress, parseFloat(balance).toFixed(4), this.state.walletType, userId);
-
-            // Загрузка данных пользователя из контракта
-            if (window.ContractsModule?.initialized) {
-                await ContractsModule.loadUserData();
-            }
+            console.log('opBNB network added successfully');
+            this.state.chainId = this.targetChainId;
+            return true;
         } catch (error) {
-            console.error('Error updating account info:', error);
+            console.error('Failed to add opBNB network:', error);
+            return false;
         }
     },
 
-    // Форматирование адреса
-    formatAddress(address) {
-        if (!address) return '';
-        return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+    // Обновление информации об аккаунте
+    async updateAccountInfo() {
+        if (!this.state.account || !this.state.web3) return;
+        
+        try {
+            console.log('Updating account info...');
+            
+            const balance = await this.state.web3.eth.getBalance(this.state.account);
+            this.state.balance = this.fromWei(balance);
+            
+            this.updateWalletDisplay();
+        } catch (error) {
+            console.error('Failed to update account info:', error);
+        }
     },
 
-    // Полный адрес для проверки админа
-    getFullAddress() {
-        return this.state.account ? this.state.account.toLowerCase() : null;
+    // Обновление отображения кошелька
+    updateWalletDisplay() {
+        const connectBtn = document.getElementById('connectWallet');
+        const walletInfo = document.getElementById('walletInfo');
+        const walletAddress = document.getElementById('walletAddress');
+        const walletBalance = document.getElementById('walletBalance');
+        const walletType = document.getElementById('walletType');
+        const walletUserId = document.getElementById('walletUserId');
+        const roleIndicator = document.getElementById('roleIndicator');
+
+        if (this.state.isConnected && this.state.account) {
+            // Скрыть кнопку подключения
+            if (connectBtn) connectBtn.style.display = 'none';
+            
+            // Показать информацию о кошельке
+            if (walletInfo) walletInfo.classList.remove('hidden');
+            if (walletAddress) walletAddress.textContent = this.formatAddress(this.state.account);
+            if (walletBalance) walletBalance.textContent = `${parseFloat(this.state.balance).toFixed(4)} BNB`;
+            if (walletType) walletType.textContent = this.state.walletType;
+            
+            // Обновить user ID и роль
+            if (walletUserId) walletUserId.textContent = this.getUserId();
+            if (roleIndicator) {
+                const role = this.getUserRole();
+                roleIndicator.textContent = role;
+                roleIndicator.classList.remove('hidden');
+                
+                // Показать админ панель если нужно
+                this.updateAdminAccess(role);
+            }
+        } else {
+            // Показать кнопку подключения
+            if (connectBtn) connectBtn.style.display = 'block';
+            if (walletInfo) walletInfo.classList.add('hidden');
+        }
     },
 
-    // Получение ID пользователя
-    getUserId() {
-        return this.referralSystem.getIdByAddress(this.state.account);
+    // Определение роли пользователя
+    getUserRole() {
+        if (!this.state.account) return 'User';
+        
+        // Проверка на владельца контракта
+        if (this.isOwner()) return 'Owner';
+        if (this.isFounder()) return 'Founder';
+        if (this.isBoard()) return 'Board';
+        
+        return 'User';
     },
 
-    // Генерация реферальной ссылки
-    getReferralLink() {
-        if (!this.state.account) return null;
-        return this.referralSystem.generateReferralLink(this.state.account);
-    },
-
-    // Проверка, является ли текущий аккаунт владельцем
+    // Проверка на владельца
     isOwner() {
-        const ownerAddress = '0x7261b8aeaee2f806f64001596a67d68f2055acd2';
-        return this.getFullAddress() === ownerAddress.toLowerCase();
+        const ownerAddress = '0x0099188030174e381e7a7ee36d2783ecc31b6728';
+        return this.state.account && this.state.account.toLowerCase() === ownerAddress.toLowerCase();
     },
 
-    // Проверка, является ли аккаунт учредителем
+    // Проверка на учредителя
     isFounder() {
-        const founders = [
-            '0x03284a899147f5a07f82c622f34df92198671635', // F1
-            '0x9b49bd9c9458615e11c051afd1ebe983563b67ee', // F2
-            '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7'  // F3
+        const founderAddresses = [
+            '0x0099188030174e381e7a7ee36d2783ecc31b6728'
         ];
-        const currentAddress = this.getFullAddress();
-        return founders.some(founder => founder.toLowerCase() === currentAddress);
+        return this.state.account && founderAddresses.some(addr => 
+            addr.toLowerCase() === this.state.account.toLowerCase()
+        );
     },
 
-    // Проверка, является ли аккаунт директором
+    // Проверка на члена совета директоров
     isBoard() {
-        const boards = [
-            '0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA', // B1
-            '0x0AB97e3934b1Afc9F1F6447CCF676E4f1D8B9639', // B2
-            '0x0561671297Eed07accACB41b4882ED61e87E3644', // B3
-            '0x012E0B2b502FE0131Cb342117415a43d59094D6d', // B4
-            '0x15b546a61865bdc46783ACfc50c3101a1121c69B', // B5
-            '0xB5986B808dad481ad86D63DF152cC0ad7B473e48', // B6
-            '0x4d2C77e59538deFe89E3B2951680547FC24aD52C', // B7
-            '0xAB17aDbe29c4E1d695C239206682B02ebdB3f707'  // B8
+        const boardAddresses = [
+            '0x0099188030174e381e7a7ee36d2783ecc31b6728'
         ];
-        const currentAddress = this.getFullAddress();
-        return boards.some(board => board.toLowerCase() === currentAddress);
+        return this.state.account && boardAddresses.some(addr => 
+            addr.toLowerCase() === this.state.account.toLowerCase()
+        );
     },
 
-    // Проверка доступа к админ-функциям
-    hasAdminAccess() {
-        return this.isOwner() || this.isFounder() || this.isBoard();
+    // Обновление доступа к админ панели
+    updateAdminAccess(role) {
+        const adminNavBtn = document.getElementById('adminNavBtn');
+        
+        if (role === 'Owner' || role === 'Founder') {
+            if (adminNavBtn) adminNavBtn.classList.remove('hidden');
+        } else {
+            if (adminNavBtn) adminNavBtn.classList.add('hidden');
+        }
+    },
+
+    // Генерация ID пользователя
+    getUserId() {
+        if (!this.state.account) return 'GW0000000';
+        
+        const hash = this.state.account.slice(2);
+        const numericId = parseInt(hash.slice(-6), 16) % 10000000;
+        return `GW${numericId.toString().padStart(7, '0')}`;
+    },
+
+    // Отключение кошелька
+    async disconnect() {
+        this.state.account = null;
+        this.state.isConnected = false;
+        this.state.balance = '0';
+        
+        this.clearStoredConnection();
+        this.updateWalletDisplay();
+        
+        this.events.dispatchEvent(new CustomEvent('walletDisconnected'));
+        UI.showNotification('Wallet disconnected', 'info');
+    },
+
+    // Сохранение подключения
+    saveConnection() {
+        localStorage.setItem('connectedAccount', this.state.account);
+        localStorage.setItem('walletType', this.state.walletType);
+    },
+
+    // Очистка сохраненного подключения
+    clearStoredConnection() {
+        localStorage.removeItem('connectedAccount');
+        localStorage.removeItem('walletType');
     },
 
     // Настройка слушателей событий
     setupEventListeners() {
-        if (!this.state.provider) return;
-
+        if (!window.ethereum) return;
+        
         console.log('Setting up wallet event listeners...');
-
-        // Изменение аккаунта
-        this.state.provider.on('accountsChanged', async (accounts) => {
+        
+        // Смена аккаунта
+        window.ethereum.on('accountsChanged', (accounts) => {
             console.log('Accounts changed:', accounts);
-            
-            if (accounts.length > 0) {
-                const newAccount = accounts[0];
-                if (newAccount !== this.state.account) {
-                    this.state.account = newAccount;
-                    await this.updateAccountInfo();
-                    
-                    UI.showNotification('Account changed, refreshing data...', 'info');
-                    
-                    // Автообновление через 2 секунды
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-                }
-            } else {
-                console.log('No accounts available, disconnecting...');
+            if (accounts.length === 0) {
                 this.disconnect();
+            } else if (accounts[0].toLowerCase() !== this.state.account) {
+                this.setAccount(accounts[0]);
+                this.updateAccountInfo();
+                this.saveConnection();
             }
         });
-
-        // Изменение сети
-        this.state.provider.on('chainChanged', (chainId) => {
-            console.log('Chain changed to:', chainId);
+        
+        // Смена сети
+        window.ethereum.on('chainChanged', (chainId) => {
+            console.log('Chain changed:', chainId);
+            this.state.chainId = parseInt(chainId, 16);
             
-            UI.showNotification('Network changed, reloading...', 'info');
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
+            if (this.state.chainId !== this.targetChainId) {
+                UI.showNotification('Please switch to opBNB network', 'warning');
+            } else {
+                UI.showNotification('Connected to opBNB network', 'success');
+            }
+            
+            // Перезагрузка данных контрактов
+            if (window.ContractsModule && this.state.isConnected) {
+                ContractsModule.loadUserData(true);
+            }
         });
-
-        // Отключение
-        this.state.provider.on('disconnect', (error) => {
-            console.log('Provider disconnected:', error);
+        
+        // Отключение кошелька
+        window.ethereum.on('disconnect', () => {
+            console.log('Wallet disconnected');
             this.disconnect();
         });
-
-        // Подключение (для некоторых кошельков)
-        this.state.provider.on('connect', (connectInfo) => {
-            console.log('Provider connected:', connectInfo);
-        });
     },
 
-    // Подписание транзакции с улучшенной обработкой ошибок
+    // Отправка транзакции
     async sendTransaction(to, value, data = '0x') {
-        try {
-            if (!this.state.account) {
-                throw new Error('Wallet not connected');
-            }
-
-            console.log('Preparing transaction...', { to, value, data });
-
-            const params = {
-                from: this.state.account,
-                to: to,
-                value: this.state.web3.utils.toHex(value),
-                data: data
-            };
-
-            // Оценка газа с повторными попытками
-            let gas;
-            for (let i = 0; i < 3; i++) {
-                try {
-                    gas = await this.state.web3.eth.estimateGas(params);
-                    console.log(`Gas estimated: ${gas}`);
-                    break;
-                } catch (gasError) {
-                    console.warn(`Gas estimation attempt ${i + 1} failed:`, gasError);
-                    if (i === 2) throw gasError;
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            }
-            
-            params.gas = this.state.web3.utils.toHex(Math.floor(gas * 1.2)); // +20% для безопасности
-
-            console.log('Sending transaction with params:', params);
-
-            // Отправка транзакции
-            const txHash = await this.state.provider.request({
-                method: 'eth_sendTransaction',
-                params: [params]
-            });
-
-            console.log('Transaction sent:', txHash);
-            return txHash;
-        } catch (error) {
-            console.error('Transaction error:', error);
-            
-            // Более детальная обработка ошибок
-            if (error.code === 4001) {
-                throw new Error('Transaction was rejected by user');
-            } else if (error.code === -32603) {
-                throw new Error('Internal JSON-RPC error');
-            } else if (error.message.includes('insufficient funds')) {
-                throw new Error('Insufficient BNB balance');
-            } else if (error.message.includes('gas')) {
-                throw new Error('Gas estimation failed - transaction may fail');
-            } else {
-                throw new Error(`Transaction failed: ${error.message}`);
-            }
+        if (!this.state.web3 || !this.state.account) {
+            throw new Error('Wallet not connected');
         }
+        
+        const gasPrice = await this.state.web3.eth.getGasPrice();
+        const gasLimit = data === '0x' ? 21000 : await this.state.web3.eth.estimateGas({
+            from: this.state.account,
+            to: to,
+            value: value,
+            data: data
+        });
+        
+        const txParams = {
+            from: this.state.account,
+            to: to,
+            value: value,
+            gas: Math.floor(gasLimit * 1.2),
+            gasPrice: gasPrice,
+            data: data
+        };
+        
+        return await this.state.web3.eth.sendTransaction(txParams);
     },
 
-    // Ожидание подтверждения транзакции с прогрессом
-    async waitForTransaction(txHash, showProgress = true) {
-        let receipt = null;
-        let attempts = 0;
-        const maxAttempts = 60; // Увеличено для медленных сетей
-
-        console.log(`Waiting for transaction ${txHash}...`);
-
-        if (showProgress) {
-            UI.showNotification('Transaction sent, waiting for confirmation...', 'info');
-        }
-
-        while (!receipt && attempts < maxAttempts) {
+    // Ожидание подтверждения транзакции
+    async waitForTransaction(txHash, timeout = 60000) {
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < timeout) {
             try {
-                receipt = await this.state.web3.eth.getTransactionReceipt(txHash);
-                if (!receipt) {
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-                    attempts++;
-                    
-                    if (showProgress && attempts % 10 === 0) {
-                        UI.showNotification(`Still waiting... (${attempts * 3}s)`, 'info');
-                    }
-                }
+                const receipt = await this.state.web3.eth.getTransactionReceipt(txHash);
+                if (receipt) return receipt;
             } catch (error) {
-                console.warn(`Receipt check attempt ${attempts + 1} failed:`, error);
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                attempts++;
+                console.warn('Transaction not yet mined:', txHash);
             }
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
-
-        if (!receipt) {
-            throw new Error('Transaction timeout - please check manually');
-        }
-
-        if (receipt.status === false || receipt.status === '0x0') {
-            throw new Error('Transaction failed');
-        }
-
-        console.log('Transaction confirmed:', receipt);
-        return receipt;
+        
+        throw new Error('Transaction timeout');
     },
 
-    // Конвертация в Wei
+    // Утилиты
+    formatAddress(address) {
+        if (!address) return '0x000...000';
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    },
+
     toWei(amount) {
         return this.state.web3.utils.toWei(amount.toString(), 'ether');
     },
 
-    // Конвертация из Wei
     fromWei(amount) {
         return this.state.web3.utils.fromWei(amount.toString(), 'ether');
     },
 
-    // Экспорт данных для админа
-    exportUserDatabase() {
-        if (!this.isOwner()) {
-            throw new Error('Only owner can export database');
-        }
-        
-        const data = {
-            idMappings: JSON.parse(localStorage.getItem('idMappings') || '{}'),
-            eventLogs: JSON.parse(localStorage.getItem('idEventLogs') || '[]'),
-            timestamp: Date.now(),
-            version: '1.0',
-            networkInfo: {
-                chainId: this.state.chainId,
-                walletType: this.state.walletType
-            }
-        };
-        
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `globalway-database-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    isAddress(address) {
+        return this.state.web3.utils.isAddress(address);
     },
 
-    // Импорт базы данных
-    importUserDatabase(jsonData) {
-        if (!this.isOwner()) {
-            throw new Error('Only owner can import database');
-        }
-        
-        try {
-            const data = JSON.parse(jsonData);
-            
-            if (data.idMappings) {
-                localStorage.setItem('idMappings', JSON.stringify(data.idMappings));
-                this.referralSystem.loadMappings();
-            }
-            
-            if (data.eventLogs) {
-                localStorage.setItem('idEventLogs', JSON.stringify(data.eventLogs));
-            }
-            
-            UI.showNotification('Database imported successfully', 'success');
-        } catch (error) {
-            throw new Error('Invalid database format');
-        }
-    },
-
-    // Получение информации о подключении
-    getConnectionInfo() {
-        return {
-            isConnected: this.state.isConnected,
-            account: this.state.account,
-            walletType: this.state.walletType,
-            chainId: this.state.chainId,
-            hasProvider: !!this.state.provider
-        };
-    },
-
-    // Проверка поддержки функций кошелька
-    getWalletCapabilities() {
-        if (!this.state.provider) return null;
-        
-        return {
-            canSwitchChain: !!this.state.provider.request,
-            canAddChain: !!this.state.provider.request,
-            supportsEvents: !!this.state.provider.on,
-            walletType: this.state.walletType,
-            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        };
+    // Проверка наличии админ прав
+    hasAdminAccess() {
+        return this.isOwner() || this.isFounder();
     }
 };
 
-// Экспорт для использования в других модулях
+// Экспорт модуля
 window.Web3Module = Web3Module;
