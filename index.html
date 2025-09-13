@@ -1,372 +1,295 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GlobalWay - Decentralized platform for global internet opportunities">
-    <title>GlobalWay - Your Global Path</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#1a1a2e">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GlobalWay">
-    
-    <!-- Icons -->
-    <link rel="icon" href="/assets/icons/favicon.ico">
-    <link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
-    <link rel="manifest" href="/manifest.json">
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="/src/css/styles.css">
-    <link rel="stylesheet" href="/src/css/responsive.css">
-    <link rel="stylesheet" href="/src/css/animations.css">
-    
-    <!-- Web3 Library -->
-    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta name="description" content="GlobalWay - Decentralized platform for global internet opportunities">
+   <title>GlobalWay - Your Global Path</title>
+   
+   <!-- PWA Meta Tags -->
+   <meta name="theme-color" content="#FFD700">
+   <meta name="apple-mobile-web-app-capable" content="yes">
+   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+   <meta name="apple-mobile-web-app-title" content="GlobalWay">
+   
+   <!-- Icons -->
+   <link rel="icon" href="/assets/icons/favicon.ico">
+   <link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png">
+   <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192x192.png">
+   <link rel="manifest" href="/manifest.json">
+   
+   <!-- Styles -->
+   <link rel="stylesheet" href="/src/css/styles.css">
+   <link rel="stylesheet" href="/src/css/responsive.css">
+   <link rel="stylesheet" href="/src/css/animations.css">
+   
+   <!-- Web3 Library -->
+   <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
 </head>
-<body class="dark">
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
-        <div class="cosmic-loader">
-            <div class="planet"></div>
-            <div class="orbit"></div>
-            <div class="loading-text">🌌 Connecting to the Universe...</div>
-        </div>
-    </div>
+<body>
+   <!-- Loading Screen -->
+   <div id="loading-screen" class="loading-screen">
+       <div class="cosmic-loader">
+           <div class="planet"></div>
+           <div class="orbit"></div>
+           <div class="loading-text">🌌 Connecting to the Universe...</div>
+       </div>
+   </div>
 
-    <!-- PWA Install Button -->
-    <button id="installPWA" class="install-pwa-btn hidden">
-        📱 Install App
-    </button>
+   <!-- App Container -->
+   <div id="app" class="app-container">
+       <!-- Header -->
+       <header class="app-header">
+           <div class="header-content">
+               <div class="logo">
+                   <img src="/assets/images/logo.png" alt="GlobalWay" class="logo-img">
+                   <div class="logo-text">
+                       <h1>GlobalWay</h1>
+                       <span class="tagline">Your Global Path</span>
+                   </div>
+               </div>
+               
+               <div class="header-actions">
+                   <div class="network-indicator">
+                       <span class="network-status" id="networkStatus">opBNB</span>
+                   </div>
+                   
+                   <div class="wallet-section">
+                       <button id="connectWallet" class="connect-wallet-btn">
+                           🔗 Connect SafePal
+                       </button>
+                       <div id="walletInfo" class="wallet-info hidden">
+                           <span id="walletAddress">0x000...000</span>
+                           <span id="walletBalance">0.000 BNB</span>
+                           <span id="walletType" class="wallet-type">SafePal</span>
+                           <span id="walletUserId" class="user-id">GW0000000</span>
+                           <span id="roleIndicator" class="role-indicator hidden">User</span>
+                       </div>
+                   </div>
+                   
+                   <div class="language-selector">
+                       <select id="languageSelect" class="language-select">
+                           <option value="en">🇺🇸 EN</option>
+                           <option value="uk">🇺🇦 UA</option>
+                           <option value="ru">🇷🇺 RU</option>
+                       </select>
+                   </div>
 
-    <!-- App Container -->
-    <div id="app" class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
-                <div class="logo">
-                    <img src="/assets/images/logo.png" alt="GlobalWay" class="logo-img">
-                    <div class="logo-text">
-                        <h1>GlobalWay</h1>
-                        <span class="tagline">Your Global Path</span>
-                    </div>
-                </div>
-                
-                <div class="header-actions">
-                    <div class="network-indicator">
-                        <span class="network-status active" id="networkStatus">opBNB</span>
-                    </div>
-                    
-                    <div class="role-indicator hidden" id="roleIndicator">
-                        User
-                    </div>
-                    
-                    <div class="wallet-section">
-                        <button id="connectWallet" class="connect-wallet-btn">
-                            🔗 Connect Wallet
-                        </button>
-                        <div id="walletInfo" class="wallet-info hidden">
-                            <div class="wallet-details">
-                                <span id="walletAddress" class="wallet-address">0x000...000</span>
-                                <span id="walletUserId" class="wallet-id">GW0000000</span>
-                            </div>
-                            <div class="wallet-stats">
-                                <span id="walletBalance" class="wallet-balance">0.000 BNB</span>
-                                <span id="walletType" class="wallet-type">No Wallet</span>
-                            </div>
-                            <button id="disconnectWallet" class="disconnect-btn" title="Disconnect">
-                                ❌
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="header-controls">
-                        <div class="theme-toggle">
-                            <input type="checkbox" id="themeToggle" class="theme-checkbox">
-                            <label for="themeToggle" class="theme-label">
-                                <span class="theme-icon">🌙</span>
-                                <span class="theme-icon">☀️</span>
-                            </label>
-                        </div>
-                        
-                        <div class="language-selector">
-                            <select id="languageSelect" class="language-select">
-                                <option value="en">🇺🇸 EN</option>
-                                <option value="uk">🇺🇦 UA</option>
-                                <option value="ru">🇷🇺 RU</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
+                   <div class="theme-toggle">
+                       <label class="toggle-switch">
+                           <input type="checkbox" id="themeToggle" checked>
+                           <span class="slider"></span>
+                       </label>
+                   </div>
+               </div>
+           </div>
+       </header>
 
-        <!-- Navigation - Адаптивная -->
-        <nav class="main-navigation" id="mainNavigation">
-            <button class="nav-btn active" data-page="dashboard" title="Dashboard">
-                <img src="/assets/icons/dashboard.png" class="nav-icon" alt="Dashboard">
-                <span class="nav-text" data-translate="dashboard">Dashboard</span>
-            </button>
-            <button class="nav-btn" data-page="partners" title="Partners">
-                <img src="/assets/icons/users.png" class="nav-icon" alt="Partners">
-                <span class="nav-text" data-translate="partners">Partners</span>
-            </button>
-            <button class="nav-btn" data-page="matrix" title="Matrix">
-                <img src="/assets/icons/matrix.png" class="nav-icon" alt="Matrix">
-                <span class="nav-text" data-translate="matrix">Matrix</span>
-            </button>
-            <button class="nav-btn" data-page="tokens" title="Tokens">
-                <img src="/assets/icons/tokens.png" class="nav-icon" alt="Tokens">
-                <span class="nav-text" data-translate="tokens">Tokens</span>
-            </button>
-            <button class="nav-btn" data-page="settings" title="Settings">
-                <img src="/assets/icons/settings.png" class="nav-icon" alt="Settings">
-                <span class="nav-text" data-translate="settings">Settings</span>
-            </button>
-            <button class="nav-btn" data-page="projects" title="Projects">
-                <img src="/assets/icons/projects.png" class="nav-icon" alt="Projects">
-                <span class="nav-text" data-translate="projects">Projects</span>
-            </button>
-            <!-- Admin кнопка - скрыта по умолчанию -->
-            <button class="nav-btn admin-only hidden" data-page="admin" title="Admin">
-                <img src="/assets/icons/settings.png" class="nav-icon" alt="Admin">
-                <span class="nav-text" data-translate="admin">Admin</span>
-            </button>
-        </nav>
+       <!-- Navigation -->
+       <nav class="bottom-nav" id="mainNavigation">
+           <button class="nav-btn active" data-page="dashboard">
+               <img src="/assets/icons/dashboard.png" class="nav-icon" alt="Dashboard">
+               <span class="nav-text" data-translate="dashboard">Dashboard</span>
+           </button>
+           <button class="nav-btn" data-page="partners">
+               <img src="/assets/icons/users.png" class="nav-icon" alt="Partners">
+               <span class="nav-text" data-translate="partners">Partners</span>
+           </button>
+           <button class="nav-btn" data-page="matrix">
+               <img src="/assets/icons/matrix.png" class="nav-icon" alt="Matrix">
+               <span class="nav-text" data-translate="matrix">Matrix</span>
+           </button>
+           <button class="nav-btn" data-page="tokens">
+               <img src="/assets/icons/tokens.png" class="nav-icon" alt="Tokens">
+               <span class="nav-text" data-translate="tokens">Tokens</span>
+           </button>
+           <button class="nav-btn" data-page="settings">
+               <img src="/assets/icons/settings.png" class="nav-icon" alt="Settings">
+               <span class="nav-text" data-translate="settings">Settings</span>
+           </button>
+           <button class="nav-btn" data-page="projects">
+               <img src="/assets/icons/projects.png" class="nav-icon" alt="Projects">
+               <span class="nav-text" data-translate="projects">Projects</span>
+           </button>
+           <button class="nav-btn hidden" data-page="admin" id="adminNavBtn">
+               <img src="/assets/icons/admin.png" class="nav-icon" alt="Admin">
+               <span class="nav-text" data-translate="admin">Admin</span>
+           </button>
+       </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Dashboard Page -->
-            <section id="dashboard" class="page active">
-                <!-- Контент будет загружен из components/dashboard.html -->
-            </section>
-            
-            <!-- Partners Page -->
-            <section id="partners" class="page hidden">
-                <!-- Контент будет загружен из components/partners.html -->
-            </section>
-            
-            <!-- Matrix Page -->
-            <section id="matrix" class="page hidden">
-                <!-- Контент будет загружен из components/matrix.html -->
-            </section>
-            
-            <!-- Tokens Page -->
-            <section id="tokens" class="page hidden">
-                <!-- Контент будет загружен из components/tokens.html -->
-            </section>
-            
-            <!-- Settings Page -->
-            <section id="settings" class="page hidden">
-                <!-- Контент будет загружен из components/settings.html -->
-            </section>
-            
-            <!-- Projects Page -->
-            <section id="projects" class="page hidden">
-                <!-- Контент будет загружен из components/projects.html -->
-            </section>
-            
-            <!-- Admin Page - только для владельца -->
-            <section id="admin" class="page admin-only hidden">
-                <!-- Контент будет загружен из components/admin.html -->
-            </section>
-        </main>
-        
-        <!-- Quarterly Warning Banner -->
-        <div id="quarterlyWarning" class="quarterly-warning hidden">
-            <!-- Динамический контент предупреждения -->
-        </div>
-    </div>
-    
-    <!-- Notifications Container -->
-    <div id="notifications" class="notifications-container"></div>
-    
-    <!-- Global Loader -->
-    <div id="globalLoader" class="global-loader hidden">
-        <div class="spinner"></div>
-        <p>Processing...</p>
-    </div>
-    
-    <!-- Pull to Refresh Indicator -->
-    <div id="pullToRefreshIndicator" class="pull-to-refresh-indicator hidden">
-        Release to refresh...
-    </div>
-    
-    <!-- Modal for Level Purchase -->
-    <div id="levelModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-translate="confirm_purchase">Confirm Purchase</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p data-translate="purchase_confirmation">Are you sure you want to purchase this level?</p>
-                <div class="purchase-details">
-                    <div class="detail-item">
-                        <span data-translate="level">Level:</span>
-                        <span id="modalLevel">1</span>
-                    </div>
-                    <div class="detail-item">
-                        <span data-translate="price">Price:</span>
-                        <span id="modalPrice">0.0015 BNB</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="confirmPurchase" class="btn-primary confirm-btn">
-                    <span data-translate="confirm">Confirm</span>
-                </button>
-                <button id="cancelPurchase" class="btn-secondary cancel-btn">
-                    <span data-translate="cancel">Cancel</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal for Multiple Levels Purchase -->
-    <div id="multipleLevelsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-translate="multiple_levels_purchase">Multiple Levels Purchase</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p data-translate="multiple_levels_confirmation">Confirm purchase of multiple levels:</p>
-                <div class="levels-selection">
-                    <div class="selection-item">
-                        <span data-translate="levels">Levels:</span>
-                        <span id="modalLevelsRange">1-4</span>
-                    </div>
-                    <div class="selection-item">
-                        <span data-translate="total_price">Total Price:</span>
-                        <span id="modalTotalPrice">0.0225 BNB</span>
-                    </div>
-                    <div class="selection-item">
-                        <span data-translate="savings">Savings:</span>
-                        <span id="modalSavings" class="savings">0.000 BNB</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="confirmMultiplePurchase" class="btn-primary confirm-btn">
-                    <span data-translate="confirm">Confirm</span>
-                </button>
-                <button id="cancelMultiplePurchase" class="btn-secondary cancel-btn">
-                    <span data-translate="cancel">Cancel</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal for Token Trading -->
-    <div id="tokenModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="tokenModalTitle" data-translate="token_trading">Token Trading</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="tokenModalBody">
-                    <!-- Content will be populated dynamically -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="confirmTokenAction" class="btn-primary confirm-btn">
-                    <span data-translate="confirm">Confirm</span>
-                </button>
-                <button id="cancelTokenAction" class="btn-secondary cancel-btn">
-                    <span data-translate="cancel">Cancel</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal for Quarterly Activity -->
-    <div id="quarterlyModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 data-translate="quarterly_payment">Quarterly Activity Payment</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p data-translate="quarterly_payment_info">Quarterly payment of 0.075 BNB will be distributed as follows:</p>
-                <div class="payment-breakdown">
-                    <div class="breakdown-item">
-                        <span>Charity/Technical spot (1-4):</span>
-                        <span>0.0225 BNB</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span>Matrix rewards (12 levels):</span>
-                        <span>0.045 BNB</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span>Token pool:</span>
-                        <span>0.005 BNB</span>
-                    </div>
-                    <div class="breakdown-total">
-                        <span><strong>Total:</strong></span>
-                        <span><strong>0.075 BNB</strong></span>
-                    </div>
-                </div>
-                
-                <div id="charityAddressSection" class="charity-section">
-                    <p data-translate="charity_address_info">For the first quarter, you can specify a charity address:</p>
-                    <input type="text" id="charityAddressInput" placeholder="0x..." class="charity-input">
-                    <small data-translate="charity_note">Leave empty for automatic technical spot</small>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="confirmQuarterly" class="btn-primary confirm-btn">
-                    <span data-translate="pay_quarterly">Pay 0.075 BNB</span>
-                </button>
-                <button id="cancelQuarterly" class="btn-secondary cancel-btn">
-                    <span data-translate="cancel">Cancel</span>
-                </button>
-            </div>
-        </div>
-    </div>
+       <!-- Main Content -->
+       <main class="main-content">
+           <!-- Dashboard Page -->
+           <section id="dashboard" class="page active"></section>
+           
+           <!-- Partners Page -->
+           <section id="partners" class="page"></section>
+           
+           <!-- Matrix Page -->
+           <section id="matrix" class="page"></section>
+           
+           <!-- Tokens Page -->
+           <section id="tokens" class="page"></section>
+           
+           <!-- Settings Page -->
+           <section id="settings" class="page"></section>
+           
+           <!-- Projects Page -->
+           <section id="projects" class="page"></section>
+           
+           <!-- Admin Page - Only for owner -->
+           <section id="admin" class="page admin-only"></section>
+       </main>
+      
+      <!-- Notifications Container -->
+      <div id="notifications" class="notifications-container"></div>
+      
+      <!-- Modal for Level Purchase -->
+      <div id="levelModal" class="modal">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h3 data-translate="confirm_purchase">Confirm Purchase</h3>
+                  <button class="modal-close">&times;</button>
+              </div>
+              <div class="modal-body">
+                  <p data-translate="purchase_confirmation">Are you sure you want to purchase this level?</p>
+                  <div class="purchase-details">
+                      <div class="detail-item">
+                          <span data-translate="level">Level:</span>
+                          <span id="modalLevel">1</span>
+                      </div>
+                      <div class="detail-item">
+                          <span data-translate="price">Price:</span>
+                          <span id="modalPrice">0.0015 BNB</span>
+                      </div>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button id="confirmPurchase" class="confirm-btn">
+                      <span data-translate="confirm">Confirm</span>
+                  </button>
+                  <button id="cancelPurchase" class="cancel-btn">
+                      <span data-translate="cancel">Cancel</span>
+                  </button>
+              </div>
+          </div>
+      </div>
+      
+      <!-- Modal for Multiple Levels Purchase -->
+      <div id="multipleLevelsModal" class="modal">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h3 data-translate="multiple_levels_purchase">Multiple Levels Purchase</h3>
+                  <button class="modal-close">&times;</button>
+              </div>
+              <div class="modal-body">
+                  <p data-translate="multiple_levels_confirmation">Confirm purchase of multiple levels:</p>
+                  <div class="levels-selection">
+                      <div class="selection-item">
+                          <span data-translate="levels">Levels:</span>
+                          <span id="modalLevelsRange">1-4</span>
+                      </div>
+                      <div class="selection-item">
+                          <span data-translate="total_price">Total Price:</span>
+                          <span id="modalTotalPrice">0.0225 BNB</span>
+                      </div>
+                      <div class="selection-item">
+                          <span data-translate="savings">Savings:</span>
+                          <span id="modalSavings" class="savings">0.000 BNB</span>
+                      </div>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button id="confirmMultiplePurchase" class="confirm-btn">
+                      <span data-translate="confirm">Confirm</span>
+                  </button>
+                  <button id="cancelMultiplePurchase" class="cancel-btn">
+                      <span data-translate="cancel">Cancel</span>
+                  </button>
+              </div>
+          </div>
+      </div>
+      
+      <!-- Modal for Token Trading -->
+      <div id="tokenModal" class="modal">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h3 id="tokenModalTitle" data-translate="token_trading">Token Trading</h3>
+                  <button class="modal-close">&times;</button>
+              </div>
+              <div class="modal-body">
+                  <div id="tokenModalBody">
+                      <!-- Content will be populated dynamically -->
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button id="confirmTokenAction" class="confirm-btn">
+                      <span data-translate="confirm">Confirm</span>
+                  </button>
+                  <button id="cancelTokenAction" class="cancel-btn">
+                      <span data-translate="cancel">Cancel</span>
+                  </button>
+              </div>
+          </div>
+      </div>
+      
+      <!-- Modal for Quarterly Activity with Charity -->
+      <div id="quarterlyModal" class="modal">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h3 data-translate="quarterly_payment">Quarterly Activity Payment</h3>
+                  <button class="modal-close">&times;</button>
+              </div>
+              <div class="modal-body">
+                  <p data-translate="quarterly_payment_info">Quarterly payment of 0.075 BNB will be distributed as follows:</p>
+                  <div class="payment-breakdown">
+                      <div class="breakdown-item">
+                          <span>Charity/Technical spot (1-4):</span>
+                          <span>0.0225 BNB</span>
+                      </div>
+                      <div class="breakdown-item">
+                          <span>Matrix rewards (12 levels):</span>
+                          <span>0.045 BNB</span>
+                      </div>
+                      <div class="breakdown-item">
+                          <span>Token pool:</span>
+                          <span>0.005 BNB</span>
+                      </div>
+                  </div>
+                  
+                  <div id="charityAddressSection" class="charity-section">
+                      <p data-translate="charity_address_info">For the first quarter, you can specify a charity address:</p>
+                      <input type="text" id="charityAddressInput" placeholder="0x..." class="charity-input">
+                      <small data-translate="charity_note">Leave empty for automatic technical spot</small>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button id="confirmQuarterly" class="confirm-btn">
+                      <span data-translate="pay_quarterly">Pay 0.075 BNB</span>
+                  </button>
+                  <button id="cancelQuarterly" class="cancel-btn">
+                      <span data-translate="cancel">Cancel</span>
+                  </button>
+              </div>
+          </div>
+      </div>
+  </div>
 
-    <!-- Scripts -->
-    <script src="/src/js/web3.js"></script>
-    <script src="/src/js/contracts.js"></script>
-    <script src="/src/js/ui.js"></script>
-    
-    <!-- Application Initialization -->
-    <script>
-    document.addEventListener('DOMContentLoaded', async () => {
-        console.log('🚀 Initializing GlobalWay App...');
-        try {
-            // Ждем загрузки всех библиотек
-            await new Promise(resolve => setTimeout(resolve, 500));
-        
-            await UI.init(); // UI первым
-            await Web3Module.init(); // Web3 вторым
-            if (Web3Module.state.web3) { // Только если Web3 доступен
-                await ContractsModule.init();
-            }
-            console.log('✅ App initialized successfully');
-        } catch (error) {
-            console.error('❌ App initialization error:', error);
-        }
-    });
-    </script>
-    
-    <!-- Service Worker Registration -->
-    <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .then(registration => {
-                    console.log('ServiceWorker registered:', registration);
-                })
-                .catch(err => {
-                    console.log('ServiceWorker registration failed:', err);
-                });
-        });
-    }
-    </script>
+  <!-- Scripts -->
+  <script src="./src/js/web3.js"></script>
+  <script src="./src/js/contracts.js"></script>
+  <script src="./src/js/ui.js"></script>
+  <script src="./src/js/app.js"></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+  if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+              .then(registration => console.log('ServiceWorker registered'))
+              .catch(err => console.log('ServiceWorker registration failed: ', err));
+      });
+  }
+  </script>
 </body>
 </html>
