@@ -1,5 +1,8 @@
 <!-- Projects Component -->
 <div class="projects-content">
+  <div id="projectsContainer">
+    <!-- JS будет загружать сюда контент -->
+  </div>
  <!-- Projects Grid -->
  <div class="projects-grid">
    <div class="project-card">
