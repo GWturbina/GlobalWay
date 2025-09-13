@@ -413,46 +413,41 @@ const Web3Module = {
         UI.showNotification('Wallet disconnected', 'info');
     },
 
-    // Проверка и переключение сети
     async checkAndSwitchNetwork() {
+    try {
+        const chainId = await this.state.web3.eth.getChainId();
+        console.log(`Current network: ${chainId}, required: ${this.targetChainId}`);
+        
+        if (chainId === this.targetChainId) {
+            console.log('Already on correct network (opBNB)');
+            return true; // ✅ УЖЕ НА ПРАВИЛЬНОЙ СЕТИ - НЕ ПЕРЕКЛЮЧАТЬ
+        }
+        
+        console.log('Switching to opBNB network...');
+        
         try {
-            console.log('Checking network...');
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: `0x${this.targetChainId.toString(16)}` }]
+            });
             
-            const chainId = await this.state.web3.eth.getChainId();
-            this.state.chainId = chainId;
-
-            console.log(`Current network: ${chainId}, required: 204`);
-
-            if (chainId !== 204) {
-                console.log('Switching to opBNB network...');
-                
-                // Попытка переключить сеть
-                try {
-                    await this.state.provider.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: this.config.chainId }],
-                    });
-                    console.log('Network switched successfully');
-                } catch (switchError) {
-                    console.log('Switch failed, attempting to add network:', switchError);
-                    
-                    // Если сеть не добавлена, добавляем её
-                    if (switchError.code === 4902) {
-                        await this.state.provider.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: this.config.chainId,
-                                chainName: this.config.chainName,
-                                rpcUrls: this.config.rpcUrls,
-                                nativeCurrency: this.config.nativeCurrency,
-                                blockExplorerUrls: this.config.blockExplorerUrls
-                            }],
-                        });
-                        console.log('Network added successfully');
-                    } else {
-                        throw switchError;
-                    }
-                }
+            console.log('Network switched successfully');
+            return true;
+        } catch (switchError) {
+            // Если сеть не добавлена, пытаемся добавить
+            if (switchError.code === 4902) {
+                console.log('Adding opBNB network...');
+                await this.addOpBNBNetwork();
+                return true;
+            }
+            throw switchError;
+        }
+    } catch (error) {
+        console.error('Network configuration error:', error);
+        // ⚠️ НЕ БРОСАТЬ ОШИБКУ - ПРОДОЛЖАТЬ РАБОТУ
+        return false;
+    }
+},
                 
                 // Повторная проверка после переключения
                 const newChainId = await this.state.web3.eth.getChainId();
