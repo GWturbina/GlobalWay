@@ -1,53 +1,70 @@
 {
-  "name": "GlobalWay - Your Global Path",
-  "short_name": "GlobalWay",
-  "description": "Decentralized platform for global internet opportunities",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#FFD700",
-  "orientation": "portrait",
-  "icons": [
-    {
-      "src": "./assets/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./assets/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "./assets/icons/favicon.ico",
-      "sizes": "32x32",
-      "type": "image/x-icon"
-    }
-  ],
-  "categories": [
-    "finance",
-    "business",
-    "productivity"
-  ],
-  "lang": "en-US",
-  "dir": "ltr",
-  "prefer_related_applications": false,
-  "shortcuts": [
-    {
-      "name": "Dashboard",
-      "url": "/",
-      "icons": [{"src": "/assets/icons/dashboard.png", "sizes": "96x96"}]
-    },
-    {
-      "name": "Partners",
-      "url": "/?page=partners",
-      "icons": [{"src": "/assets/icons/users.png", "sizes": "96x96"}]
-    },
-    {
-      "name": "Tokens",
-      "url": "/?page=tokens",
-      "icons": [{"src": "/assets/icons/tokens.png", "sizes": "96x96"}]
-    }
-  ]
+    "name": "GlobalWay Club",
+    "short_name": "GlobalWay",
+    "description": "Decentralized marketing platform on opBNB network",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1a1a2e",
+    "theme_color": "#0f3460",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "lang": "en",
+    "categories": ["finance", "business", "productivity"],
+    "dir": "ltr",
+    "icons": [
+        {
+            "src": "/assets/icons/favicon-32x32.png",
+            "sizes": "32x32",
+            "type": "image/png"
+        },
+        {
+            "src": "/assets/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/assets/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/assets/images/screenshot-mobile.png",
+            "sizes": "375x667",
+            "type": "image/png",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "/assets/images/screenshot-desktop.png", 
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "description": "Open dashboard",
+            "url": "/?page=dashboard",
+            "icons": [{"src": "/assets/icons/dashboard.png", "sizes": "96x96"}]
+        },
+        {
+            "name": "Partners",
+            "short_name": "Partners", 
+            "description": "View partners",
+            "url": "/?page=partners",
+            "icons": [{"src": "/assets/icons/users.png", "sizes": "96x96"}]
+        }
+    ],
+    "related_applications": [
+        {
+            "platform": "webapp",
+            "url": "https://globalway.club/manifest.json"
+        }
+    ],
+    "prefer_related_applications": false
 }
