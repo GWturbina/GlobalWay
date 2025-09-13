@@ -33,8 +33,8 @@
     <div class="referral-section">
       <label data-translate="referral_link">Referral Link:</label>
       <div class="referral-input-group">
-        <input type="text" id="referralLink" readonly>
-        <button class="copy-btn" data-copy="">📋</button>
+        <input type="text" id="referralLink" readonly value="">
+        <button id="copyRefLink" class="copy-btn" data-copy="">📋</button>
       </div>
       <div class="qr-section">
         <div id="referralQR"></div>
@@ -42,7 +42,7 @@
     </div>
   </div>
   
-  <!-- Quarterly Activity -->
+  <!-- Квартальная активность -->
   <div class="cosmic-card">
     <h3>⏰ <span data-translate="quarterly_activity">Quarterly Activity</span></h3>
     <div class="user-info-grid">
@@ -60,7 +60,7 @@
       </div>
       <div class="info-item">
         <span class="label" data-translate="quarterly_fee">Fee:</span>
-        <span class="value">0.075 BNB</span>
+        <span id="quarterlyFeeAmount" class="value">0.075 BNB</span>
       </div>
     </div>
     
@@ -163,7 +163,7 @@
     </div>
   </div>
   
-  <!-- Earnings Breakdown -->
+  <!-- Earnings by Category -->
   <div class="cosmic-card">
     <h3>💎 <span data-translate="earnings_breakdown">Earnings Breakdown</span></h3>
     <div class="earnings-list">
@@ -213,6 +213,25 @@
     </div>
   </div>
 
+  <!-- Recent Transactions -->
+  <div class="cosmic-card">
+    <h3>📈 <span data-translate="recent_transactions">Recent Transactions</span></h3>
+    <div class="transactions-table">
+      <div class="table-header">
+        <span>№</span>
+        <span data-translate="level">Level</span>
+        <span data-translate="amount">Amount</span>
+        <span data-translate="time">Time</span>
+        <span data-translate="type">Type</span>
+      </div>
+      <div class="table-body" id="transactionsTableBody">
+        <div class="no-data wallet-required">
+          🔗 <span data-translate="connect_wallet_to_view">Connect wallet to view data</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- GWT Tokens -->
   <div class="cosmic-card">
     <h3>🪙 <span data-translate="gwt_tokens">GWT Tokens</span></h3>
@@ -233,4 +252,68 @@
       </div>
     </div>
   </div>
+  
+  <!-- Withdrawal Section - ЗАМОРОЖЕНО -->
+  <div class="cosmic-card">
+    <h3>💰 <span data-translate="withdrawal">Withdrawal</span></h3>
+    <div class="withdrawal-section disabled">
+      <div class="balance-info">
+        <span data-translate="available_balance">Available Balance:</span>
+        <span id="availableBalance" class="balance-amount">0.000 BNB</span>
+      </div>
+      <div class="withdrawal-notice">
+        <p>⚠️ <span data-translate="withdrawal_disabled">Withdrawals are temporarily disabled. All earnings are distributed automatically between partners.</span></p>
+      </div>
+    </div>
+  </div>
 </div>
+
+<style>
+.warning-message {
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(255, 165, 0, 0.1);
+  border: 1px solid rgba(255, 165, 0, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  color: #FFA500;
+}
+
+.warning-message.hidden {
+  display: none;
+}
+
+.exchange-notice {
+  margin-top: 10px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.withdrawal-section.disabled {
+  opacity: 0.6;
+}
+
+.withdrawal-notice {
+  text-align: center;
+  padding: 20px;
+  background: rgba(255, 215, 0, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.exchange-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.qr-section {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.qr-section img {
+  border-radius: 8px;
+  background: white;
+  padding: 10px;
+}
+</style>
