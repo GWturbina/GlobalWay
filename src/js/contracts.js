@@ -652,7 +652,7 @@ const ContractsModule = {
 
             UI.showLoading();
 
-            const quarterlyFee = Web3Module.toWei('0.001'); // 0.001 BNB квартальная плата
+            const quarterlyFee = Web3Module.toWei('0.075'); // 0.075 BNB квартальная плата
 
             const tx = await this.contracts.globalWay.methods
                 .payQuarterlyActivity()
