@@ -339,22 +339,17 @@
     document.addEventListener('DOMContentLoaded', async () => {
         console.log('🚀 Initializing GlobalWay App...');
         try {
-            // Правильный порядок инициализации
-            await Web3Module.init();
-            await ContractsModule.init();
-            await UI.init();
+            // Ждем загрузки всех библиотек
+            await new Promise(resolve => setTimeout(resolve, 500));
+        
+            await UI.init(); // UI первым
+            await Web3Module.init(); // Web3 вторым
+            if (Web3Module.state.web3) { // Только если Web3 доступен
+                await ContractsModule.init();
+            }
             console.log('✅ App initialized successfully');
         } catch (error) {
             console.error('❌ App initialization error:', error);
-            // Показ ошибки пользователю
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'init-error';
-            errorDiv.innerHTML = `
-                <h3>Initialization Error</h3>
-                <p>Failed to initialize the application. Please refresh the page.</p>
-                <button onclick="window.location.reload()">Refresh</button>
-            `;
-            document.body.appendChild(errorDiv);
         }
     });
     </script>
