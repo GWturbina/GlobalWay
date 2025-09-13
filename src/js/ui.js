@@ -644,73 +644,73 @@ const UI = {
         });
     },
 
-    // Навигация назад
-    navigateBack() {
-        // Логика навигации назад по страницам
-        const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
-        const currentIndex = pages.indexOf(this.currentPage);
-        if (currentIndex > 0) {
-            this.showPage(pages[currentIndex - 1]);
-        }
-    },
-
-    // Навигация вперед
-    navigateForward() {
-        // Логика навигации вперед по страницам
-        const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
-        const currentIndex = pages.indexOf(this.currentPage);
-        if (currentIndex < pages.length - 1) {
-            this.showPage(pages[currentIndex + 1]);
-        }
+// Навигация назад
+navigateBack() {
+    // Логика навигации назад по страницам
+    const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
+    const currentIndex = pages.indexOf(this.currentPage);
+    if (currentIndex > 0) {
+        this.showPage(pages[currentIndex - 1]);
     }
+},
 
-    // Подключение кошелька с улучшенной обработкой
-    async connectWallet() {
-        try {
-            this.showLoading();
-            const success = await Web3Module.connect();
+// Навигация вперед
+navigateForward() {
+    // Логика навигации вперед по страницам
+    const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
+    const currentIndex = pages.indexOf(this.currentPage);
+    if (currentIndex < pages.length - 1) {
+        this.showPage(pages[currentIndex + 1]);
+    }
+},
+
+// Подключение кошелька с улучшенной обработкой
+async connectWallet() {
+    try {
+        this.showLoading();
+        const success = await Web3Module.connect();
+        
+        if (success) {
+            // Показ приветственного сообщения
+            const userId = Web3Module.getUserId();
+            this.showNotification(`Welcome! Your ID: GW${userId}`, 'success');
             
-            if (success) {
-                // Показ приветственного сообщения
-                const userId = Web3Module.getUserId();
-                this.showNotification(`Welcome! Your ID: GW${userId}`, 'success');
-                
-                // Обработка pending sponsor из реферальной ссылки
-                const pendingSponsor = localStorage.getItem('pendingSponsor');
-                if (pendingSponsor && Web3Module.state.account) {
-                    this.showSponsorConfirmation(pendingSponsor);
-                }
+            // Обработка pending sponsor из реферальной ссылки
+            const pendingSponsor = localStorage.getItem('pendingSponsor');
+            if (pendingSponsor && Web3Module.state.account) {
+                this.showSponsorConfirmation(pendingSponsor);
             }
-        } catch (error) {
-            console.error('Connect wallet error:', error);
-            this.showNotification('Failed to connect wallet', 'error');
-        } finally {
-            this.hideLoading();
         }
-    },
+    } catch (error) {
+        console.error('Connect wallet error:', error);
+        this.showNotification('Failed to connect wallet', 'error');
+    } finally {
+        this.hideLoading();
+    }
+},
 
-    // Подтверждение спонсора из реферальной ссылки
-    showSponsorConfirmation(sponsorAddress) {
-        const modal = this.createModal('sponsor-confirmation', {
-            title: 'Sponsor Detected',
-            content: `
-                <div class="sponsor-info">
-                    <p>You came from a referral link!</p>
-                    <p><strong>Sponsor:</strong> ${this.formatAddress(sponsorAddress)}</p>
-                    <p>Register with this sponsor?</p>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-primary" onclick="UI.registerWithSponsor('${sponsorAddress}')">
-                        Register
-                    </button>
-                    <button class="btn-secondary" onclick="UI.closeModal('sponsor-confirmation')">
-                        Skip
-                    </button>
-                </div>
-            `
-        });
-        this.showModal('sponsor-confirmation');
-    },
+// Подтверждение спонсора из реферальной ссылки
+showSponsorConfirmation(sponsorAddress) {
+    const modal = this.createModal('sponsor-confirmation', {
+        title: 'Sponsor Detected',
+        content: `
+            <div class="sponsor-info">
+                <p>You came from a referral link!</p>
+                <p><strong>Sponsor:</strong> ${this.formatAddress(sponsorAddress)}</p>
+                <p>Register with this sponsor?</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="UI.registerWithSponsor('${sponsorAddress}')">
+                    Register
+                </button>
+                <button class="btn-secondary" onclick="UI.closeModal('sponsor-confirmation')">
+                    Skip
+                </button>
+            </div>
+        `
+    });
+    this.showModal('sponsor-confirmation');
+},
 
     // Регистрация со спонсором
     async registerWithSponsor(sponsorAddress) {
