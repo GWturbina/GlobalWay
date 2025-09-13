@@ -263,20 +263,22 @@
   </div>
 
   <!-- Scripts -->
-  <script src="./src/js/web3.js"></script>
-  <script src="./src/js/contracts.js"></script>
-  <script src="./src/js/ui.js"></script>
-  <script src="./src/js/app.js"></script>
-  
-  <!-- Service Worker Registration -->
-  <script>
-  if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-              .then(registration => console.log('ServiceWorker registered'))
-              .catch(err => console.log('ServiceWorker registration failed: ', err));
-      });
-  }
-  </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+<script src="/src/js/web3.js"></script>
+<script src="/src/js/contracts.js"></script>
+<script src="/src/js/ui.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        console.log('🚀 Initializing GlobalWay App...');
+        try {
+            await UI.init();
+            await Web3Module.init();
+            await ContractsModule.init();
+            console.log('✅ App initialized successfully');
+        } catch (error) {
+            console.error('❌ App initialization error:', error);
+        }
+    });
+</script>
 </body>
 </html>
