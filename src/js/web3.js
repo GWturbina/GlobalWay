@@ -20,7 +20,8 @@ const Web3Module = {
         account: null,
         chainId: null,
         walletType: null,
-        isConnected: false
+        isConnected: false,
+        provider: null
     },
 
     // Реферальная система
@@ -149,61 +150,162 @@ const Web3Module = {
 
     // Инициализация
     async init() {
+        console.log('Web3Module: Initializing...');
+        
         // Загрузка существующих маппингов
         this.referralSystem.loadMappings();
         
         // Обработка реферальной ссылки
         this.referralSystem.processReferralUrl();
 
-        // Проверка наличия Web3 провайдеров
-        if (typeof window.ethereum !== 'undefined') {
-            // Определение типа кошелька с приоритетом SafePal
-            if (window.ethereum.isSafePal) {
-                this.state.walletType = 'SafePal';
-            } else if (window.ethereum.isMetaMask) {
-                this.state.walletType = 'MetaMask';
-            } else if (window.ethereum.isTrust) {
-                this.state.walletType = 'Trust Wallet';
-            } else if (window.ethereum.isCoinbaseWallet) {
-                this.state.walletType = 'Coinbase Wallet';
+        // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Приоритет SafePal кошелька
+        await this.detectAndSetupWallet();
+
+        // Проверка сохраненного подключения
+        const savedAccount = localStorage.getItem('connectedAccount');
+        if (savedAccount && this.state.provider) {
+            await this.reconnect();
+        }
+
+        // Слушатели событий
+        this.setupEventListeners();
+        
+        console.log('Web3Module: Initialized successfully');
+    },
+
+    // НОВЫЙ МЕТОД: Улучшенное обнаружение кошельков с приоритетом SafePal
+    async detectAndSetupWallet() {
+        console.log('Detecting wallet providers...');
+        
+        // Функция определения типа устройства
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isTablet = /iPad|Android/i.test(navigator.userAgent) && !isMobile;
+        
+        let preferredProvider = null;
+        let walletType = null;
+
+        // ПРИОРИТЕТ 1: SafePal (особенно важно на мобильных устройствах)
+        if (window.ethereum?.isSafePal) {
+            preferredProvider = window.ethereum;
+            walletType = 'SafePal';
+            console.log('SafePal wallet detected as primary provider');
+        }
+        // ПРИОРИТЕТ 2: Если несколько провайдеров, ищем SafePal среди них
+        else if (window.ethereum?.providers) {
+            const safePalProvider = window.ethereum.providers.find(p => p.isSafePal);
+            if (safePalProvider) {
+                preferredProvider = safePalProvider;
+                walletType = 'SafePal';
+                console.log('SafePal found among multiple providers');
             } else {
-                this.state.walletType = 'Web3 Wallet';
+                // Fallback к первому доступному провайдеру
+                preferredProvider = window.ethereum.providers[0];
+                walletType = this.detectWalletType(preferredProvider);
+                console.log(`Fallback to: ${walletType}`);
             }
-
-            // Создание экземпляра Web3
-            this.state.web3 = new Web3(window.ethereum);
-
-            // Проверка сохраненного подключения
-            const savedAccount = localStorage.getItem('connectedAccount');
-            if (savedAccount) {
-                await this.reconnect();
+        }
+        // ПРИОРИТЕТ 3: Единственный ethereum провайдер (не SafePal)
+        else if (window.ethereum) {
+            preferredProvider = window.ethereum;
+            walletType = this.detectWalletType(window.ethereum);
+            console.log(`Single provider detected: ${walletType}`);
+        }
+        // ПРИОРИТЕТ 4: Мобильные специфичные провайдеры
+        else if (isMobile) {
+            // На мобильных устройствах проверяем специфичные объекты
+            if (window.safepal) {
+                preferredProvider = window.safepal;
+                walletType = 'SafePal Mobile';
+                console.log('SafePal mobile provider detected');
+            } else if (window.trustwallet) {
+                preferredProvider = window.trustwallet;
+                walletType = 'Trust Wallet';
+                console.log('Trust Wallet mobile provider detected');
             }
+        }
 
-            // Слушатели событий
-            this.setupEventListeners();
+        if (preferredProvider) {
+            this.state.provider = preferredProvider;
+            this.state.walletType = walletType;
+            
+            // Создание экземпляра Web3 с предпочтительным провайдером
+            this.state.web3 = new Web3(preferredProvider);
+            
+            console.log(`Web3 initialized with ${walletType}`);
+            return true;
         } else {
-            console.error('Web3 provider not found');
-            UI.showNotification('Please install SafePal or another Web3 wallet', 'error');
+            console.error('No Web3 wallet detected');
+            // Показываем специфичные инструкции в зависимости от устройства
+            if (isMobile) {
+                UI.showNotification('Please install SafePal mobile app or open this page in SafePal browser', 'error');
+            } else {
+                UI.showNotification('Please install SafePal browser extension or another Web3 wallet', 'error');
+            }
+            return false;
         }
     },
 
-    // Подключение кошелька
+    // Определение типа кошелька
+    detectWalletType(provider) {
+        if (provider.isSafePal) return 'SafePal';
+        if (provider.isMetaMask) return 'MetaMask';
+        if (provider.isTrust) return 'Trust Wallet';
+        if (provider.isCoinbaseWallet) return 'Coinbase Wallet';
+        if (provider.isBinance) return 'Binance Wallet';
+        if (provider.isTokenPocket) return 'TokenPocket';
+        return 'Unknown Wallet';
+    },
+
+    // Улучшенное подключение кошелька
     async connect() {
         try {
+            console.log('Attempting wallet connection...');
+            
             // Проверка наличия провайдера
-            if (!window.ethereum) {
-                UI.showNotification('Please install SafePal wallet', 'error');
-                return false;
+            if (!this.state.provider) {
+                await this.detectAndSetupWallet();
+                if (!this.state.provider) {
+                    throw new Error('No wallet provider found');
+                }
             }
 
-            // Запрос подключения
-            const accounts = await window.ethereum.request({ 
-                method: 'eth_requestAccounts' 
-            });
+            console.log(`Connecting to ${this.state.walletType}...`);
 
-            if (accounts.length > 0) {
+            // Запрос подключения
+            let accounts;
+            
+            // Специальная обработка для SafePal
+            if (this.state.walletType.includes('SafePal')) {
+                try {
+                    // Для SafePal используем специфичный метод если доступен
+                    if (this.state.provider.request) {
+                        accounts = await this.state.provider.request({ 
+                            method: 'eth_requestAccounts' 
+                        });
+                    } else if (this.state.provider.enable) {
+                        accounts = await this.state.provider.enable();
+                    } else {
+                        throw new Error('SafePal provider methods not available');
+                    }
+                } catch (error) {
+                    console.error('SafePal specific connection failed:', error);
+                    // Fallback к стандартному методу
+                    accounts = await this.state.provider.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+                }
+            } else {
+                // Стандартный запрос для других кошельков
+                accounts = await this.state.provider.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+            }
+
+            if (accounts && accounts.length > 0) {
                 this.state.account = accounts[0];
                 this.state.isConnected = true;
+
+                console.log(`Connected to ${this.state.walletType}: ${this.state.account}`);
 
                 // Проверка и переключение сети
                 await this.checkAndSwitchNetwork();
@@ -212,6 +314,7 @@ const Web3Module = {
                 if (!this.referralSystem.getIdByAddress(this.state.account)) {
                     const newId = this.referralSystem.generateRandomId();
                     this.referralSystem.saveIdMapping(this.state.account, newId, 'GW');
+                    console.log(`Generated new ID: GW${newId} for ${this.state.account}`);
                 }
 
                 // Сохранение в localStorage
@@ -223,10 +326,24 @@ const Web3Module = {
 
                 UI.showNotification(`Wallet connected successfully via ${this.state.walletType}`, 'success');
                 return true;
+            } else {
+                throw new Error('No accounts returned from wallet');
             }
         } catch (error) {
-            console.error('Connection error:', error);
-            UI.showNotification('Failed to connect wallet', 'error');
+            console.error('Wallet connection error:', error);
+            
+            // Более детальная обработка ошибок
+            let errorMessage = 'Failed to connect wallet';
+            
+            if (error.code === 4001) {
+                errorMessage = 'Connection rejected by user';
+            } else if (error.code === -32002) {
+                errorMessage = 'Connection request already pending';
+            } else if (error.message.includes('SafePal')) {
+                errorMessage = 'SafePal connection failed. Please try opening in SafePal browser';
+            }
+            
+            UI.showNotification(errorMessage, 'error');
             return false;
         }
     },
@@ -234,26 +351,60 @@ const Web3Module = {
     // Переподключение при загрузке
     async reconnect() {
         try {
-            const accounts = await this.state.web3.eth.getAccounts();
-            if (accounts.length > 0) {
+            console.log('Attempting to reconnect...');
+            
+            if (!this.state.provider) {
+                await this.detectAndSetupWallet();
+                if (!this.state.provider) {
+                    console.log('No provider available for reconnection');
+                    return false;
+                }
+            }
+
+            // Получение аккаунтов без запроса разрешения
+            let accounts;
+            try {
+                if (this.state.provider.request) {
+                    accounts = await this.state.provider.request({ method: 'eth_accounts' });
+                } else {
+                    // Fallback для некоторых кошельков
+                    accounts = await this.state.web3.eth.getAccounts();
+                }
+            } catch (error) {
+                console.log('Failed to get accounts on reconnect:', error);
+                this.disconnect();
+                return false;
+            }
+
+            if (accounts && accounts.length > 0) {
                 this.state.account = accounts[0];
                 this.state.isConnected = true;
+                
                 await this.checkAndSwitchNetwork();
                 await this.updateAccountInfo();
+                
+                console.log(`Reconnected to ${this.state.walletType}: ${this.state.account}`);
+                return true;
             } else {
+                console.log('No accounts available for reconnection');
                 this.disconnect();
+                return false;
             }
         } catch (error) {
             console.error('Reconnection error:', error);
             this.disconnect();
+            return false;
         }
     },
 
     // Отключение кошелька
     disconnect() {
+        console.log('Disconnecting wallet...');
+        
         this.state.account = null;
         this.state.isConnected = false;
         this.state.walletType = null;
+        // НЕ сбрасываем provider, чтобы можно было переподключиться
         
         localStorage.removeItem('connectedAccount');
         localStorage.removeItem('walletType');
@@ -265,20 +416,29 @@ const Web3Module = {
     // Проверка и переключение сети
     async checkAndSwitchNetwork() {
         try {
+            console.log('Checking network...');
+            
             const chainId = await this.state.web3.eth.getChainId();
             this.state.chainId = chainId;
 
+            console.log(`Current network: ${chainId}, required: 204`);
+
             if (chainId !== 204) {
+                console.log('Switching to opBNB network...');
+                
                 // Попытка переключить сеть
                 try {
-                    await window.ethereum.request({
+                    await this.state.provider.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: this.config.chainId }],
                     });
+                    console.log('Network switched successfully');
                 } catch (switchError) {
+                    console.log('Switch failed, attempting to add network:', switchError);
+                    
                     // Если сеть не добавлена, добавляем её
                     if (switchError.code === 4902) {
-                        await window.ethereum.request({
+                        await this.state.provider.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: this.config.chainId,
@@ -288,14 +448,21 @@ const Web3Module = {
                                 blockExplorerUrls: this.config.blockExplorerUrls
                             }],
                         });
+                        console.log('Network added successfully');
                     } else {
                         throw switchError;
                     }
                 }
+                
+                // Повторная проверка после переключения
+                const newChainId = await this.state.web3.eth.getChainId();
+                if (newChainId !== 204) {
+                    throw new Error('Failed to switch to opBNB network');
+                }
             }
             return true;
         } catch (error) {
-            console.error('Network switch error:', error);
+            console.error('Network configuration error:', error);
             UI.showNotification('Please switch to opBNB network manually', 'error');
             return false;
         }
@@ -306,6 +473,8 @@ const Web3Module = {
         if (!this.state.account) return;
 
         try {
+            console.log('Updating account info...');
+            
             // Получение баланса
             const balanceWei = await this.state.web3.eth.getBalance(this.state.account);
             const balance = this.state.web3.utils.fromWei(balanceWei, 'ether');
@@ -390,29 +559,37 @@ const Web3Module = {
 
     // Настройка слушателей событий
     setupEventListeners() {
-        if (!window.ethereum) return;
+        if (!this.state.provider) return;
+
+        console.log('Setting up wallet event listeners...');
 
         // Изменение аккаунта
-        window.ethereum.on('accountsChanged', async (accounts) => {
+        this.state.provider.on('accountsChanged', async (accounts) => {
+            console.log('Accounts changed:', accounts);
+            
             if (accounts.length > 0) {
-                this.state.account = accounts[0];
-                await this.updateAccountInfo();
-                
-                // Уведомление о смене аккаунта
-                UI.showNotification('Account changed, please refresh if needed', 'info');
-                
-                // Автообновление через 2 секунды
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                const newAccount = accounts[0];
+                if (newAccount !== this.state.account) {
+                    this.state.account = newAccount;
+                    await this.updateAccountInfo();
+                    
+                    UI.showNotification('Account changed, refreshing data...', 'info');
+                    
+                    // Автообновление через 2 секунды
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                }
             } else {
+                console.log('No accounts available, disconnecting...');
                 this.disconnect();
             }
         });
 
         // Изменение сети
-        window.ethereum.on('chainChanged', (chainId) => {
-            // Перезагрузка страницы при смене сети
+        this.state.provider.on('chainChanged', (chainId) => {
+            console.log('Chain changed to:', chainId);
+            
             UI.showNotification('Network changed, reloading...', 'info');
             setTimeout(() => {
                 window.location.reload();
@@ -420,8 +597,14 @@ const Web3Module = {
         });
 
         // Отключение
-        window.ethereum.on('disconnect', () => {
+        this.state.provider.on('disconnect', (error) => {
+            console.log('Provider disconnected:', error);
             this.disconnect();
+        });
+
+        // Подключение (для некоторых кошельков)
+        this.state.provider.on('connect', (connectInfo) => {
+            console.log('Provider connected:', connectInfo);
         });
     },
 
@@ -431,6 +614,8 @@ const Web3Module = {
             if (!this.state.account) {
                 throw new Error('Wallet not connected');
             }
+
+            console.log('Preparing transaction...', { to, value, data });
 
             const params = {
                 from: this.state.account,
@@ -444,8 +629,10 @@ const Web3Module = {
             for (let i = 0; i < 3; i++) {
                 try {
                     gas = await this.state.web3.eth.estimateGas(params);
+                    console.log(`Gas estimated: ${gas}`);
                     break;
                 } catch (gasError) {
+                    console.warn(`Gas estimation attempt ${i + 1} failed:`, gasError);
                     if (i === 2) throw gasError;
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -453,12 +640,15 @@ const Web3Module = {
             
             params.gas = this.state.web3.utils.toHex(Math.floor(gas * 1.2)); // +20% для безопасности
 
+            console.log('Sending transaction with params:', params);
+
             // Отправка транзакции
-            const txHash = await window.ethereum.request({
+            const txHash = await this.state.provider.request({
                 method: 'eth_sendTransaction',
                 params: [params]
             });
 
+            console.log('Transaction sent:', txHash);
             return txHash;
         } catch (error) {
             console.error('Transaction error:', error);
@@ -470,6 +660,8 @@ const Web3Module = {
                 throw new Error('Internal JSON-RPC error');
             } else if (error.message.includes('insufficient funds')) {
                 throw new Error('Insufficient BNB balance');
+            } else if (error.message.includes('gas')) {
+                throw new Error('Gas estimation failed - transaction may fail');
             } else {
                 throw new Error(`Transaction failed: ${error.message}`);
             }
@@ -482,19 +674,27 @@ const Web3Module = {
         let attempts = 0;
         const maxAttempts = 60; // Увеличено для медленных сетей
 
+        console.log(`Waiting for transaction ${txHash}...`);
+
         if (showProgress) {
             UI.showNotification('Transaction sent, waiting for confirmation...', 'info');
         }
 
         while (!receipt && attempts < maxAttempts) {
-            receipt = await this.state.web3.eth.getTransactionReceipt(txHash);
-            if (!receipt) {
+            try {
+                receipt = await this.state.web3.eth.getTransactionReceipt(txHash);
+                if (!receipt) {
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    attempts++;
+                    
+                    if (showProgress && attempts % 10 === 0) {
+                        UI.showNotification(`Still waiting... (${attempts * 3}s)`, 'info');
+                    }
+                }
+            } catch (error) {
+                console.warn(`Receipt check attempt ${attempts + 1} failed:`, error);
                 await new Promise(resolve => setTimeout(resolve, 3000));
                 attempts++;
-                
-                if (showProgress && attempts % 10 === 0) {
-                    UI.showNotification(`Still waiting... (${attempts * 3}s)`, 'info');
-                }
             }
         }
 
@@ -502,10 +702,11 @@ const Web3Module = {
             throw new Error('Transaction timeout - please check manually');
         }
 
-        if (receipt.status === false) {
+        if (receipt.status === false || receipt.status === '0x0') {
             throw new Error('Transaction failed');
         }
 
+        console.log('Transaction confirmed:', receipt);
         return receipt;
     },
 
@@ -529,7 +730,11 @@ const Web3Module = {
             idMappings: JSON.parse(localStorage.getItem('idMappings') || '{}'),
             eventLogs: JSON.parse(localStorage.getItem('idEventLogs') || '[]'),
             timestamp: Date.now(),
-            version: '1.0'
+            version: '1.0',
+            networkInfo: {
+                chainId: this.state.chainId,
+                walletType: this.state.walletType
+            }
         };
         
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -565,6 +770,30 @@ const Web3Module = {
         } catch (error) {
             throw new Error('Invalid database format');
         }
+    },
+
+    // Получение информации о подключении
+    getConnectionInfo() {
+        return {
+            isConnected: this.state.isConnected,
+            account: this.state.account,
+            walletType: this.state.walletType,
+            chainId: this.state.chainId,
+            hasProvider: !!this.state.provider
+        };
+    },
+
+    // Проверка поддержки функций кошелька
+    getWalletCapabilities() {
+        if (!this.state.provider) return null;
+        
+        return {
+            canSwitchChain: !!this.state.provider.request,
+            canAddChain: !!this.state.provider.request,
+            supportsEvents: !!this.state.provider.on,
+            walletType: this.state.walletType,
+            isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        };
     }
 };
 
