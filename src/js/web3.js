@@ -423,10 +423,8 @@ const Web3Module = {
 
             console.log(`Current network: ${chainId}, required: 204`);
 
-            if (chainId === this.targetChainId) {
-                console.log('Already on correct network (opBNB)');
-                return true; //             ДОБАВИТЬ ЭТУ СТРОКУ
-            }
+            if (chainId !== 204) {
+                console.log('Switching to opBNB network...');
                 
                 // Попытка переключить сеть
                 try {
