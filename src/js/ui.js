@@ -644,73 +644,73 @@ const UI = {
         });
     },
 
-// Навигация назад
-navigateBack() {
-    // Логика навигации назад по страницам
-    const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
-    const currentIndex = pages.indexOf(this.currentPage);
-    if (currentIndex > 0) {
-        this.showPage(pages[currentIndex - 1]);
-    }
-},
-
-// Навигация вперед
-navigateForward() {
-    // Логика навигации вперед по страницам
-    const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
-    const currentIndex = pages.indexOf(this.currentPage);
-    if (currentIndex < pages.length - 1) {
-        this.showPage(pages[currentIndex + 1]);
-    }
-},
-
-// Подключение кошелька с улучшенной обработкой
-async connectWallet() {
-    try {
-        this.showLoading();
-        const success = await Web3Module.connect();
-        
-        if (success) {
-            // Показ приветственного сообщения
-            const userId = Web3Module.getUserId();
-            this.showNotification(`Welcome! Your ID: GW${userId}`, 'success');
-            
-            // Обработка pending sponsor из реферальной ссылки
-            const pendingSponsor = localStorage.getItem('pendingSponsor');
-            if (pendingSponsor && Web3Module.state.account) {
-                this.showSponsorConfirmation(pendingSponsor);
-            }
+    // Навигация назад
+    navigateBack() {
+        // Логика навигации назад по страницам
+        const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
+        const currentIndex = pages.indexOf(this.currentPage);
+        if (currentIndex > 0) {
+            this.showPage(pages[currentIndex - 1]);
         }
-    } catch (error) {
-        console.error('Connect wallet error:', error);
-        this.showNotification('Failed to connect wallet', 'error');
-    } finally {
-        this.hideLoading();
-    }
-},
+    },
 
-// Подтверждение спонсора из реферальной ссылки
-showSponsorConfirmation(sponsorAddress) {
-    const modal = this.createModal('sponsor-confirmation', {
-        title: 'Sponsor Detected',
-        content: `
-            <div class="sponsor-info">
-                <p>You came from a referral link!</p>
-                <p><strong>Sponsor:</strong> ${this.formatAddress(sponsorAddress)}</p>
-                <p>Register with this sponsor?</p>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-primary" onclick="UI.registerWithSponsor('${sponsorAddress}')">
-                    Register
-                </button>
-                <button class="btn-secondary" onclick="UI.closeModal('sponsor-confirmation')">
-                    Skip
-                </button>
-            </div>
-        `
-    });
-    this.showModal('sponsor-confirmation');
-},
+    // Навигация вперед
+    navigateForward() {
+        // Логика навигации вперед по страницам
+        const pages = ['dashboard', 'partners', 'matrix', 'tokens', 'settings', 'projects'];
+        const currentIndex = pages.indexOf(this.currentPage);
+        if (currentIndex < pages.length - 1) {
+            this.showPage(pages[currentIndex + 1]);
+        }
+    },
+
+    // Подключение кошелька с улучшенной обработкой
+    async connectWallet() {
+        try {
+            this.showLoading();
+            const success = await Web3Module.connect();
+            
+            if (success) {
+                // Показ приветственного сообщения
+                const userId = Web3Module.getUserId();
+                this.showNotification(`Welcome! Your ID: GW${userId}`, 'success');
+                
+                // Обработка pending sponsor из реферальной ссылки
+                const pendingSponsor = localStorage.getItem('pendingSponsor');
+                if (pendingSponsor && Web3Module.state.account) {
+                    this.showSponsorConfirmation(pendingSponsor);
+                }
+            }
+        } catch (error) {
+            console.error('Connect wallet error:', error);
+            this.showNotification('Failed to connect wallet', 'error');
+        } finally {
+            this.hideLoading();
+        }
+    },
+
+    // Подтверждение спонсора из реферальной ссылки
+    showSponsorConfirmation(sponsorAddress) {
+        const modal = this.createModal('sponsor-confirmation', {
+            title: 'Sponsor Detected',
+            content: `
+                <div class="sponsor-info">
+                    <p>You came from a referral link!</p>
+                    <p><strong>Sponsor:</strong> ${this.formatAddress(sponsorAddress)}</p>
+                    <p>Register with this sponsor?</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-primary" onclick="UI.registerWithSponsor('${sponsorAddress}')">
+                        Register
+                    </button>
+                    <button class="btn-secondary" onclick="UI.closeModal('sponsor-confirmation')">
+                        Skip
+                    </button>
+                </div>
+            `
+        });
+        this.showModal('sponsor-confirmation');
+    },
 
     // Регистрация со спонсором
     async registerWithSponsor(sponsorAddress) {
@@ -870,6 +870,432 @@ showSponsorConfirmation(sponsorAddress) {
         await this.updateContractStats();
     },
 
+    // Загрузка данных Partners
+    async loadPartnersData() {
+        const userData = await ContractsModule.loadUserData();
+        if (!userData || !userData.isRegistered) {
+            this.showPageError('partners', 'Please register first to view partners');
+            return;
+        }
+
+        // Получение информации о рефералах
+        const referrals = userData.referrals || [];
+        const partnersContainer = document.getElementById('partnersContainer');
+        
+        if (partnersContainer) {
+            if (referrals.length === 0) {
+                partnersContainer.innerHTML = `
+                    <div class="no-partners">
+                        <h3>No partners yet</h3>
+                        <p>Share your referral link to invite partners</p>
+                        <div class="referral-link-section">
+                            <input type="text" id="partnersReferralLink" value="${Web3Module.getReferralLink() || ''}" readonly>
+                            <button class="copy-btn" data-copy="${Web3Module.getReferralLink() || ''}">Copy</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Отображение списка партнеров
+                let partnersHtml = '<div class="partners-grid">';
+                for (let i = 0; i < referrals.length; i++) {
+                    const partner = referrals[i];
+                    partnersHtml += `
+                        <div class="partner-card">
+                            <div class="partner-address">${this.formatAddress(partner)}</div>
+                            <div class="partner-info">
+                                <span class="partner-number">Partner #${i + 1}</span>
+                                <button onclick="UI.viewPartnerDetails('${partner}')" class="btn-small">View Details</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                partnersHtml += '</div>';
+                partnersContainer.innerHTML = partnersHtml;
+            }
+        }
+
+        // Обновление статистики партнеров
+        this.updateElement('totalPartners', referrals.length);
+        this.updateElement('personalInvites', userData.personalInvites || 0);
+        
+        console.log('Partners data loaded successfully');
+    },
+
+    // Загрузка данных Matrix
+    async loadMatrixData() {
+        const userData = await ContractsModule.loadUserData();
+        if (!userData || !userData.isRegistered) {
+            this.showPageError('matrix', 'Please register first to view matrix');
+            return;
+        }
+
+        const matrixContainer = document.getElementById('matrixContainer');
+        if (!matrixContainer) return;
+
+        // Создание матричной структуры для каждого активного уровня
+        let matrixHtml = '<div class="matrix-levels">';
+        
+        for (const level of userData.activeLevels) {
+            try {
+                // Получение статистики матрицы для уровня (если метод существует)
+                let matrixStats = null;
+                if (ContractsModule.contracts.globalWayStats) {
+                    try {
+                        matrixStats = await ContractsModule.contracts.globalWayStats.methods
+                            .getMatrixStats(Web3Module.state.account, level)
+                            .call();
+                    } catch (error) {
+                        console.warn(`Matrix stats not available for level ${level}:`, error);
+                    }
+                }
+
+                matrixHtml += `
+                    <div class="matrix-level-card">
+                        <h3>Level ${level}</h3>
+                        <div class="matrix-grid">
+                            <div class="matrix-position user-position">
+                                <div class="position-info">
+                                    <span class="position-label">You</span>
+                                    <span class="position-address">${this.formatAddress(Web3Module.state.account)}</span>
+                                </div>
+                            </div>
+                            ${matrixStats ? this.renderMatrixPositions(matrixStats) : '<div class="loading-matrix">Loading matrix...</div>'}
+                        </div>
+                        <div class="matrix-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Your Position:</span>
+                                <span class="stat-value">${matrixStats?.userPosition || 'Loading...'}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Matrix Earnings:</span>
+                                <span class="stat-value">${matrixStats ? Web3Module.fromWei(matrixStats.matrixEarnings) : '0'} BNB</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error(`Error loading matrix for level ${level}:`, error);
+                matrixHtml += `
+                    <div class="matrix-level-card error">
+                        <h3>Level ${level}</h3>
+                        <p class="error-message">Failed to load matrix data</p>
+                    </div>
+                `;
+            }
+        }
+        
+        matrixHtml += '</div>';
+        matrixContainer.innerHTML = matrixHtml;
+        
+        console.log('Matrix data loaded successfully');
+    },
+
+    // Загрузка данных Tokens
+    async loadTokensData() {
+        try {
+            const tokenData = await ContractsModule.getTokenData();
+            if (!tokenData) {
+                this.showPageError('tokens', 'Failed to load token data');
+                return;
+            }
+
+            // Обновление информации о токене
+            this.updateElement('tokenTotalSupply', `${parseFloat(tokenData.totalSupply).toLocaleString()} GWT`);
+            this.updateElement('tokenCurrentPrice', `${parseFloat(tokenData.currentPrice).toFixed(6)} BNB`);
+            this.updateElement('tokenUserBalance', `${parseFloat(tokenData.userBalance).toFixed(2)} GWT`);
+            this.updateElement('tokenMarketCap', `${parseFloat(tokenData.marketCap).toFixed(2)} BNB`);
+            this.updateElement('tokenTradingVolume', `${parseFloat(tokenData.tradingVolume).toFixed(2)} BNB`);
+
+            // Настройка формы покупки токенов
+            const buyTokenForm = document.getElementById('buyTokenForm');
+            if (buyTokenForm) {
+                buyTokenForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const tokenAmount = formData.get('tokenAmount');
+                    
+                    if (tokenAmount && parseFloat(tokenAmount) > 0) {
+                        await this.buyTokens(tokenAmount);
+                    }
+                });
+            }
+
+            // Настройка формы продажи токенов
+            const sellTokenForm = document.getElementById('sellTokenForm');
+            if (sellTokenForm) {
+                sellTokenForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const tokenAmount = formData.get('sellTokenAmount');
+                    
+                    if (tokenAmount && parseFloat(tokenAmount) > 0) {
+                        const userBalance = parseFloat(tokenData.userBalance);
+                        if (parseFloat(tokenAmount) <= userBalance) {
+                            await this.sellTokens(tokenAmount);
+                        } else {
+                            this.showNotification('Insufficient token balance', 'error');
+                        }
+                    }
+                });
+            }
+
+            // Калькулятор стоимости
+            const tokenAmountInput = document.getElementById('tokenAmount');
+            if (tokenAmountInput) {
+                tokenAmountInput.addEventListener('input', async (e) => {
+                    const amount = e.target.value;
+                    if (amount && parseFloat(amount) > 0) {
+                        try {
+                            const cost = await ContractsModule.contracts.gwtToken.methods
+                                .calculatePurchaseCost(Web3Module.toWei(amount))
+                                .call();
+                            const costInBnb = Web3Module.fromWei(cost);
+                            this.updateElement('estimatedCost', `${parseFloat(costInBnb).toFixed(6)} BNB`);
+                        } catch (error) {
+                            console.error('Error calculating cost:', error);
+                        }
+                    }
+                });
+            }
+
+            console.log('Tokens data loaded successfully');
+        } catch (error) {
+            console.error('Error loading tokens data:', error);
+            this.showPageError('tokens', error.message);
+        }
+    },
+
+    // Загрузка данных Settings
+    async loadSettingsData() {
+        const userData = await ContractsModule.loadUserData();
+        
+        // Настройки профиля
+        const profileSection = document.getElementById('profileSettings');
+        if (profileSection) {
+            profileSection.innerHTML = `
+                <div class="settings-section">
+                    <h3>Profile Information</h3>
+                    <div class="setting-item">
+                        <label>Wallet Address:</label>
+                        <div class="address-display">
+                            <span>${Web3Module.state.account || 'Not connected'}</span>
+                            <button class="copy-btn" data-copy="${Web3Module.state.account || ''}">Copy</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>User ID:</label>
+                        <span>GW${Web3Module.getUserId() || 'Not generated'}</span>
+                    </div>
+                    <div class="setting-item">
+                        <label>Registration Status:</label>
+                        <span class="status ${userData?.isRegistered ? 'active' : 'inactive'}">
+                            ${userData?.isRegistered ? 'Registered' : 'Not Registered'}
+                        </span>
+                    </div>
+                    <div class="setting-item">
+                        <label>Referral Link:</label>
+                        <div class="referral-link-display">
+                            <input type="text" value="${Web3Module.getReferralLink() || ''}" readonly>
+                            <button class="copy-btn" data-copy="${Web3Module.getReferralLink() || ''}">Copy</button>
+                            <button onclick="UI.generateNewQRCode()">QR Code</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Настройки приложения
+        const appSection = document.getElementById('appSettings');
+        if (appSection) {
+            appSection.innerHTML = `
+                <div class="settings-section">
+                    <h3>Application Settings</h3>
+                    <div class="setting-item">
+                        <label for="languageSettingSelect">Language:</label>
+                        <select id="languageSettingSelect">
+                            <option value="en" ${this.currentLanguage === 'en' ? 'selected' : ''}>English</option>
+                            <option value="ru" ${this.currentLanguage === 'ru' ? 'selected' : ''}>Русский</option>
+                            <option value="uk" ${this.currentLanguage === 'uk' ? 'selected' : ''}>Українська</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="themeSettingToggle">Dark Theme:</label>
+                        <input type="checkbox" id="themeSettingToggle" ${localStorage.getItem('theme') === 'dark' ? 'checked' : ''}>
+                    </div>
+                    <div class="setting-item">
+                        <label for="notificationsToggle">Push Notifications:</label>
+                        <input type="checkbox" id="notificationsToggle" ${localStorage.getItem('notifications') !== 'false' ? 'checked' : ''}>
+                    </div>
+                </div>
+            `;
+
+            // Обработчики настроек
+            const langSelect = document.getElementById('languageSettingSelect');
+            if (langSelect) {
+                langSelect.addEventListener('change', (e) => {
+                    this.setLanguage(e.target.value);
+                });
+            }
+
+            const themeToggle = document.getElementById('themeSettingToggle');
+            if (themeToggle) {
+                themeToggle.addEventListener('change', (e) => {
+                    this.setTheme(e.target.checked ? 'dark' : 'light');
+                });
+            }
+        }
+
+        // Технические настройки
+        const techSection = document.getElementById('technicalSettings');
+        if (techSection && userData?.isRegistered) {
+            techSection.innerHTML = `
+                <div class="settings-section">
+                    <h3>Technical Accounts</h3>
+                    <div class="setting-item">
+                        <label>Charity Account:</label>
+                        <span>${userData.charityAccount || 'Not set'}</span>
+                    </div>
+                    <div class="setting-item">
+                        <label>Tech Account 1:</label>
+                        <span>${userData.techAccount1 || 'Not set'}</span>
+                    </div>
+                    <div class="setting-item">
+                        <label>Tech Account 2:</label>
+                        <span>${userData.techAccount2 || 'Not set'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        console.log('Settings data loaded successfully');
+    },
+
+    // Загрузка данных Projects
+    async loadProjectsData() {
+        const connectedProjects = ContractsModule.getConnectedProjects();
+        const projectsContainer = document.getElementById('projectsContainer');
+        
+        if (projectsContainer) {
+            if (Object.keys(connectedProjects).length === 0) {
+                projectsContainer.innerHTML = `
+                    <div class="no-projects">
+                        <h3>No Connected Projects</h3>
+                        <p>Connect external projects to expand the ecosystem</p>
+                        ${Web3Module.hasAdminAccess() ? '<button onclick="UI.showConnectProjectModal()" class="btn-primary">Connect Project</button>' : ''}
+                    </div>
+                `;
+            } else {
+                let projectsHtml = '<div class="projects-grid">';
+                Object.entries(connectedProjects).forEach(([address, project]) => {
+                    projectsHtml += `
+                        <div class="project-card">
+                            <h4>${project.name}</h4>
+                            <div class="project-info">
+                                <p><strong>Address:</strong> ${this.formatAddress(project.address)}</p>
+                                <p><strong>Connected:</strong> ${new Date(project.connectedAt).toLocaleDateString()}</p>
+                                <div class="project-actions">
+                                    <button onclick="UI.viewProjectDetails('${address}')" class="btn-small">Details</button>
+                                    ${Web3Module.hasAdminAccess() ? `<button onclick="UI.disconnectProject('${address}')" class="btn-small btn-danger">Disconnect</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                projectsHtml += '</div>';
+                
+                if (Web3Module.hasAdminAccess()) {
+                    projectsHtml += '<button onclick="UI.showConnectProjectModal()" class="btn-primary">Connect New Project</button>';
+                }
+                
+                projectsContainer.innerHTML = projectsHtml;
+            }
+        }
+
+        console.log('Projects data loaded successfully');
+    },
+
+    // Загрузка данных Admin
+    async loadAdminData() {
+        if (!Web3Module.hasAdminAccess()) {
+            this.showPageError('admin', 'Access denied');
+            return;
+        }
+
+        try {
+            // Получение статистики контракта
+            const contractStats = await ContractsModule.getContractStats();
+            
+            // Обновление основной статистики
+            if (contractStats) {
+                this.updateElement('adminTotalUsers', contractStats.totalUsers);
+                this.updateElement('adminActiveUsers', contractStats.activeUsers);
+                this.updateElement('adminTotalVolume', `${parseFloat(contractStats.totalVolume).toFixed(4)} BNB`);
+                this.updateElement('adminContractBalance', `${parseFloat(contractStats.contractBalance).toFixed(4)} BNB`);
+            }
+
+            // Загрузка информации о пулах (только для владельца)
+            if (Web3Module.isOwner()) {
+                const poolsInfo = await ContractsModule.getAllPoolsInfo();
+                const poolsContainer = document.getElementById('poolsInfo');
+                
+                if (poolsContainer && poolsInfo) {
+                    let poolsHtml = '<div class="pools-grid">';
+                    Object.entries(poolsInfo).forEach(([poolName, poolData]) => {
+                        poolsHtml += `
+                            <div class="pool-card">
+                                <h4>${poolName} Pool</h4>
+                                <p><strong>Balance:</strong> ${parseFloat(poolData.balance).toFixed(4)} BNB</p>
+                                <p><strong>Address:</strong> ${this.formatAddress(poolData.address)}</p>
+                                <button onclick="UI.showPoolManagement('${poolName}')" class="btn-small">Manage</button>
+                            </div>
+                        `;
+                    });
+                    poolsHtml += '</div>';
+                    poolsContainer.innerHTML = poolsHtml;
+                }
+            }
+
+            // Секция административных действий
+            const adminActionsContainer = document.getElementById('adminActions');
+            if (adminActionsContainer) {
+                let actionsHtml = '<div class="admin-actions-grid">';
+                
+                if (Web3Module.isOwner()) {
+                    actionsHtml += `
+                        <div class="admin-action-card">
+                            <h4>User Management</h4>
+                            <button onclick="UI.showFreeRegistrationModal()" class="btn-primary">Free Registration</button>
+                            <button onclick="UI.showBatchRegistrationModal()" class="btn-primary">Batch Registration</button>
+                        </div>
+                        <div class="admin-action-card">
+                            <h4>Contract Management</h4>
+                            <button onclick="UI.exportUserDatabase()" class="btn-secondary">Export Database</button>
+                            <button onclick="UI.showEmergencyWithdrawModal()" class="btn-danger">Emergency Withdraw</button>
+                        </div>
+                    `;
+                }
+                
+                if (Web3Module.isFounder() || Web3Module.isBoard()) {
+                    actionsHtml += `
+                        <div class="admin-action-card">
+                            <h4>Governance</h4>
+                            <button onclick="UI.showCreateProposalModal()" class="btn-primary">Create Proposal</button>
+                            <button onclick="UI.showActiveProposals()" class="btn-secondary">View Proposals</button>
+                        </div>
+                    `;
+                }
+                
+                actionsHtml += '</div>';
+                adminActionsContainer.innerHTML = actionsHtml;
+            }
+
+            console.log('Admin data loaded successfully');
+        } catch (error) {
+            console.error('Error loading admin data:', error);
+            this.showPageError('admin', error.message);
+        }
+    },
+
     // Генерация QR кода
     generateQRCode(elementId, text) {
         const element = document.getElementById(elementId);
@@ -1024,7 +1450,7 @@ showSponsorConfirmation(sponsorAddress) {
     async payQuarterly() {
         const confirmResult = await this.showConfirmDialog(
             'Quarterly Payment',
-            'Pay quarterly fee of 0.001 BNB?'
+            'Pay quarterly fee of 0.075 BNB?'
         );
         
         if (confirmResult) {
@@ -1063,6 +1489,111 @@ showSponsorConfirmation(sponsorAddress) {
         this.updateElement('activeUsers', stats.activeUsers);
         this.updateElement('totalVolume', `${parseFloat(stats.totalVolume).toFixed(4)} BNB`);
         this.updateElement('contractBalance', `${parseFloat(stats.contractBalance).toFixed(4)} BNB`);
+    },
+
+    // Покупка токенов
+    async buyTokens(amount) {
+        const confirmResult = await this.showConfirmDialog(
+            'Buy Tokens',
+            `Buy ${amount} GWT tokens?`
+        );
+        
+        if (confirmResult) {
+            await ContractsModule.buyTokens(amount);
+            await this.loadTokensData(); // Обновление данных после покупки
+        }
+    },
+
+    // Продажа токенов
+    async sellTokens(amount) {
+        const confirmResult = await this.showConfirmDialog(
+            'Sell Tokens',
+            `Sell ${amount} GWT tokens?`
+        );
+        
+        if (confirmResult) {
+            await ContractsModule.sellTokens(amount);
+            await this.loadTokensData(); // Обновление данных после продажи
+        }
+    },
+
+    // Рендеринг позиций матрицы
+    renderMatrixPositions(matrixStats) {
+        let html = '';
+        
+        // Рендеринг upline (вышестоящих)
+        if (matrixStats.upline && matrixStats.upline.length > 0) {
+            matrixStats.upline.forEach((address, index) => {
+                html += `
+                    <div class="matrix-position upline-position">
+                        <div class="position-info">
+                            <span class="position-label">Upline ${index + 1}</span>
+                            <span class="position-address">${this.formatAddress(address)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        // Рендеринг downline (нижестоящих)
+        if (matrixStats.downline && matrixStats.downline.length > 0) {
+            matrixStats.downline.forEach((address, index) => {
+                html += `
+                    <div class="matrix-position downline-position">
+                        <div class="position-info">
+                            <span class="position-label">Partner ${index + 1}</span>
+                            <span class="position-address">${this.formatAddress(address)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        return html;
+    },
+
+    // Просмотр деталей партнера
+    async viewPartnerDetails(partnerAddress) {
+        // Заглушка - будет реализована позже
+        this.showNotification('Partner details feature coming soon', 'info');
+    },
+
+    // Просмотр деталей проекта
+    viewProjectDetails(projectAddress) {
+        // Заглушка - будет реализована позже
+        this.showNotification('Project details feature coming soon', 'info');
+    },
+
+    // Отключение проекта
+    async disconnectProject(projectAddress) {
+        const confirmResult = await this.showConfirmDialog(
+            'Disconnect Project',
+            'Are you sure you want to disconnect this project?'
+        );
+        
+        if (confirmResult) {
+            await ContractsModule.disconnectProject(projectAddress);
+            await this.loadProjectsData();
+        }
+    },
+
+    // Экспорт базы данных пользователей
+    exportUserDatabase() {
+        try {
+            Web3Module.exportUserDatabase();
+            this.showNotification('Database exported successfully', 'success');
+        } catch (error) {
+            this.showNotification('Export failed: ' + error.message, 'error');
+        }
+    },
+
+    // Генерация нового QR кода
+    generateNewQRCode() {
+        const refLink = Web3Module.getReferralLink();
+        if (refLink) {
+            this.generateQRCode('settingsQR', refLink);
+            this.showModal('qrCodeModal');
+        }
     },
 
     // Обновление UI кошелька
@@ -1433,6 +1964,300 @@ showSponsorConfirmation(sponsorAddress) {
             }
             walletRequired.style.display = 'block';
         }
+    },
+
+    // Модальные окна для административных функций
+    showFreeRegistrationModal() {
+        const modal = this.createModal('freeRegistrationModal', {
+            title: 'Free Registration',
+            content: `
+                <form id="freeRegistrationForm">
+                    <div class="form-group">
+                        <label for="freeRegAddress">User Address:</label>
+                        <input type="text" id="freeRegAddress" name="userAddress" required placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label for="freeRegSponsor">Sponsor Address:</label>
+                        <input type="text" id="freeRegSponsor" name="sponsorAddress" required placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label for="freeRegLevel">Max Level:</label>
+                        <select id="freeRegLevel" name="maxLevel" required>
+                            ${Array.from({length: 12}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Register</button>
+                        <button type="button" onclick="UI.closeModal('freeRegistrationModal')" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            `
+        });
+        
+        this.showModal('freeRegistrationModal');
+        
+        // Обработчик формы
+        document.getElementById('freeRegistrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const userAddress = formData.get('userAddress');
+            const sponsorAddress = formData.get('sponsorAddress');
+            const maxLevel = parseInt(formData.get('maxLevel'));
+            
+            await ContractsModule.freeRegistration(userAddress, sponsorAddress, maxLevel);
+            this.closeModal('freeRegistrationModal');
+        });
+    },
+
+    showBatchRegistrationModal() {
+        const modal = this.createModal('batchRegistrationModal', {
+            title: 'Batch Registration',
+            content: `
+                <form id="batchRegistrationForm">
+                    <div class="form-group">
+                        <label for="batchAddresses">User Addresses (one per line):</label>
+                        <textarea id="batchAddresses" name="addresses" required placeholder="0x...&#10;0x...&#10;0x..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="batchSponsor">Common Sponsor:</label>
+                        <input type="text" id="batchSponsor" name="sponsorAddress" required placeholder="0x...">
+                    </div>
+                    <div class="form-group">
+                        <label for="batchLevel">Max Level:</label>
+                        <select id="batchLevel" name="maxLevel" required>
+                            ${Array.from({length: 12}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Register All</button>
+                        <button type="button" onclick="UI.closeModal('batchRegistrationModal')" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            `
+        });
+        
+        this.showModal('batchRegistrationModal');
+        
+        // Обработчик формы
+        document.getElementById('batchRegistrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const addresses = formData.get('addresses').split('\n').filter(addr => addr.trim());
+            const sponsorAddress = formData.get('sponsorAddress');
+            const maxLevel = parseInt(formData.get('maxLevel'));
+            
+            await ContractsModule.batchRegistration(addresses, [sponsorAddress], maxLevel);
+            this.closeModal('batchRegistrationModal');
+        });
+    },
+
+    showEmergencyWithdrawModal() {
+        const modal = this.createModal('emergencyWithdrawModal', {
+            title: 'Emergency Withdraw',
+            content: `
+                <div class="warning-section">
+                    <p><strong>⚠️ WARNING:</strong> This action should only be used in emergency situations!</p>
+                </div>
+                <form id="emergencyWithdrawForm">
+                    <div class="form-group">
+                        <label for="withdrawAmount">Amount (BNB):</label>
+                        <input type="number" id="withdrawAmount" name="amount" step="0.0001" required placeholder="0.0000">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-danger">Emergency Withdraw</button>
+                        <button type="button" onclick="UI.closeModal('emergencyWithdrawModal')" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            `
+        });
+        
+        this.showModal('emergencyWithdrawModal');
+        
+        // Обработчик формы
+        document.getElementById('emergencyWithdrawForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const amount = formData.get('amount');
+            
+            const confirmed = await this.showConfirmDialog(
+                'Confirm Emergency Withdraw',
+                `Are you sure you want to withdraw ${amount} BNB? This action cannot be undone.`
+            );
+            
+            if (confirmed) {
+                await ContractsModule.emergencyWithdraw(amount);
+                this.closeModal('emergencyWithdrawModal');
+            }
+        });
+    },
+
+    showConnectProjectModal() {
+        const modal = this.createModal('connectProjectModal', {
+            title: 'Connect New Project',
+            content: `
+                <form id="connectProjectForm">
+                    <div class="form-group">
+                        <label for="projectName">Project Name:</label>
+                        <input type="text" id="projectName" name="projectName" required placeholder="Project Name">
+                    </div>
+                    <div class="form-group">
+                        <label for="projectAddress">Project Address:</label>
+                        <input type="text" id="projectAddress" name="projectAddress" required placeholder="0x...">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Connect</button>
+                        <button type="button" onclick="UI.closeModal('connectProjectModal')" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            `
+        });
+        
+        this.showModal('connectProjectModal');
+        
+        // Обработчик формы
+        document.getElementById('connectProjectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const projectName = formData.get('projectName');
+            const projectAddress = formData.get('projectAddress');
+            
+            await ContractsModule.connectProject(projectAddress, projectName);
+            this.closeModal('connectProjectModal');
+            await this.loadProjectsData();
+        });
+    },
+
+    showCreateProposalModal() {
+        const modal = this.createModal('createProposalModal', {
+            title: 'Create Proposal',
+            content: `
+                <form id="createProposalForm">
+                    <div class="form-group">
+                        <label for="proposalTitle">Title:</label>
+                        <input type="text" id="proposalTitle" name="title" required placeholder="Proposal Title">
+                    </div>
+                    <div class="form-group">
+                        <label for="proposalDescription">Description:</label>
+                        <textarea id="proposalDescription" name="description" required placeholder="Detailed description..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="proposalType">Type:</label>
+                        <select id="proposalType" name="type" required>
+                            <option value="funding">Funding</option>
+                            <option value="project">Project</option>
+                            <option value="governance">Governance</option>
+                        </select>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Create Proposal</button>
+                        <button type="button" onclick="UI.closeModal('createProposalModal')" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            `
+        });
+        
+        this.showModal('createProposalModal');
+        
+        // Обработчик формы
+        document.getElementById('createProposalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const title = formData.get('title');
+            const description = formData.get('description');
+            const type = formData.get('type');
+            
+            const proposalId = await ContractsModule.createProposal(title, description, type);
+            if (proposalId) {
+                this.closeModal('createProposalModal');
+                this.showNotification('Proposal created successfully', 'success');
+            }
+        });
+    },
+
+    showActiveProposals() {
+        const proposals = ContractsModule.getActiveProposals();
+        
+        let content = '<div class="proposals-list">';
+        if (proposals.length === 0) {
+            content += '<p>No active proposals</p>';
+        } else {
+            proposals.forEach(proposal => {
+                const results = ContractsModule.getVotingResults(proposal.id);
+                content += `
+                    <div class="proposal-card">
+                        <h4>${proposal.title}</h4>
+                        <p>${proposal.description}</p>
+                        <div class="proposal-info">
+                            <span><strong>Type:</strong> ${proposal.type}</span>
+                            <span><strong>Votes:</strong> ${results.yes}/${results.total} (${results.percentage}%)</span>
+                        </div>
+                        <div class="proposal-actions">
+                            <button onclick="UI.voteOnProposal('${proposal.id}', true)" class="btn-success">Vote Yes</button>
+                            <button onclick="UI.voteOnProposal('${proposal.id}', false)" class="btn-danger">Vote No</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        content += '</div>';
+
+        const modal = this.createModal('activeProposalsModal', {
+            title: 'Active Proposals',
+            content: content
+        });
+        
+        this.showModal('activeProposalsModal');
+    },
+
+    async voteOnProposal(proposalId, vote) {
+        const success = await ContractsModule.castVote(proposalId, vote);
+        if (success) {
+            this.closeModal('activeProposalsModal');
+            this.showNotification(`Voted ${vote ? 'YES' : 'NO'} on proposal`, 'success');
+        }
+    },
+
+    showPoolManagement(poolName) {
+        const modal = this.createModal('poolManagementModal', {
+            title: `Manage ${poolName} Pool`,
+            content: `
+                <form id="poolManagementForm">
+                    <div class="form-group">
+                        <label for="transferAmount">Transfer Amount (BNB):</label>
+                        <input type="number" id="transferAmount" name="amount" step="0.0001" required placeholder="0.0000">
+                    </div>
+                    <div class="form-group">
+                        <label for="recipientAddress">Recipient Address:</label>
+                        <input type="text" id="recipientAddress" name="recipient" required placeholder="0x...">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="btn-primary">Transfer</button>
+                        <button type="button" onclick="UI.closeModal('poolManagementModal')" class="btn-secondary">Cancel</button>
+                    </div>
+                </form>
+            `
+        });
+        
+        this.showModal('poolManagementModal');
+        
+        // Обработчик формы
+        document.getElementById('poolManagementForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const amount = formData.get('amount');
+            const recipient = formData.get('recipient');
+            
+            const confirmed = await this.showConfirmDialog(
+                'Confirm Transfer',
+                `Transfer ${amount} BNB from ${poolName} pool to ${this.formatAddress(recipient)}?`
+            );
+            
+            if (confirmed) {
+                await ContractsModule.transferFromPool(poolName, recipient, amount);
+                this.closeModal('poolManagementModal');
+                await this.loadAdminData();
+            }
+        });
     }
 };
 
