@@ -63,7 +63,7 @@
      </div>
      <div class="project-features">
        <div class="feature-item">
-         <span class="feature-icon">🏪</span>
+         <span class="feature-icon">🪙</span>
          <span data-translate="marketplace">P2P Marketplace</span>
        </div>
        <div class="feature-item">
@@ -107,7 +107,7 @@
    </div>
    
    <div class="project-card">
-     <div class="project-icon">🌍</div>
+     <div class="project-icon">🌐</div>
      <h3>GlobalSocial</h3>
      <p data-translate="globalsocial_desc">Decentralized social network with privacy and reward system</p>
      <div class="project-status">
@@ -133,7 +133,7 @@
    </div>
    
    <div class="project-card">
-     <div class="project-icon">🏦</div>
+     <div class="project-icon">🦋</div>
      <h3>GlobalBank</h3>
      <p data-translate="globalbank_desc">Decentralized banking services with lending and staking</p>
      <div class="project-status">
