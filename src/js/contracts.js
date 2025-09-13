@@ -676,7 +676,7 @@ const ContractsModule = {
             console.error('Quarterly payment error:', error);
             UI.showNotification(`Payment failed: ${error.message}`, 'error');
             return false;
-} finally {
+        } finally {
             UI.hideLoading();
         }
     },
@@ -904,49 +904,6 @@ const ContractsModule = {
         } catch (error) {
             console.error('Emergency withdraw error:', error);
             UI.showNotification(`Emergency withdrawal failed: ${error.message}`, 'error');
-            return false;
-        } finally {
-            UI.hideLoading();
-        }
-    },
-
-    // Приостановка контракта (только владелец)
-    async pauseContract() {
-        try {
-            if (!Web3Module.isOwner()) {
-                throw new Error('Only owner can pause contract');
-            }
-
-            UI.showLoading();
-
-            // Здесь должен быть метод pause() в контракте
-            // Пока показываем уведомление
-            UI.showNotification('Contract pause feature not implemented', 'warning');
-            return false;
-        } catch (error) {
-            console.error('Pause contract error:', error);
-            UI.showNotification(`Failed to pause contract: ${error.message}`, 'error');
-            return false;
-        } finally {
-            UI.hideLoading();
-        }
-    },
-
-    // Возобновление контракта (только владелец)
-    async unpauseContract() {
-        try {
-            if (!Web3Module.isOwner()) {
-                throw new Error('Only owner can unpause contract');
-            }
-
-            UI.showLoading();
-
-            // Здесь должен быть метод unpause() в контракте
-            UI.showNotification('Contract unpause feature not implemented', 'warning');
-            return false;
-        } catch (error) {
-            console.error('Unpause contract error:', error);
-            UI.showNotification(`Failed to unpause contract: ${error.message}`, 'error');
             return false;
         } finally {
             UI.hideLoading();
