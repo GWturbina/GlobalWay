@@ -24,8 +24,12 @@
     <h3>📊 <span data-translate="team_statistics">Team Statistics</span></h3>
     <div class="stats-grid">
       <div class="stat-item">
-        <span id="totalInvited" class="stat-number">0</span>
-        <span class="stat-label" data-translate="total_invited">Total Invited</span>
+        <span id="totalPartners" class="stat-number">0</span>
+        <span class="stat-label" data-translate="total_partners">Total Partners</span>
+      </div>
+      <div class="stat-item">
+        <span id="personalInvites" class="stat-number">0</span>
+        <span class="stat-label" data-translate="personal_invites">Personal Invites</span>
       </div>
       <div class="stat-item">
         <span id="activePartners" class="stat-number">0</span>
@@ -80,12 +84,23 @@
     </div>
   </div>
   
-  <!-- Team Structure -->
+  <!-- Your Partners -->
   <div class="cosmic-card">
-    <h3>🔍 <span data-translate="team_structure">Team Structure</span></h3>
+    <h3>👥 <span data-translate="your_partners">Your Partners</span></h3>
     <div class="search-container">
       <input type="text" id="searchPartnerId" placeholder="🔍 Search by ID..." class="search-input">
     </div>
+    <div id="partnersContainer">
+      <!-- Партнеры будут загружены через JS -->
+      <div class="no-data wallet-required">
+        🔗 <span data-translate="connect_wallet_to_view">Connect wallet to view data</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Team Structure Table -->
+  <div class="cosmic-card">
+    <h3>🔍 <span data-translate="team_structure">Team Structure</span></h3>
     <div class="team-table">
       <div class="table-header">
         <span>№</span>
@@ -126,7 +141,7 @@
         <label data-translate="social_share">Social Share:</label>
         <div class="social-buttons">
           <button class="social-btn telegram" id="shareToTelegram">📱 Telegram</button>
-          <button class="social-btn twitter" id="shareToTwitter">🐦 Twitter</button>
+          <button class="social-btn twitter" id="shareToTwitter">🦋 Twitter</button>
           <button class="social-btn whatsapp" id="shareToWhatsApp">💬 WhatsApp</button>
         </div>
       </div>
