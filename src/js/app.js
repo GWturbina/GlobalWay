@@ -1,98 +1,416 @@
 // src/js/app.js
-(async () => {
-  let current = { address:null, bnb:'0.0000', isActive:false, prices:[] };
 
-  function bindDashboard() {
-    const btn = document.getElementById('payQuarterlyBtn');
-    if (btn) btn.addEventListener('click', async () => {
-      try {
-        const w3 = await Web3GW.getWeb3();
-        const valueWei = w3.utils.toWei('0.075','ether');
-        await ContractsGW.payQuarterly(current.address, valueWei);
-        UI.notify('Квартальная активность оплачена','success');
-        await refreshDashboard();
-      } catch(e){ UI.notify(`Ошибка: ${e?.message||e}`,'error'); }
-    });
-    document.querySelectorAll('.quick-buy-btn').forEach(el=>{
-      el.addEventListener('click', async ()=>{
-        const max = Number(el.dataset.maxLevel || el.getAttribute('data-max-level') || 4);
-        try{
-          await ContractsGW.buyPackage(max, current.address);
-          UI.notify(`Пакет 1-${max} активирован`,'success');
-          await refreshDashboard();
-        }catch(e){ UI.notify(`Ошибка покупки: ${e?.message||e}`,'error'); }
-      });
-    });
-  }
+const App = {
+    // Состояние приложения
+    state: {
+        initialized: false,
+        networkCheckInterval: null,
+        dataRefreshInterval: null
+    },
 
-  function bindPartners() {
-    const link = document.getElementById('partnerReferralLink');
-    if (link){
-      const userId = localStorage.getItem('gw_userId') || (document.getElementById('userId')?.textContent?.trim() || '0000000');
-      link.value = UI.makeReferralLink('GW', userId);
-      document.getElementById('copyPartnerRefLink')?.addEventListener('click', ()=> UI.Copy.copyToClipboard(link.value));
+    // Инициализация приложения
+    async init() {
+        try {
+            console.log('🚀 Initializing GlobalWay App...');
+
+            // Инициализация UI
+            await UI.init();
+
+            // Инициализация Web3
+            await Web3Module.init();
+
+            // Инициализация контрактов
+            if (Web3Module.state.web3) {
+                await ContractsModule.init();
+            }
+
+            // Настройка обработчиков событий
+            this.setupEventHandlers();
+
+            // Запуск периодических проверок
+            this.startIntervals();
+
+            // Проверка PWA
+            this.checkPWA();
+
+            this.state.initialized = true;
+            console.log('✅ App initialized successfully');
+
+        } catch (error) {
+            console.error('❌ App initialization error:', error);
+            UI.showNotification('Application initialization failed', 'error');
+        }
+    },
+
+    // Настройка обработчиков событий
+    setupEventHandlers() {
+        // Обработка покупки уровней
+        document.addEventListener('click', async (e) => {
+            // Покупка одного уровня
+            if (e.target.matches('.level-button:not(.active)')) {
+                const level = parseInt(e.target.dataset.level);
+                await this.handleLevelPurchase(level);
+            }
+
+            // Быстрая покупка нескольких уровней
+            if (e.target.matches('.quick-buy-btn')) {
+                const maxLevel = parseInt(e.target.dataset.maxLevel);
+                await this.handleMultipleLevelsPurchase(maxLevel);
+            }
+
+            // Копирование реферальной ссылки
+            if (e.target.matches('.copy-btn')) {
+                const input = document.getElementById('referralLink');
+                if (input) {
+                    await UI.copyToClipboard(input.value);
+                }
+            }
+
+            // Оплата квартальной активности
+            if (e.target.matches('#payQuarterly')) {
+                await this.handleQuarterlyPayment();
+            }
+        });
+
+        // Обработка торговли токенами
+        document.getElementById('buyTokensBtn')?.addEventListener('click', async () => {
+            await this.handleTokenPurchase();
+        });
+
+        document.getElementById('sellTokensBtn')?.addEventListener('click', async () => {
+            await this.handleTokenSale();
+        });
+
+        // Обработка подтверждений в модальных окнах
+        document.getElementById('confirmPurchase')?.addEventListener('click', async () => {
+            await this.confirmLevelPurchase();
+        });
+
+        document.getElementById('confirmMultiplePurchase')?.addEventListener('click', async () => {
+            await this.confirmMultipleLevelsPurchase();
+        });
+
+        document.getElementById('confirmQuarterly')?.addEventListener('click', async () => {
+            await this.confirmQuarterlyPayment();
+        });
+
+        // Обработка админских функций
+        if (Web3Module.isOwner()) {
+            this.setupAdminHandlers();
+        }
+    },
+
+    // Обработка покупки одного уровня
+    async handleLevelPurchase(level) {
+        if (!Web3Module.state.isConnected) {
+            UI.showNotification('Please connect wallet first', 'warning');
+            return;
+        }
+
+        const userData = await ContractsModule.loadUserData();
+        if (!userData.isRegistered) {
+            UI.showNotification('Please register first', 'warning');
+            return;
+        }
+
+        // Проверка последовательности уровней
+        for (let i = 1; i < level; i++) {
+            if (!userData.activeLevels.includes(i)) {
+                UI.showNotification(`Please purchase level ${i} first`, 'warning');
+                return;
+            }
+        }
+
+        // Получение цены
+        const price = await ContractsModule.getLevelPrice(level);
+
+        // Показ модального окна подтверждения
+        UI.updateElement('modalLevel', level);
+        UI.updateElement('modalPrice', `${price} BNB`);
+        UI.showModal('levelModal');
+
+        // Сохранение уровня для покупки
+        this.state.pendingLevel = level;
+    },
+
+    // Обработка покупки нескольких уровней
+    async handleMultipleLevelsPurchase(maxLevel) {
+        if (!Web3Module.state.isConnected) {
+            UI.showNotification('Please connect wallet first', 'warning');
+            return;
+        }
+
+        const userData = await ContractsModule.loadUserData();
+        if (!userData.isRegistered) {
+            UI.showNotification('Please register first', 'warning');
+            return;
+        }
+
+        // Определение начального уровня для покупки
+        let fromLevel = 1;
+        for (let i = 1; i <= maxLevel; i++) {
+            if (!userData.activeLevels.includes(i)) {
+                fromLevel = i;
+                break;
+            }
+        }
+
+        if (fromLevel > maxLevel) {
+            UI.showNotification('All levels already purchased', 'info');
+            return;
+        }
+
+        // Расчет общей стоимости
+        const totalPrice = await ContractsModule.calculateMultipleLevelsPrice(
+            fromLevel, 
+            maxLevel, 
+            userData.activeLevels
+        );
+
+        // Показ модального окна
+        UI.updateElement('modalLevelsRange', `${fromLevel}-${maxLevel}`);
+        UI.updateElement('modalTotalPrice', `${totalPrice} BNB`);
+        UI.showModal('multipleLevelsModal');
+
+        // Сохранение данных для покупки
+        this.state.pendingMultipleLevels = { fromLevel, maxLevel };
+    },
+
+    // Подтверждение покупки уровня
+    async confirmLevelPurchase() {
+        const level = this.state.pendingLevel;
+        if (!level) return;
+
+        try {
+            UI.showLoading(document.getElementById('confirmPurchase'));
+            
+            const success = await ContractsModule.buyLevel(level);
+            
+            if (success) {
+                UI.closeModal('levelModal');
+                await UI.loadDashboardData();
+            }
+        } finally {
+            UI.hideLoading(document.getElementById('confirmPurchase'));
+            this.state.pendingLevel = null;
+        }
+    },
+
+    // Подтверждение покупки нескольких уровней
+    async confirmMultipleLevelsPurchase() {
+        const data = this.state.pendingMultipleLevels;
+        if (!data) return;
+
+        try {
+            UI.showLoading(document.getElementById('confirmMultiplePurchase'));
+            
+            const success = await ContractsModule.buyMultipleLevels(data.maxLevel);
+            
+            if (success) {
+                UI.closeModal('multipleLevelsModal');
+                await UI.loadDashboardData();
+            }
+        } finally {
+            UI.hideLoading(document.getElementById('confirmMultiplePurchase'));
+            this.state.pendingMultipleLevels = null;
+        }
+    },
+
+    // Обработка квартальной оплаты
+    async handleQuarterlyPayment() {
+        const userData = await ContractsModule.loadUserData();
+        
+        // Проверка, первый ли это платеж
+        if (userData.quarterlyStatus.quarterNumber === 0) {
+            // Показ поля для благотворительного адреса
+            document.getElementById('charityAddressSection').style.display = 'block';
+        } else {
+            document.getElementById('charityAddressSection').style.display = 'none';
+        }
+
+        UI.showModal('quarterlyModal');
+    },
+
+    // Подтверждение квартальной оплаты
+    async confirmQuarterlyPayment() {
+        try {
+            UI.showLoading(document.getElementById('confirmQuarterly'));
+            
+            const charityInput = document.getElementById('charityAddressInput');
+            const charityAddress = charityInput ? charityInput.value : null;
+            
+            const success = await ContractsModule.payQuarterly(charityAddress);
+            
+            if (success) {
+                UI.closeModal('quarterlyModal');
+                await UI.loadDashboardData();
+            }
+        } finally {
+            UI.hideLoading(document.getElementById('confirmQuarterly'));
+        }
+    },
+
+    // Обработка покупки токенов
+    async handleTokenPurchase() {
+        const input = document.getElementById('buyTokenAmount');
+        const amount = parseFloat(input.value);
+        
+        if (!amount || amount <= 0) {
+            UI.showNotification('Please enter valid amount', 'warning');
+            return;
+        }
+
+        try {
+            UI.showLoading(document.getElementById('buyTokensBtn'));
+            
+            const success = await ContractsModule.buyTokens(amount);
+            
+            if (success) {
+                input.value = '';
+                await UI.loadTokensData();
+            }
+        } finally {
+            UI.hideLoading(document.getElementById('buyTokensBtn'));
+        }
+    },
+
+    // Обработка продажи токенов
+    async handleTokenSale() {
+        const input = document.getElementById('sellTokenAmount');
+        const amount = parseFloat(input.value);
+        
+        if (!amount || amount <= 0) {
+            UI.showNotification('Please enter valid amount', 'warning');
+            return;
+        }
+
+        try {
+            UI.showLoading(document.getElementById('sellTokensBtn'));
+            
+            const success = await ContractsModule.sellTokens(amount);
+            
+            if (success) {
+                input.value = '';
+                await UI.loadTokensData();
+            }
+        } finally {
+            UI.hideLoading(document.getElementById('sellTokensBtn'));
+        }
+    },
+
+    // Настройка админских обработчиков
+    setupAdminHandlers() {
+        // Бесплатная активация
+        document.getElementById('freeActivateBtn')?.addEventListener('click', async () => {
+            const userAddress = document.getElementById('adminUserAddress').value;
+            const sponsorAddress = document.getElementById('adminSponsorAddress').value;
+            const maxLevel = parseInt(document.getElementById('adminMaxLevel').value);
+
+            if (!Web3Module.state.web3.utils.isAddress(userAddress)) {
+                UI.showNotification('Invalid user address', 'error');
+                return;
+            }
+
+            try {
+                UI.showLoading(document.getElementById('freeActivateBtn'));
+                await ContractsModule.freeRegistration(userAddress, sponsorAddress, maxLevel);
+            } finally {
+                UI.hideLoading(document.getElementById('freeActivateBtn'));
+            }
+        });
+
+        // Массовая активация
+        document.getElementById('batchActivateBtn')?.addEventListener('click', async () => {
+            const usersText = document.getElementById('batchUsers').value;
+            const users = usersText.split('\n').filter(addr => addr.trim());
+            const sponsor = document.getElementById('batchSponsor').value;
+            const maxLevel = parseInt(document.getElementById('batchMaxLevel').value);
+
+            if (users.length === 0) {
+                UI.showNotification('Please enter user addresses', 'error');
+                return;
+            }
+
+            try {
+                UI.showLoading(document.getElementById('batchActivateBtn'));
+                await ContractsModule.batchRegistration(users, sponsor, maxLevel);
+            } finally {
+                UI.hideLoading(document.getElementById('batchActivateBtn'));
+            }
+        });
+    },
+
+    // Запуск периодических проверок
+    startIntervals() {
+        // Проверка сети каждые 10 секунд
+        this.state.networkCheckInterval = setInterval(async () => {
+            if (Web3Module.state.isConnected) {
+                const correctNetwork = await Web3Module.checkAndSwitchNetwork();
+                if (!correctNetwork) {
+                    UI.updateElement('networkStatus', 'Wrong Network');
+                } else {
+                    UI.updateElement('networkStatus', 'opBNB');
+                }
+            }
+        }, 10000);
+
+        // Обновление данных каждые 30 секунд
+        this.state.dataRefreshInterval = setInterval(async () => {
+            if (Web3Module.state.isConnected && UI.currentPage === 'dashboard') {
+                await UI.loadDashboardData();
+            }
+        }, 30000);
+    },
+
+    // Проверка PWA
+    checkPWA() {
+        // Проверка, установлено ли приложение
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('App is running as PWA');
+        }
+
+        // Предложение установки
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Показ кнопки установки (если есть в UI)
+            const installBtn = document.getElementById('installPWA');
+            if (installBtn) {
+                installBtn.style.display = 'block';
+                installBtn.addEventListener('click', async () => {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        console.log('PWA installed');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+    },
+
+    // Остановка интервалов при выходе
+    destroy() {
+        if (this.state.networkCheckInterval) {
+            clearInterval(this.state.networkCheckInterval);
+        }
+        if (this.state.dataRefreshInterval) {
+            clearInterval(this.state.dataRefreshInterval);
+        }
     }
-  }
+};
 
-  function bindMatrix() { /* готово к подключению on-chain данных */ }
-  function bindTokens() { /* история токенов/награды отображаются твоим HTML */ }
+// Запуск приложения при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    App.init();
+});
 
-  async function refreshDashboard() {
-    UI.setText('#userAddress', UI.short(current.address));
-    current.bnb = await Web3GW.getBNBBalance(current.address);
-    UI.setText('#userBalance', `${Number(current.bnb).toFixed(4)} BNB`);
+// Очистка при выходе
+window.addEventListener('beforeunload', () => {
+    App.destroy();
+});
 
-    const ud = await ContractsGW.getUserData(current.address);
-    const st = await ContractsGW.getUserStats(current.address);
-    current.isActive = await ContractsGW.isUserActive(current.address);
-
-    const userId = localStorage.getItem('gw_userId') || '---';
-    UI.setText('#userId', userId);
-
-    const earnedBnB = (Number(st.totalEarned || '0') / 1e18).toFixed(4);
-    UI.setText('#totalEarned', `${earnedBnB} BNB`);
-
-    if (Number(ud.lastActivity) > 0) {
-      const last = new Date(Number(ud.lastActivity) * 1000);
-      const next = new Date(last.getTime() + 90*24*3600*1000);
-      document.querySelector('#lastQuarterlyPayment')?.replaceChildren(document.createTextNode(last.toLocaleDateString()));
-      document.querySelector('#nextQuarterlyDate')?.replaceChildren(document.createTextNode(next.toLocaleDateString()));
-      const days = Math.ceil((next - Date.now())/(24*3600*1000));
-      const warn = document.getElementById('quarterlyWarning');
-      if (days <= 10 && warn) { warn.classList.remove('hidden'); document.getElementById('daysRemaining')?.replaceChildren(document.createTextNode(String(Math.max(days,0)))); }
-    }
-
-    UI.disable('#payQuarterlyBtn', !current.address);
-
-    try {
-      const pr = await ContractsGW.getPricesAndRewards(); // {prices[], rewards[]}
-      current.prices = pr.prices;
-      const pkg = (n)=> pr.prices.slice(0,n).reduce((a,b)=> a + Number(b), 0);
-      const w3 = await Web3GW.getWeb3();
-      const set = (id,sum)=>{ const el = document.getElementById(id); if (el) el.textContent = `${w3.utils.fromWei(String(sum),'ether')} BNB`; };
-      set('package1Price', pkg(4));
-      set('package2Price', pkg(7));
-      set('package3Price', pkg(10));
-      set('package4Price', pkg(12));
-    } catch {}
-  }
-
-  async function init() {
-    try{
-      current.address = await Web3GW.connectSafePalFirst();
-      await ContractsGW.initContracts();
-      bindDashboard(); bindPartners(); bindMatrix(); bindTokens();
-      await refreshDashboard();
-      UI.notify('Готово: SafePal подключен, сеть opBNB (204).','success');
-    }catch(e){
-      UI.notify(`Открой сайт в dApp-браузере SafePal и переключи сеть на opBNB. Детали: ${e?.message||e}`,'error');
-    }
-  }
-
-  window.App = {
-    onAccountsChanged: async (addr)=>{ current.address = addr || null; if (addr) await refreshDashboard(); },
-    onChainChanged: async ()=>{ await refreshDashboard(); },
-  };
-
-  document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(init, 1500); });
-})();
+// Экспорт для отладки
+window.App = App;
