@@ -676,10 +676,10 @@ const ContractsModule = {
             console.error('Quarterly payment error:', error);
             UI.showNotification(`Payment failed: ${error.message}`, 'error');
             return false;
-        } finally {
+} finally {
             UI.hideLoading();
         }
-    }
+    },
 
     // Покупка токенов
     async buyTokens(tokenAmount) {
