@@ -1,0 +1,1369 @@
+<div class="form-group">
+                                <label for="sellReturn" data-i18n="tokens.return">Return (BNB):</label>
+                                <input type="number" id="sellReturn" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn-secondary" id="calculateSellBtn" data-i18n="tokens.calculate">Calculate</button>
+                                <button class="btn-primary" id="confirmSellBtn" data-i18n="tokens.sell">Sell Tokens</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Статистика токенов -->
+        <section class="token-statistics-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.statistics">Token Statistics</h2>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalSupply">1,000,000,000</div>
+                            <div class="stat-label" data-i18n="tokens.totalSupply">Total Supply</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="circulatingSupply">0</div>
+                            <div class="stat-label" data-i18n="tokens.circulatingSupply">Circulating Supply</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="burnedTokens">0</div>
+                            <div class="stat-label" data-i18n="tokens.burnedTokens">Burned Tokens</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="marketCap">$0</div>
+                            <div class="stat-label" data-i18n="tokens.marketCap">Market Cap</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Пулы токенов -->
+        <section class="token-pools-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.pools">Token Pools</h2>
+                </div>
+                <div class="card-content">
+                    <div class="pools-grid">
+                        <div class="pool-item tokenomics">
+                            <div class="pool-header">
+                                <div class="pool-icon">💎</div>
+                                <div class="pool-name" data-i18n="tokens.tokenomics">Tokenomics Pool</div>
+                            </div>
+                            <div class="pool-info">
+                                <div class="pool-percentage">80%</div>
+                                <div class="pool-amount">800,000,000 GWT</div>
+                                <div class="pool-status soon" data-i18n="projects.comingSoon">Coming Soon</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pool-item distribution">
+                            <div class="pool-header">
+                                <div class="pool-icon">🎁</div>
+                                <div class="pool-name" data-i18n="tokens.distribution">Distribution Pool</div>
+                            </div>
+                            <div class="pool-info">
+                                <div class="pool-percentage">10%</div>
+                                <div class="pool-amount">100,000,000 GWT</div>
+                                <div class="pool-status soon" data-i18n="projects.comingSoon">Coming Soon</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pool-item team">
+                            <div class="pool-header">
+                                <div class="pool-icon">👥</div>
+                                <div class="pool-name" data-i18n="tokens.team">Team Pool</div>
+                            </div>
+                            <div class="pool-info">
+                                <div class="pool-percentage">5%</div>
+                                <div class="pool-amount">50,000,000 GWT</div>
+                                <div class="pool-status locked" data-i18n="levels.locked">Locked</div>
+                            </div>
+                        </div>
+                        
+                        <div class="pool-item reserve">
+                            <div class="pool-header">
+                                <div class="pool-icon">🏦</div>
+                                <div class="pool-name" data-i18n="tokens.reserve">Reserve Pool</div>
+                            </div>
+                            <div class="pool-info">
+                                <div class="pool-percentage">5%</div>
+                                <div class="pool-amount">50,000,000 GWT</div>
+                                <div class="pool-status coming" data-i18n="projects.comingSoon">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Награды за уровни -->
+        <section class="level-rewards-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.rewards">Level Rewards</h2>
+                </div>
+                <div class="card-content">
+                    <div class="rewards-grid" id="rewardsGrid">
+                        <!-- Генерируется через JavaScript -->
+                    </div>
+                    <div class="total-rewards">
+                        <div class="total-label" data-i18n="tokens.totalPossible">Total Possible Rewards:</div>
+                        <div class="total-value">9,300 GWT</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Стейкинг токенов -->
+        <section class="token-staking-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.staking">🔒 Token Staking</h2>
+                </div>
+                <div class="card-content">
+                    <div class="staking-info">
+                        <p class="staking-description" data-i18n="tokens.stakingDescription">
+                            Stake your GWT tokens to earn rewards and participate in governance. Coming soon!
+                        </p>
+                        <div class="staking-features">
+                            <div class="feature-item">
+                                <div class="feature-icon">📈</div>
+                                <div class="feature-text" data-i18n="tokens.earnRewards">Earn Rewards</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🗳️</div>
+                                <div class="feature-text" data-i18n="tokens.governance">Governance Rights</div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🎯</div>
+                                <div class="feature-text" data-i18n="tokens.exclusiveAccess">Exclusive Access</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- История токенов -->
+        <section class="token-history-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.history">Token History</h2>
+                    <div class="history-filters">
+                        <select id="historyTypeFilter" class="form-input">
+                            <option value="all" data-i18n="common.all">All</option>
+                            <option value="reward" data-i18n="tokens.rewards">Rewards</option>
+                            <option value="purchase" data-i18n="tokens.buy">Purchase</option>
+                            <option value="sale" data-i18n="tokens.sell">Sale</option>
+                        </select>
+                        <button class="btn-secondary" id="refreshHistoryBtn">
+                            🔄 <span data-i18n="common.refresh">Refresh</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="table" id="tokenHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="transactions.date">Date</th>
+                                    <th data-i18n="tokens.type">Type</th>
+                                    <th data-i18n="levels.level">Level</th>
+                                    <th data-i18n="tokens.amount">Amount</th>
+                                    <th data-i18n="transactions.status">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tokenHistoryTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <span data-i18n="common.loading">Loading...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Информация о контракте -->
+        <section class="contract-info-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.contractInfo">Contract Information</h2>
+                </div>
+                <div class="card-content">
+                    <div class="contract-details">
+                        <div class="contract-item">
+                            <span class="label" data-i18n="tokens.contractAddress">Contract Address:</span>
+                            <span class="value contract-address">
+                                0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc
+                                <button class="copy-btn" id="copyContractBtn">📋</button>
+                            </span>
+                        </div>
+                        <div class="contract-item">
+                            <span class="label" data-i18n="tokens.tokenName">Token Name:</span>
+                            <span class="value">GlobalWay Token</span>
+                        </div>
+                        <div class="contract-item">
+                            <span class="label" data-i18n="tokens.symbol">Symbol:</span>
+                            <span class="value">GWT</span>
+                        </div>
+                        <div class="contract-item">
+                            <span class="label" data-i18n="tokens.decimals">Decimals:</span>
+                            <span class="value">18</span>
+                        </div>
+                        <div class="contract-item">
+                            <span class="label" data-i18n="tokens.network">Network:</span>
+                            <span class="value">opBNB (204)</span>
+                        </div>
+                    </div>
+                    <div class="contract-actions">
+                        <button class="btn-secondary" id="viewExplorerBtn">
+                            🔍 <span data-i18n="tokens.viewExplorer">View on Explorer</span>
+                        </button>
+                        <button class="btn-primary" id="addToWalletBtn">
+                            💳 <span data-i18n="tokens.addToWallet">Add to Wallet</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Модальные окна -->
+
+    <!-- Подтверждение транзакции -->
+    <div class="modal-overlay" id="transactionModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeTransactionModal">&times;</button>
+            <h2 class="modal-title" id="transactionModalTitle">Confirm Transaction</h2>
+            <div class="modal-text">
+                <div class="transaction-details" id="transactionDetails">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancelTransactionBtn" data-i18n="common.cancel">Cancel</button>
+                    <button class="btn-primary" id="confirmTransactionBtn" data-i18n="tokens.confirm">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Загрузочный оверлей -->
+    <div class="modal-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText" data-i18n="common.loading">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Область уведомлений -->
+    <div class="notifications-container" id="notificationsContainer"></div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/web3-manager.js"></script>
+    <script src="/js/contract-manager.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Состояние страницы токенов
+        let tokensState = {
+            balance: 0,
+            currentPrice: 0,
+            totalValue: 0,
+            tradingEnabled: false,
+            tokenHistory: []
+        };
+
+        // Инициализация страницы Tokens
+        document.addEventListener('DOMContentLoaded', async () => {
+            await i18n.loadTranslations();
+            await initializeTokensPage();
+        });
+
+        async function initializeTokensPage() {
+            console.log('🪙 Initializing Tokens page...');
+            
+            try {
+                setupTokensEventListeners();
+                createRewardsGrid();
+                
+                if (app.userState.isConnected) {
+                    await loadTokensData();
+                } else {
+                    displaySampleData();
+                }
+                
+                console.log('✅ Tokens page initialized');
+                
+            } catch (error) {
+                console.error('❌ Tokens page initialization failed:', error);
+                app.showNotification('Failed to initialize tokens page', 'error');
+            }
+        }
+
+        function setupTokensEventListeners() {
+            // Переключение вкладок торговли
+            document.getElementById('buyTab')?.addEventListener('click', () => switchTab('buy'));
+            document.getElementById('sellTab')?.addEventListener('click', () => switchTab('sell'));
+            
+            // Калькулятор торговли
+            document.getElementById('calculateBuyBtn')?.addEventListener('click', calculateBuyCost);
+            document.getElementById('calculateSellBtn')?.addEventListener('click', calculateSellReturn);
+            
+            // Автоматический расчет при вводе
+            document.getElementById('buyAmount')?.addEventListener('input', calculateBuyCost);
+            document.getElementById('sellAmount')?.addEventListener('input', calculateSellReturn);
+            
+            // Подтверждение торговли
+            document.getElementById('confirmBuyBtn')?.addEventListener('click', () => confirmTrade('buy'));
+            document.getElementById('confirmSellBtn')?.addEventListener('click', () => confirmTrade('sell'));
+            
+            // Обновление истории
+            document.getElementById('refreshHistoryBtn')?.addEventListener('click', refreshTokenHistory);
+            
+            // Фильтр истории
+            document.getElementById('historyTypeFilter')?.addEventListener('change', filterTokenHistory);
+            
+            // Действия с контрактом
+            document.getElementById('copyContractBtn')?.addEventListener('click', copyContractAddress);
+            document.getElementById('viewExplorerBtn')?.addEventListener('click', viewOnExplorer);
+            document.getElementById('addToWalletBtn')?.addEventListener('click', addTokenToWallet);
+            
+            // Модальные окна
+            document.getElementById('closeTransactionModal')?.addEventListener('click', () => {
+                app.hideModal('transactionModal');
+            });
+            
+            document.getElementById('cancelTransactionBtn')?.addEventListener('click', () => {
+                app.hideModal('transactionModal');
+            });
+            
+            document.getElementById('confirmTransactionBtn')?.addEventListener('click', executeTransaction);
+        }
+
+        function switchTab(tab) {
+            // Переключение активной вкладки
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.tab === tab) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Переключение контента
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                if (content.id === `${tab}TabContent`) {
+                    content.classList.add('active');
+                }
+            });
+        }
+
+        function createRewardsGrid() {
+            const container = document.getElementById('rewardsGrid');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            Object.entries(contractManager.levelRewards).forEach(([level, reward]) => {
+                const rewardItem = document.createElement('div');
+                rewardItem.className = 'reward-item';
+                rewardItem.innerHTML = `
+                    <div class="reward-level">Level ${level}</div>
+                    <div class="reward-amount">${reward} GWT</div>
+                `;
+                container.appendChild(rewardItem);
+            });
+        }
+
+        async function loadTokensData() {
+            if (!app.userState.isConnected) return;
+            
+            try {
+                app.setLoading(true);
+                
+                // Загружаем баланс токенов
+                const balance = await contractManager.getTokenBalance(app.userState.address);
+                tokensState.balance = parseFloat(balance);
+                
+                // Загружаем текущую цену
+                const price = await contractManager.getTokenPrice();
+                tokensState.currentPrice = parseFloat(price);
+                
+                // Вычисляем общую стоимость
+                tokensState.totalValue = tokensState.balance * tokensState.currentPrice;
+                
+                // Определяем статус торговли
+                tokensState.tradingEnabled = tokensState.currentPrice >= 0.01;
+                
+                // Обновляем интерфейс
+                updateTokensDisplay();
+                updateTradingStatus();
+                
+                // Загружаем историю
+                await loadTokenHistory();
+                
+            } catch (error) {
+                console.error('Failed to load tokens data:', error);
+                app.showNotification('Failed to load token data', 'error');
+                displaySampleData();
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        function displaySampleData() {
+            tokensState = {
+                balance: 150,
+                currentPrice: 0.005,
+                totalValue: 0.75,
+                tradingEnabled: false,
+                tokenHistory: []
+            };
+            
+            updateTokensDisplay();
+            updateTradingStatus();
+            generateSampleHistory();
+        }
+
+        function updateTokensDisplay() {
+            // Обновляем баланс
+            document.getElementById('tokenBalance').textContent = 
+                tokensState.balance.toLocaleString();
+            
+            // Обновляем цену
+            document.getElementById('tokenCurrentPrice').textContent = 
+                `${tokensState.currentPrice.toFixed(6)}`;
+            
+            // Обновляем общую стоимость
+            document.getElementById('tokenTotalValue').textContent = 
+                `${tokensState.totalValue.toFixed(2)}`;
+            
+            // Симуляция изменения цены
+            const priceChangeElement = document.getElementById('priceChange');
+            if (priceChangeElement) {
+                const change = (Math.random() - 0.5) * 10; // Случайное изменение ±5%
+                priceChangeElement.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+                priceChangeElement.className = `price-change ${change >= 0 ? 'positive' : 'negative'}`;
+            }
+        }
+
+        function updateTradingStatus() {
+            const indicator = document.getElementById('tradingIndicator');
+            const statusText = document.getElementById('tradingStatusText');
+            const buyBtn = document.getElementById('confirmBuyBtn');
+            const sellBtn = document.getElementById('confirmSellBtn');
+            
+            if (tokensState.tradingEnabled) {
+                indicator.className = 'status-indicator active';
+                statusText.textContent = i18n.t('tokens.enabled');
+                statusText.setAttribute('data-i18n', 'tokens.enabled');
+                
+                if (buyBtn) buyBtn.disabled = false;
+                if (sellBtn) sellBtn.disabled = false;
+            } else {
+                indicator.className = 'status-indicator inactive';
+                statusText.textContent = i18n.t('tokens.disabled');
+                statusText.setAttribute('data-i18n', 'tokens.disabled');
+                
+                if (buyBtn) buyBtn.disabled = true;
+                if (sellBtn) sellBtn.disabled = true;
+            }
+        }
+
+        async function calculateBuyCost() {
+            const amountInput = document.getElementById('buyAmount');
+            const costInput = document.getElementById('buyCost');
+            
+            if (!amountInput || !costInput) return;
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            if (amount <= 0) {
+                costInput.value = '';
+                return;
+            }
+            
+            try {
+                if (app.userState.isConnected) {
+                    const cost = await contractManager.calculateTokenPurchaseCost(amount);
+                    costInput.value = parseFloat(cost).toFixed(6);
+                } else {
+                    // Симуляция расчета
+                    const cost = amount * tokensState.currentPrice * 1.05; // +5% fee
+                    costInput.value = cost.toFixed(6);
+                }
+            } catch (error) {
+                console.error('Failed to calculate buy cost:', error);
+                costInput.value = 'Error';
+            }
+        }
+
+        async function calculateSellReturn() {
+            const amountInput = document.getElementById('sellAmount');
+            const returnInput = document.getElementById('sellReturn');
+            
+            if (!amountInput || !returnInput) return;
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            if (amount <= 0 || amount > tokensState.balance) {
+                returnInput.value = '';
+                return;
+            }
+            
+            try {
+                if (app.userState.isConnected) {
+                    const returnAmount = await contractManager.calculateTokenSaleReturn(amount);
+                    returnInput.value = parseFloat(returnAmount).toFixed(6);
+                } else {
+                    // Симуляция расчета
+                    const returnAmount = amount * tokensState.currentPrice * 0.95; // -5% fee
+                    returnInput.value = returnAmount.toFixed(6);
+                }
+            } catch (error) {
+                console.error('Failed to calculate sell return:', error);
+                returnInput.value = 'Error';
+            }
+        }
+
+        function confirmTrade(type) {
+            if (!tokensState.tradingEnabled) {
+                app.showNotification('Trading is currently disabled', 'warning');
+                return;
+            }
+            
+            const amountInput = document.getElementById(`${type}Amount`);
+            const costInput = document.getElementById(type === 'buy' ? 'buyCost' : 'sellReturn');
+            
+            if (!amountInput || !costInput) return;
+            
+            const amount = parseFloat(amountInput.value);
+            const cost = parseFloat(costInput.value);
+            
+            if (!amount || amount <= 0) {
+                app.showNotification('Please enter a valid amount', 'warning');
+                return;
+            }
+            
+            if (type === 'sell' && amount > tokensState.balance) {
+                app.showNotification('Insufficient token balance', 'error');
+                return;
+            }
+            
+            // Показываем модальное окно подтверждения
+            showTransactionModal(type, amount, cost);
+        }
+
+        function showTransactionModal(type, amount, cost) {
+            const title = document.getElementById('transactionModalTitle');
+            const details = document.getElementById('transactionDetails');
+            
+            title.textContent = type === 'buy' ? 'Confirm Token Purchase' : 'Confirm Token Sale';
+            
+            details.innerHTML = `
+                <div class="transaction-item">
+                    <span class="label">Type:</span>
+                    <span class="value">${type === 'buy' ? 'Buy' : 'Sell'} Tokens</span>
+                </div>
+                <div class="transaction-item">
+                    <span class="label">Amount:</span>
+                    <span class="value">${amount.toLocaleString()} GWT</span>
+                </div>
+                <div class="transaction-item">
+                    <span class="label">${type === 'buy' ? 'Cost' : 'Return'}:</span>
+                    <span class="value">${cost.toFixed(6)} BNB</span>
+                </div>
+                <div class="transaction-item">
+                    <span class="label">Price per token:</span>
+                    <span class="value">${tokensState.currentPrice.toFixed(6)}</span>
+                </div>
+            `;
+            
+            // Сохраняем детали транзакции
+            document.getElementById('confirmTransactionBtn').dataset.type = type;
+            document.getElementById('confirmTransactionBtn').dataset.amount = amount;
+            document.getElementById('confirmTransactionBtn').dataset.cost = cost;
+            
+            app.showModal('transactionModal');
+        }
+
+        async function executeTransaction() {
+            const btn = document.getElementById('confirmTransactionBtn');
+            const type = btn.dataset.type;
+            const amount = parseFloat(btn.dataset.amount);
+            const cost = parseFloat(btn.dataset.cost);
+            
+            try {
+                app.setLoading(true);
+                app.hideModal('transactionModal');
+                
+                let result;
+                if (type === 'buy') {
+                    app.showNotification('Processing token purchase...', 'info');
+                    result = await contractManager.buyTokens(amount, app.userState.address);
+                } else {
+                    app.showNotification('Processing token sale...', 'info');
+                    result = await contractManager.sellTokens(amount, app.userState.address);
+                }
+                
+                app.showNotification(`Token ${type} completed successfully!`, 'success');
+                
+                // Обновляем данные
+                await loadTokensData();
+                
+                // Очищаем форму
+                document.getElementById(`${type}Amount`).value = '';
+                document.getElementById(type === 'buy' ? 'buyCost' : 'sellReturn').value = '';
+                
+            } catch (error) {
+                console.error('Transaction failed:', error);
+                app.showNotification(error.message, 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        async function loadTokenHistory() {
+            // В реальном приложении здесь была бы загрузка из блокчейна
+            // Пока генерируем образец данных
+            generateSampleHistory();
+        }
+
+        function generateSampleHistory() {
+            const types = ['reward', 'purchase', 'sale'];
+            const levels = [1, 2, 3, 4, 5];
+            const history = [];
+            
+            for (let i = 0; i < 10; i++) {
+                const type = types[Math.floor(Math.random() * types.length)];
+                const level = type === 'reward' ? levels[Math.floor(Math.random() * levels.length)] : null;
+                const amount = type === 'reward' ? contractManager.levelRewards[level] : 
+                              Math.floor(Math.random() * 100) + 10;
+                
+                history.push({
+                    date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
+                    type: type,
+                    level: level,
+                    amount: amount,
+                    status: 'success'
+                });
+            }
+            
+            tokensState.tokenHistory = history.sort((a, b) => b.date - a.date);
+            updateTokenHistoryTable();
+        }
+
+        function updateTokenHistoryTable() {
+            const tbody = document.getElementById('tokenHistoryTableBody');
+            if (!tbody) return;
+            
+            const history = tokensState.tokenHistory;
+            
+            if (history.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            No token history available
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = history.map(item => `
+                <tr>
+                    <td>${item.date.toLocaleDateString()}</td>
+                    <td class="token-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</td>
+                    <td>${item.level || '--'}</td>
+                    <td>${item.amount.toLocaleString()} GWT</td>
+                    <td class="token-status ${item.status}">${item.status.charAt(0).toUpperCase() + item.status.slice(1)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function refreshTokenHistory() {
+            generateSampleHistory();
+            app.showNotification('Token history refreshed', 'success');
+        }
+
+        function filterTokenHistory() {
+            const filter = document.getElementById('historyTypeFilter').value;
+            
+            if (filter === 'all') {
+                updateTokenHistoryTable();
+                return;
+            }
+            
+            const filteredHistory = tokensState.tokenHistory.filter(item => item.type === filter);
+            const tbody = document.getElementById('tokenHistoryTableBody');
+            
+            if (filteredHistory.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            No ${filter} transactions found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = filteredHistory.map(item => `
+                <tr>
+                    <td>${item.date.toLocaleDateString()}</td>
+                    <td class="token-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</td>
+                    <td>${item.level || '--'}</td>
+                    <td>${item.amount.toLocaleString()} GWT</td>
+                    <td class="token-status ${item.status}">${item.status.charAt(0).toUpperCase() + item.status.slice(1)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function copyContractAddress() {
+            const address = '0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc';
+            navigator.clipboard.writeText(address).then(() => {
+                app.showNotification('Contract address copied!', 'success');
+            });
+        }
+
+        function viewOnExplorer() {
+            const address = '0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc';
+            const explorerUrl = `https://opbnbscan.com/token/${address}`;
+            window.open(explorerUrl, '_blank');
+        }
+
+        async function addTokenToWallet() {
+            if (!window.ethereum) {
+                app.showNotification('Web3 wallet not detected', 'error');
+                return;
+            }
+
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: {
+                        type: 'ERC20',
+                        options: {
+                            address: '0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc',
+                            symbol: 'GWT',
+                            decimals: 18,
+                            image: 'https://globalway.club/assets/icons/logo.png'
+                        }
+                    }
+                });
+                
+                app.showNotification('Token added to wallet!', 'success');
+            } catch (error) {
+                console.error('Failed to add token to wallet:', error);
+                app.showNotification('Failed to add token to wallet', 'error');
+            }
+        }
+
+        // Добавляем функции в глобальное приложение
+        if (typeof app !== 'undefined') {
+            app.initializeTokens = initializeTokensPage;
+        }
+    </script>
+
+    <style>
+        /* Специфичные стили для страницы Tokens */
+        .tokens-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+            padding-bottom: 120px;
+        }
+
+        .token-balance-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .balance-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-xl);
+            backdrop-filter: blur(10px);
+            box-shadow: var(--shadow-large);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-gold);
+        }
+
+        .balance-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .token-logo {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient-gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: var(--font-weight-bold);
+            color: var(--text-inverse);
+        }
+
+        .balance-content {
+            text-align: center;
+        }
+
+        .balance-amount {
+            font-size: 3rem;
+            font-weight: var(--font-weight-bold);
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .balance-amount .currency {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            margin-left: var(--spacing-sm);
+        }
+
+        .balance-value,
+        .token-price-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .balance-value .label,
+        .token-price-info .label {
+            color: var(--text-secondary);
+        }
+
+        .balance-value .value,
+        .token-price-info .price {
+            color: var(--text-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .price-change {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .price-change.positive {
+            background: var(--matrix-active);
+            color: var(--text-inverse);
+        }
+
+        .price-change.negative {
+            background: #f44336;
+            color: var(--text-primary);
+        }
+
+        .token-trading-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .trading-status {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .status-indicator.active {
+            background: var(--matrix-active);
+        }
+
+        .status-indicator.inactive {
+            background: #f44336;
+        }
+
+        .trading-tabs {
+            display: flex;
+            margin-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .tab-btn {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-gold);
+            border-bottom-color: var(--primary-gold);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .trading-form {
+            display: grid;
+            gap: var(--spacing-lg);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+        }
+
+        .token-statistics-section,
+        .token-pools-section,
+        .level-rewards-section,
+        .token-staking-section,
+        .token-history-section,
+        .contract-info-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .pools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .pool-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            backdrop-filter: blur(10px);
+            transition: all var(--transition-medium);
+        }
+
+        .pool-item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-large);
+        }
+
+        .pool-item.tokenomics { border-left: 4px solid #9c27b0; }
+        .pool-item.distribution { border-left: 4px solid #ff9800; }
+        .pool-item.team { border-left: 4px solid #2196f3; }
+        .pool-item.reserve { border-left: 4px solid #4caf50; }
+
+        .pool-header {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .pool-icon {
+            font-size: 2rem;
+        }
+
+        .pool-name {
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+        }
+
+        .pool-percentage {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .pool-amount {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .pool-status {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .pool-status.soon { background: #ff9800; color: var(--text-inverse); }
+        .pool-status.locked { background: #f44336; color: var(--text-primary); }
+        .pool-status.coming { background: #2196f3; color: var(--text-primary); }
+
+        .rewards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .reward-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-small);
+            padding: var(--spacing-md);
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .reward-level {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .reward-amount {
+            font-weight: var(--font-weight-bold);
+            color: var(--primary-gold);
+        }
+
+        .staking-features {
+            display: flex;
+            justify-content: space-around;
+            margin-top: var(--spacing-lg);
+        }
+
+        .feature-item {
+            text-align: center;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .feature-text {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+        }
+
+        .history-filters {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .history-filters select {
+            max-width: 150px;
+        }
+
+        .token-type.reward { color: var(--matrix-active); }
+        .token-type.purchase { color: var(--primary-gold); }
+        .token-type.sale { color: #f44336; }
+
+        .token-status.success { color: var(--matrix-active); }
+        .token-status.pending { color: #ff9800; }
+        .token-status.failed { color: #f44336; }
+
+        .contract-details {
+            display: grid;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .contract-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .contract-item .label {
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .contract-item .value {
+            color: var(--text-primary);
+            font-weight: var(--font-weight-semibold);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .contract-address {
+            font-family: monospace;
+            font-size: var(--font-size-sm);
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--primary-gold);
+            cursor: pointer;
+            padding: var(--spacing-xs);
+            border-radius: var(--border-radius-small);
+            transition: all var(--transition-fast);
+        }
+
+        .copy-btn:hover {
+            background: var(--glass-bg);
+        }
+
+        .contract-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: center;
+        }
+
+        .transaction-details {
+            display: grid;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .transaction-item .label {
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .transaction-item .value {
+            color: var(--text-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .tokens-container {
+                padding: var(--spacing-md);
+            }
+
+            .balance-amount {
+                font-size: 2rem;
+            }
+
+            .balance-amount .currency {
+                font-size: 1rem;
+            }
+
+            .balance-value,
+            .token-price-info {
+                flex-direction: column;
+                gap: var(--spacing-xs);
+            }
+
+            .pools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .rewards-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .staking-features {
+                flex-direction: column;
+                gap: var(--spacing-lg);
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .contract-actions {
+                flex-direction: column;
+            }
+
+            .history-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .transaction-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-xs);
+            }
+        }
+    </style>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GlobalWay Tokens - Trade GWT tokens and manage your portfolio">
+    <title>Tokens - GlobalWay</title>
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    
+    <!-- Web3 и GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body class="page-tokens">
+    <!-- Фон -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth background" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Навигация -->
+    <nav class="navigation">
+        <a href="/" class="nav-item" data-nav="index">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text" data-i18n="common.home">Home</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text" data-i18n="navigation.dashboard">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="partners">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text" data-i18n="navigation.partners">Partners</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="matrix">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-text" data-i18n="navigation.matrix">Matrix</span>
+        </a>
+        <a href="#" class="nav-item active" data-nav="tokens">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-text" data-i18n="navigation.tokens">Tokens</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="projects">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text" data-i18n="navigation.projects">Projects</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text" data-i18n="navigation.settings">Settings</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="admin" id="adminNavItem" style="display: none;">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text" data-i18n="navigation.admin">Admin</span>
+        </a>
+    </nav>
+
+    <!-- Переключатель языков -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="uk">UK</button>
+    </div>
+
+    <!-- Основной контент -->
+    <main class="tokens-container">
+        <!-- Заголовок -->
+        <header class="page-header">
+            <h1 class="page-title" data-i18n="tokens.title">🪙 Tokens</h1>
+            <p class="page-description">Trade GWT tokens and manage your digital asset portfolio</p>
+        </header>
+
+        <!-- Баланс токенов -->
+        <section class="token-balance-section">
+            <div class="balance-card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.balance">Token Balance</h2>
+                    <div class="token-logo">
+                        <span class="token-symbol">GWT</span>
+                    </div>
+                </div>
+                <div class="balance-content">
+                    <div class="balance-amount">
+                        <span class="amount" id="tokenBalance">0</span>
+                        <span class="currency">GWT</span>
+                    </div>
+                    <div class="balance-value">
+                        <span class="label" data-i18n="tokens.totalValue">Total Value:</span>
+                        <span class="value" id="tokenTotalValue">$0.00</span>
+                    </div>
+                    <div class="token-price-info">
+                        <span class="label" data-i18n="tokens.price">Current Price:</span>
+                        <span class="price" id="tokenCurrentPrice">$0.00</span>
+                        <span class="price-change" id="priceChange">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Торговля токенами -->
+        <section class="token-trading-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.trading">Token Trading</h2>
+                    <div class="trading-status" id="tradingStatus">
+                        <span class="status-indicator" id="tradingIndicator"></span>
+                        <span class="status-text" id="tradingStatusText" data-i18n="tokens.disabled">Trading starts at $0.01</span>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="trading-tabs">
+                        <button class="tab-btn active" data-tab="buy" id="buyTab">
+                            💰 <span data-i18n="tokens.buy">Buy Tokens</span>
+                        </button>
+                        <button class="tab-btn" data-tab="sell" id="sellTab">
+                            💸 <span data-i18n="tokens.sell">Sell Tokens</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Buy Tab -->
+                    <div class="tab-content active" id="buyTabContent">
+                        <div class="trading-form">
+                            <div class="form-group">
+                                <label for="buyAmount" data-i18n="tokens.amount">Amount (GWT):</label>
+                                <input type="number" id="buyAmount" class="form-input" placeholder="0" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="buyCost" data-i18n="tokens.cost">Cost (BNB):</label>
+                                <input type="number" id="buyCost" class="form-input" placeholder="0.00" readonly>
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn-secondary" id="calculateBuyBtn" data-i18n="tokens.calculate">Calculate</button>
+                                <button class="btn-primary" id="confirmBuyBtn" data-i18n="tokens.buy">Buy Tokens</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sell Tab -->
+                    <div class="tab-content" id="sellTabContent">
+                        <div class="trading-form">
+                            <div class="form-group">
+                                <label for="sellAmount" data-i18n="tokens.amount">Amount (GWT):</label>
+                                <input type="number" id="sellAmount" class="form-input" placeholder="0" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="sellReturn" data-i18n="tokens.return">Return (BNB):</label>
