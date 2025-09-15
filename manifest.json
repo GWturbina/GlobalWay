@@ -1,0 +1,145 @@
+{
+  "name": "GlobalWay Club",
+  "short_name": "GlobalWay",
+  "description": "Decentralized ecosystem for global community building and financial independence",
+  "version": "1.0.0",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#FFD700",
+  
+  "icons": [
+    {
+      "src": "/assets/icons/logo-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/logo-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  
+  "categories": [
+    "finance",
+    "business", 
+    "social",
+    "productivity"
+  ],
+  
+  "lang": "en",
+  "dir": "ltr",
+  
+  "scope": "/",
+  "id": "globalway-club",
+  
+  "prefer_related_applications": false,
+  
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Access your personal dashboard",
+      "url": "/components/dashboard.html",
+      "icons": [
+        {
+          "src": "/assets/icons/logo-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Matrix",
+      "short_name": "Matrix",
+      "description": "View binary matrix structure",
+      "url": "/components/matrix.html",
+      "icons": [
+        {
+          "src": "/assets/icons/logo-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Tokens",
+      "short_name": "Tokens",
+      "description": "Manage GWT tokens",
+      "url": "/components/tokens.html",
+      "icons": [
+        {
+          "src": "/assets/icons/logo-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  
+  "screenshots": [
+    {
+      "src": "/assets/images/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "GlobalWay mobile interface"
+    },
+    {
+      "src": "/assets/images/screenshot-desktop.png", 
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "GlobalWay desktop interface"
+    }
+  ],
+  
+  "protocol_handlers": [
+    {
+      "protocol": "web+globalway",
+      "url": "/ref?id=%s"
+    }
+  ],
+  
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  
+  "file_handlers": [
+    {
+      "action": "/import",
+      "accept": {
+        "application/json": [".json"],
+        "text/csv": [".csv"]
+      }
+    }
+  ]
+}
