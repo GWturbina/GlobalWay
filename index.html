@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GlobalWay Club - Decentralized ecosystem for global community">
+    <meta name="theme-color" content="#FFD700">
+    
+    <title>GlobalWay Club</title>
+    
+    <!-- Иконки -->
+    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/logo-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/logo-32x32.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    
+    <!-- GSAP для анимаций -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <!-- Фон Земли -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth at night" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Переключатель языков -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="uk">UK</button>
+    </div>
+
+    <!-- Логотип -->
+    <div class="main-logo">
+        <img src="/assets/icons/logo.png" alt="GlobalWay Logo" class="logo">
+        <h1 data-i18n="welcome">Welcome to GlobalWay</h1>
+    </div>
+
+    <!-- Контейнер планет -->
+    <div class="planets-container" id="planetsContainer">
+        <!-- Планета Клуб -->
+        <div class="planet planet-club" data-planet="club">
+            <img src="/assets/images/planets/planet-club.png" alt="Club Planet">
+            <div class="planet-label" data-i18n="club.title">GlobalWay Club</div>
+        </div>
+
+        <!-- Планета Цели -->
+        <div class="planet planet-goals" data-planet="goals">
+            <img src="/assets/images/planets/planet-goals.png" alt="Goals Planet">
+            <div class="planet-label" data-i18n="goals.title">Club Goals</div>
+        </div>
+
+        <!-- Планета Миссия -->
+        <div class="planet planet-mission" data-planet="mission">
+            <img src="/assets/images/planets/planet-mission.png" alt="Mission Planet">
+            <div class="planet-label" data-i18n="mission.title">Our Mission</div>
+        </div>
+
+        <!-- Планета Проекты -->
+        <div class="planet planet-projects" data-planet="projects">
+            <img src="/assets/images/planets/planet-projects.png" alt="Projects Planet">
+            <div class="planet-label" data-i18n="projects.title">Our Projects</div>
+        </div>
+
+        <!-- Планета Дорожная карта -->
+        <div class="planet planet-roadmap" data-planet="roadmap">
+            <img src="/assets/images/planets/planet-roadmap.png" alt="Roadmap Planet">
+            <div class="planet-label" data-i18n="roadmap.title">Roadmap</div>
+        </div>
+
+        <!-- GWT Токен -->
+        <div class="planet gwt-coin" data-action="openDapp">
+            <img src="/assets/images/planets/gwt-coin.png" alt="GWT Token">
+            <div class="planet-label" data-i18n="openDapp">Open dApp</div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <h2 class="modal-title" id="modalTitle"></h2>
+            <p class="modal-text" id="modalText"></p>
+        </div>
+    </div>
+
+    <!-- Кнопка входа в dApp (для мобильных) -->
+    <div class="mobile-dapp-button">
+        <button class="btn-primary" id="openDappBtn" data-i18n="openDapp">
+            🚀 Open dApp
+        </button>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Загружаем переводы
+            await i18n.loadTranslations();
+            
+            // Инициализация анимаций планет
+            initializePlanetAnimations();
+            
+            // Привязка событий
+            setupEventListeners();
+            
+            // Регистрируем Service Worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js');
+            }
+        });
+
+        function initializePlanetAnimations() {
+            const planets = document.querySelectorAll('.planet');
+            
+            planets.forEach((planet, index) => {
+                // Случайная начальная позиция
+                const startX = Math.random() * (window.innerWidth - 200);
+                const startY = Math.random() * (window.innerHeight - 200);
+                
+                gsap.set(planet, {
+                    x: startX,
+                    y: startY,
+                    rotation: Math.random() * 360
+                });
+                
+                // Анимация плавания
+                gsap.to(planet, {
+                    duration: 10 + Math.random() * 5,
+                    x: `random(0, ${window.innerWidth - 200})`,
+                    y: `random(0, ${window.innerHeight - 200})`,
+                    rotation: `random(0, 360)`,
+                    ease: "none",
+                    repeat: -1,
+                    yoyo: true,
+                    delay: index * 0.5
+                });
+            });
+        }
+
+        function setupEventListeners() {
+            // Переключение языков
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const lang = e.target.dataset.lang;
+                    i18n.setLanguage(lang);
+                    
+                    // Обновляем активную кнопку
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                });
+            });
+
+            // Клики по планетам
+            document.querySelectorAll('.planet').forEach(planet => {
+                planet.addEventListener('click', (e) => {
+                    const planetType = e.currentTarget.dataset.planet;
+                    const action = e.currentTarget.dataset.action;
+                    
+                    if (action === 'openDapp') {
+                        openDashboard();
+                    } else if (planetType) {
+                        showPlanetInfo(planetType);
+                    }
+                });
+            });
+
+            // Кнопка dApp
+            document.getElementById('openDappBtn')?.addEventListener('click', openDashboard);
+            
+            // Закрытие модального окна
+            document.getElementById('modalClose').addEventListener('click', hideModal);
+            document.getElementById('modalOverlay').addEventListener('click', (e) => {
+                if (e.target === e.currentTarget) hideModal();
+            });
+        }
+
+        function showPlanetInfo(planetType) {
+            const title = i18n.t(`${planetType}.title`);
+            const text = i18n.t(`${planetType}.text`);
+            
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function hideModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        function openDashboard() {
+            window.location.href = '/components/dashboard.html';
+        }
+    </script>
+</body>
+</html>
