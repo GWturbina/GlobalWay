@@ -1,0 +1,297 @@
+{
+  "contractName": "GlobalWay",
+  "abi": [
+    {
+      "inputs": [{"internalType": "address", "name": "_gwtTokenAddress", "type": "address"}],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "QUARTERLY_FEE",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "name": "users",
+      "outputs": [
+        {"internalType": "bool", "name": "isRegistered", "type": "bool"},
+        {"internalType": "address", "name": "sponsor", "type": "address"},
+        {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
+        {"internalType": "uint256", "name": "lastActivity", "type": "uint256"},
+        {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
+        {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+        {"internalType": "uint8", "name": "leaderRank", "type": "uint8"},
+        {"internalType": "bool", "name": "leaderBonusClaimed", "type": "bool"},
+        {"internalType": "uint256", "name": "quarterlyCounter", "type": "uint256"},
+        {"internalType": "bytes32", "name": "recoveryPasswordHash", "type": "bytes32"},
+        {"internalType": "bool", "name": "walletChanged", "type": "bool"},
+        {"internalType": "address", "name": "charityAccount", "type": "address"},
+        {"internalType": "address", "name": "techAccount1", "type": "address"},
+        {"internalType": "address", "name": "techAccount2", "type": "address"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "level", "type": "uint8"}],
+      "name": "userLevels",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+      "name": "levelPrices",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+      "name": "levelDistribution",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalUsers",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "activeUsers",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalVolume",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getContractOverview",
+      "outputs": [
+        {"internalType": "uint256", "name": "totalUsers", "type": "uint256"},
+        {"internalType": "uint256", "name": "activeUsers", "type": "uint256"},
+        {"internalType": "uint256", "name": "totalVolume", "type": "uint256"},
+        {"internalType": "uint256", "name": "contractBalance", "type": "uint256"},
+        {"internalType": "uint256[]", "name": "levelDistribution", "type": "uint256[]"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}],
+      "name": "getUserStats",
+      "outputs": [
+        {"internalType": "bool", "name": "isRegistered", "type": "bool"},
+        {"internalType": "uint8[]", "name": "activeLevels", "type": "uint8[]"},
+        {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
+        {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+        {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
+        {"internalType": "uint8", "name": "leaderRank", "type": "uint8"},
+        {"internalType": "address[]", "name": "referrals", "type": "address[]"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}],
+      "name": "getUserData",
+      "outputs": [
+        {"internalType": "bool", "name": "isRegistered", "type": "bool"},
+        {"internalType": "address", "name": "sponsor", "type": "address"},
+        {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
+        {"internalType": "uint256", "name": "lastActivity", "type": "uint256"},
+        {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
+        {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+        {"internalType": "uint8", "name": "leaderRank", "type": "uint8"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "payQuarterlyActivity",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "uint8", "name": "level", "type": "uint8"}],
+      "name": "buyLevel",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "_sponsor", "type": "address"}],
+      "name": "register",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+      "name": "isUserRegistered",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+      "name": "isUserActive",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "level", "type": "uint256"}],
+      "name": "isLevelActive",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "uint8", "name": "packageType", "type": "uint8"}],
+      "name": "activatePackage",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+      "name": "buyLevelsBulk",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+      "name": "calculateBulkPrice",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+      "name": "freeRegistrationWithLevels",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address[]", "name": "users", "type": "address[]"}, {"internalType": "address", "name": "sponsor", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+      "name": "batchFreeRegistration",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+      "name": "isOwner",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+      "name": "isFounder",
+      "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+        {"indexed": true, "internalType": "address", "name": "sponsor", "type": "address"},
+        {"indexed": false, "internalType": "uint256", "name": "userId", "type": "uint256"}
+      ],
+      "name": "Registration",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+        {"indexed": true, "internalType": "address", "name": "sponsor", "type": "address"},
+        {"indexed": false, "internalType": "uint256", "name": "userId", "type": "uint256"}
+      ],
+      "name": "UserRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+        {"indexed": false, "internalType": "uint8", "name": "level", "type": "uint8"},
+        {"indexed": false, "internalType": "uint256", "name": "price", "type": "uint256"}
+      ],
+      "name": "LevelPurchased",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+        {"indexed": false, "internalType": "uint8", "name": "level", "type": "uint8"}
+      ],
+      "name": "LevelActivated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+        {"indexed": false, "internalType": "uint8", "name": "packageType", "type": "uint8"},
+        {"indexed": false, "internalType": "uint256", "name": "totalPrice", "type": "uint256"}
+      ],
+      "name": "PackageActivated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+        {"indexed": false, "internalType": "uint256", "name": "quarter", "type": "uint256"},
+        {"indexed": false, "internalType": "uint256", "name": "fee", "type": "uint256"}
+      ],
+      "name": "QuarterlyActivityPaid",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {"indexed": true, "internalType": "address", "name": "referrer", "type": "address"},
+        {"indexed": true, "internalType": "address", "name": "referee", "type": "address"},
+        {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"},
+        {"indexed": false, "internalType": "uint8", "name": "level", "type": "uint8"}
+      ],
+      "name": "ReferralReward",
+      "type": "event"
+    }
+  ],
+  "networks": {
+    "204": {
+      "address": "0x64De05a0c818a925711EA0874FD972Bdc2edb2aA"
+    }
+  }
+}
