@@ -1,0 +1,128 @@
+/* CSS переменные для динамического управления цветовой схемой из админки */
+:root {
+  /* Основная цветовая палитра */
+  --primary-gold: #FFD700;
+  --primary-gold-dark: #FFA500;
+  --primary-blue: #1a237e;
+  --primary-blue-light: #3949ab;
+  --background-dark: #0a0a0a;
+  --background-secondary: #1a1a1a;
+  
+  /* Glassmorphism эффекты */
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-bg-dark: rgba(0, 0, 0, 0.3);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.1);
+  
+  /* Статусные цвета для матрицы */
+  --matrix-active: #00ff88;      /* Активный пользователь - зеленый */
+  --matrix-available: #ffeb3b;   /* Доступное место - желтый */
+  --matrix-blocked: #8d6e63;     /* Заблокированное - коричневый */
+  --matrix-charity: #ff9800;     /* Благотворительность - оранжевый */
+  --matrix-technical: #2196f3;   /* Техническое место - синий */
+  
+  /* Градиенты */
+  --gradient-gold: linear-gradient(135deg, var(--primary-gold), var(--primary-gold-dark));
+  --gradient-blue: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-light));
+  --gradient-dark: linear-gradient(135deg, var(--background-dark), var(--background-secondary));
+  
+  /* Размеры и отступы */
+  --border-radius: 20px;
+  --border-radius-small: 10px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  
+  /* Анимации */
+  --transition-fast: 0.2s ease;
+  --transition-medium: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  /* Тени */
+  --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-large: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 20px rgba(255, 215, 0, 0.3);
+  
+  /* Типографика */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-xxl: 32px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  /* Z-index слои */
+  --z-background: -1;
+  --z-content: 1;
+  --z-navigation: 100;
+  --z-dropdown: 200;
+  --z-modal: 1000;
+  --z-tooltip: 1100;
+}
+
+/* Темная тема (по умолчанию) */
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-muted: #757575;
+  --text-inverse: var(--background-dark);
+}
+
+/* Светлая тема (опционально) */
+[data-theme="light"] {
+  --background-dark: #ffffff;
+  --background-secondary: #f5f5f5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-muted: #757575;
+  --glass-bg: rgba(0, 0, 0, 0.05);
+  --glass-bg-dark: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+}
+
+/* Адаптивные переменные для мобильных */
+@media (max-width: 768px) {
+  :root {
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 20px;
+    --spacing-xxl: 24px;
+    --font-size-xl: 20px;
+    --font-size-xxl: 24px;
+    --border-radius: 16px;
+  }
+}
+
+/* Кастомные свойства для админских настроек */
+.admin-theme {
+  /* Эти значения будут перезаписываться из админ-панели */
+  --admin-primary: var(--primary-gold);
+  --admin-secondary: var(--primary-blue);
+  --admin-accent: var(--matrix-active);
+  --admin-background: var(--background-dark);
+  --admin-surface: var(--glass-bg);
+}
+
+/* Утилитарные классы для быстрого применения цветов */
+.text-gold { color: var(--primary-gold); }
+.text-blue { color: var(--primary-blue); }
+.text-white { color: var(--text-primary); }
+.text-muted { color: var(--text-muted); }
+
+.bg-gold { background: var(--primary-gold); }
+.bg-blue { background: var(--primary-blue); }
+.bg-glass { background: var(--glass-bg); }
+.bg-dark { background: var(--background-dark); }
+
+.gradient-gold { background: var(--gradient-gold); }
+.gradient-blue { background: var(--gradient-blue); }
+.gradient-dark { background: var(--gradient-dark); }
