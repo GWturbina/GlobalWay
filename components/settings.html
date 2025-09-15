@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GlobalWay Settings - User preferences and account management">
+    <meta name="theme-color" content="#FFD700">
+    
+    <title data-i18n="settings.title">Settings - GlobalWay</title>
+    
+    <!-- Иконки -->
+    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/logo-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/logo-32x32.png">
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <!-- Фон Земли -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth at night" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Навигация -->
+    <nav class="navigation">
+        <a href="/components/dashboard.html" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text" data-i18n="nav.dashboard">Dashboard</span>
+        </a>
+        <a href="/components/partners.html" class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text" data-i18n="nav.partners">Partners</span>
+        </a>
+        <a href="/components/matrix.html" class="nav-item">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-text" data-i18n="nav.matrix">Matrix</span>
+        </a>
+        <a href="/components/tokens.html" class="nav-item">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-text" data-i18n="nav.tokens">Tokens</span>
+        </a>
+        <a href="/components/projects.html" class="nav-item">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text" data-i18n="nav.projects">Projects</span>
+        </a>
+        <a href="/components/settings.html" class="nav-item active">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text" data-i18n="nav.settings">Settings</span>
+        </a>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Заголовок страницы -->
+            <header class="page-header animate-fade-in-up">
+                <h1 data-i18n="settings.title">⚙️ Settings</h1>
+                <p class="page-subtitle" data-i18n="settings.subtitle">Customize your GlobalWay experience</p>
+            </header>
+
+            <!-- Настройки -->
+            <div class="settings-container">
+                <!-- Основные настройки -->
+                <section class="settings-section animate-fade-in-up animate-delay-100">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <span class="nav-icon">🌍</span>
+                                <span data-i18n="settings.general.title">General Settings</span>
+                            </h2>
+                        </div>
+                        <div class="card-content">
+                            <!-- Язык -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.general.language">Language</h3>
+                                    <p data-i18n="settings.general.languageDesc">Choose your preferred language</p>
+                                </div>
+                                <div class="setting-control">
+                                    <select id="languageSelect" class="form-input">
+                                        <option value="en" data-i18n="languages.en">English</option>
+                                        <option value="ru" data-i18n="languages.ru">Русский</option>
+                                        <option value="uk" data-i18n="languages.uk">Українська</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Тема -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.general.theme">Theme</h3>
+                                    <p data-i18n="settings.general.themeDesc">Choose your display theme</p>
+                                </div>
+                                <div class="setting-control">
+                                    <select id="themeSelect" class="form-input">
+                                        <option value="dark" data-i18n="settings.themes.dark">Dark</option>
+                                        <option value="light" data-i18n="settings.themes.light">Light</option>
+                                        <option value="auto" data-i18n="settings.themes.auto">Auto</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Валюта -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.general.currency">Currency Display</h3>
+                                    <p data-i18n="settings.general.currencyDesc">Primary currency for display</p>
+                                </div>
+                                <div class="setting-control">
+                                    <select id="currencySelect" class="form-input">
+                                        <option value="BNB">BNB</option>
+                                        <option value="USD">USD</option>
+                                        <option value="EUR">EUR</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Формат даты -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.general.dateFormat">Date Format</h3>
+                                    <p data-i18n="settings.general.dateFormatDesc">How dates are displayed</p>
+                                </div>
+                                <div class="setting-control">
+                                    <select id="dateFormatSelect" class="form-input">
+                                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Уведомления -->
+                <section class="settings-section animate-fade-in-up animate-delay-200">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <span class="nav-icon">🔔</span>
+                                <span data-i18n="settings.notifications.title">Notifications</span>
+                            </h2>
+                        </div>
+                        <div class="card-content">
+                            <!-- Email уведомления -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.notifications.email">Email Notifications</h3>
+                                    <p data-i18n="settings.notifications.emailDesc">Receive notifications via email</p>
+                                </div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="emailNotifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Push уведомления -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.notifications.push">Push Notifications</h3>
+                                    <p data-i18n="settings.notifications.pushDesc">Browser notifications</p>
+                                </div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="pushNotifications">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Реферальная активность -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.notifications.referral">Referral Activity</h3>
+                                    <p data-i18n="settings.notifications.referralDesc">New referrals and team activity</p>
+                                </div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="referralNotifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Обновления уровней -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.notifications.levels">Level Upgrades</h3>
+                                    <p data-i18n="settings.notifications.levelsDesc">Level activation notifications</p>
+                                </div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="levelNotifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Доходы -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.notifications.earnings">Earnings</h3>
+                                    <p data-i18n="settings.notifications.earningsDesc">Income and reward notifications</p>
+                                </div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="earningsNotifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Безопасность -->
+                <section class="settings-section animate-fade-in-up animate-delay-300">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <span class="nav-icon">🔒</span>
+                                <span data-i18n="settings.security.title">Security</span>
+                            </h2>
+                        </div>
+                        <div class="card-content">
+                            <!-- Двухфакторная аутентификация -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.security.twoFactor">Two-Factor Authentication</h3>
+                                    <p data-i18n="settings.security.twoFactorDesc">Enhanced security for your account</p>
+                                </div>
+                                <div class="setting-control">
+                                    <button class="btn-secondary" id="setup2FA" data-i18n="settings.security.setup">Setup</button>
+                                </div>
+                            </div>
+
+                            <!-- Таймаут сессии -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.security.sessionTimeout">Session Timeout</h3>
+                                    <p data-i18n="settings.security.sessionTimeoutDesc">Auto logout after inactivity</p>
+                                </div>
+                                <div class="setting-control">
+                                    <select id="sessionTimeout" class="form-input">
+                                        <option value="15" data-i18n="settings.security.timeout15">15 minutes</option>
+                                        <option value="30" data-i18n="settings.security.timeout30">30 minutes</option>
+                                        <option value="60" data-i18n="settings.security.timeout60">1 hour</option>
+                                        <option value="0" data-i18n="settings.security.timeoutNever">Never</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Смена пароля восстановления -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.security.recoveryPassword">Recovery Password</h3>
+                                    <p data-i18n="settings.security.recoveryPasswordDesc">Change your recovery password</p>
+                                </div>
+                                <div class="setting-control">
+                                    <button class="btn-secondary" id="changeRecoveryPassword" data-i18n="settings.security.change">Change</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Управление аккаунтом -->
+                <section class="settings-section animate-fade-in-up animate-delay-400">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">
+                                <span class="nav-icon">👤</span>
+                                <span data-i18n="settings.account.title">Account Management</span>
+                            </h2>
+                        </div>
+                        <div class="card-content">
+                            <!-- Текущий адрес -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.account.currentAddress">Current Wallet Address</h3>
+                                    <p class="wallet-address" id="currentWalletAddress">Not connected</p>
+                                </div>
+                                <div class="setting-control">
+                                    <button class="btn-secondary" id="copyAddress" data-i18n="settings.account.copy">Copy</button>
+                                </div>
+                            </div>
+
+                            <!-- Технические аккаунты -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.account.technicalAccounts">Technical Accounts</h3>
+                                    <p data-i18n="settings.account.technicalAccountsDesc">Charity and technical account management</p>
+                                </div>
+                                <div class="setting-control">
+                                    <button class="btn-secondary" id="manageTechnicalAccounts" data-i18n="settings.account.manage">Manage</button>
+                                </div>
+                            </div>
+
+                            <!-- История смены кошелька -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.account.walletHistory">Wallet Change History</h3>
+                                    <p data-i18n="settings.account.walletHistoryDesc">View wallet address changes</p>
+                                </div>
+                                <div class="setting-control">
+                                    <button class="btn-secondary" id="viewWalletHistory" data-i18n="settings.account.view">View</button>
+                                </div>
+                            </div>
+
+                            <!-- Экспорт данных -->
+                            <div class="setting-item">
+                                <div class="setting-info">
+                                    <h3 data-i18n="settings.account.exportData">Export Data</h3>
+                                    <p data-i18n="settings.account.exportDataDesc">Download your account data</p>
+                                </div>
+                                <div class="setting-control">
+                                    <button class="btn-secondary" id="exportData" data-i18n="settings.account.export">Export</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Действия -->
+                <section class="settings-section animate-fade-in-up animate-delay-500">
+                    <div class="settings-actions">
+                        <button class="btn-primary" id="saveSettings">
+                            <span data-i18n="settings.save">💾 Save Settings</span>
+                        </button>
+                        <button class="btn-secondary" id="resetSettings">
+                            <span data-i18n="settings.reset">🔄 Reset to Default</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <!-- Модальное окно 2FA -->
+    <div class="modal-overlay" id="modal2FA">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" data-i18n="modal.twoFactor.title">Setup Two-Factor Authentication</h2>
+            <div class="modal-text">
+                <p data-i18n="modal.twoFactor.step1">1. Install an authenticator app (Google Authenticator, Authy)</p>
+                <div class="qr-code-container">
+                    <div class="qr-placeholder">QR Code will be here</div>
+                </div>
+                <p data-i18n="modal.twoFactor.step2">2. Scan the QR code with your app</p>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="modal.twoFactor.enterCode">Enter verification code:</label>
+                    <input type="text" class="form-input" id="verificationCode" maxlength="6" placeholder="000000">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-primary" id="confirm2FA" data-i18n="modal.twoFactor.confirm">Confirm</button>
+                    <button class="btn-secondary" id="cancel2FA" data-i18n="modal.twoFactor.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно смены пароля -->
+    <div class="modal-overlay" id="modalPasswordChange">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" data-i18n="modal.password.title">Change Recovery Password</h2>
+            <div class="modal-text">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="modal.password.current">Current Password:</label>
+                    <input type="password" class="form-input" id="currentPassword">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="modal.password.new">New Password:</label>
+                    <input type="password" class="form-input" id="newPassword">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="modal.password.confirm">Confirm New Password:</label>
+                    <input type="password" class="form-input" id="confirmPassword">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-primary" id="confirmPasswordChange" data-i18n="modal.password.save">Save</button>
+                    <button class="btn-secondary" id="cancelPasswordChange" data-i18n="modal.password.cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно технических аккаунтов -->
+    <div class="modal-overlay" id="modalTechnicalAccounts">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" data-i18n="modal.technical.title">Technical Accounts</h2>
+            <div class="modal-text">
+                <div class="technical-account-item">
+                    <h3>🤝 Charity Account</h3>
+                    <p class="account-address">0x1234...5678</p>
+                    <div class="account-actions">
+                        <button class="btn-secondary" data-i18n="modal.technical.send">Send Address</button>
+                        <button class="btn-secondary" data-i18n="modal.technical.verify">Verify</button>
+                    </div>
+                </div>
+                <div class="technical-account-item">
+                    <h3>⚙️ Technical Account 1</h3>
+                    <p class="account-address">0x2345...6789</p>
+                    <div class="account-actions">
+                        <button class="btn-secondary" data-i18n="modal.technical.send">Send Address</button>
+                        <button class="btn-secondary" data-i18n="modal.technical.verify">Verify</button>
+                    </div>
+                </div>
+                <div class="technical-account-item">
+                    <h3>🔧 Technical Account 2</h3>
+                    <p class="account-address">0x3456...7890</p>
+                    <div class="account-actions">
+                        <button class="btn-secondary" data-i18n="modal.technical.send">Send Address</button>
+                        <button class="btn-secondary" data-i18n="modal.technical.verify">Verify</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/web3-manager.js"></script>
+    <script src="/js/ui-controller.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Инициализация страницы настроек
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Загружаем переводы
+            await i18n.loadTranslations();
+            
+            // Инициализируем настройки
+            initializeSettings();
+            
+            // Привязываем события
+            setupSettingsEventListeners();
+            
+            // Загружаем сохраненные настройки
+            loadSavedSettings();
+        });
+
+        // Настройки пользователя
+        const userSettings = {
+            language: 'en',
+            theme: 'dark',
+            currency: 'BNB',
+            dateFormat: 'DD/MM/YYYY',
+            notifications: {
+                email: true,
+                push: false,
+                referral: true,
+                levels: true,
+                earnings: true
+            },
+            security: {
+                twoFactor: false,
+                sessionTimeout: 30
+            }
+        };
+
+        function initializeSettings() {
+            // Устанавливаем текущий язык
+            document.getElementById('languageSelect').value = i18n.getCurrentLanguage();
+            
+            // Обновляем UI
+            i18n.updateUI();
+            
+            console.log('⚙️ Settings page initialized');
+        }
+
+        function setupSettingsEventListeners() {
+            // Переключение языка
+            document.getElementById('languageSelect').addEventListener('change', (e) => {
+                const newLang = e.target.value;
+                i18n.setLanguage(newLang);
+                userSettings.language = newLang;
+                showNotification('Language updated successfully', 'success');
+            });
+
+            // Переключение темы
+            document.getElementById('themeSelect').addEventListener('change', (e) => {
+                const theme = e.target.value;
+                userSettings.theme = theme;
+                applyTheme(theme);
+                showNotification('Theme updated successfully', 'success');
+            });
+
+            // Переключение валюты
+            document.getElementById('currencySelect').addEventListener('change', (e) => {
+                userSettings.currency = e.target.value;
+                showNotification('Currency updated successfully', 'success');
+            });
+
+            // Переключение формата даты
+            document.getElementById('dateFormatSelect').addEventListener('change', (e) => {
+                userSettings.dateFormat = e.target.value;
+                showNotification('Date format updated successfully', 'success');
+            });
+
+            // Уведомления
+            setupNotificationToggles();
+
+            // Кнопки действий
+            document.getElementById('setup2FA').addEventListener('click', () => {
+                showModal('modal2FA');
+            });
+
+            document.getElementById('changeRecoveryPassword').addEventListener('click', () => {
+                showModal('modalPasswordChange');
+            });
+
+            document.getElementById('manageTechnicalAccounts').addEventListener('click', () => {
+                showModal('modalTechnicalAccounts');
+            });
+
+            document.getElementById('copyAddress').addEventListener('click', copyWalletAddress);
+            document.getElementById('viewWalletHistory').addEventListener('click', viewWalletHistory);
+            document.getElementById('exportData').addEventListener('click', exportUserData);
+
+            // Сохранение настроек
+            document.getElementById('saveSettings').addEventListener('click', saveSettings);
+            document.getElementById('resetSettings').addEventListener('click', resetSettings);
+
+            // Закрытие модальных окон
+            setupModalClosing();
+        }
+
+        function setupNotificationToggles() {
+            const toggles = [
+                'emailNotifications',
+                'pushNotifications', 
+                'referralNotifications',
+                'levelNotifications',
+                'earningsNotifications'
+            ];
+
+            toggles.forEach(toggleId => {
+                const toggle = document.getElementById(toggleId);
+                toggle.addEventListener('change', (e) => {
+                    const type = toggleId.replace('Notifications', '');
+                    userSettings.notifications[type] = e.target.checked;
+                    
+                    if (type === 'push' && e.target.checked) {
+                        requestPushPermission();
+                    }
+                    
+                    showNotification(`${type} notifications ${e.target.checked ? 'enabled' : 'disabled'}`, 'success');
+                });
+            });
+        }
+
+        function loadSavedSettings() {
+            const saved = localStorage.getItem('globalway_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                Object.assign(userSettings, settings);
+                applySettings();
+            }
+        }
+
+        function applySettings() {
+            // Применяем язык
+            document.getElementById('languageSelect').value = userSettings.language;
+            
+            // Применяем тему
+            document.getElementById('themeSelect').value = userSettings.theme;
+            applyTheme(userSettings.theme);
+            
+            // Применяем валюту
+            document.getElementById('currencySelect').value = userSettings.currency;
+            
+            // Применяем формат даты
+            document.getElementById('dateFormatSelect').value = userSettings.dateFormat;
+            
+            // Применяем уведомления
+            Object.keys(userSettings.notifications).forEach(key => {
+                const toggle = document.getElementById(key + 'Notifications');
+                if (toggle) {
+                    toggle.checked = userSettings.notifications[key];
+                }
+            });
+            
+            // Применяем настройки безопасности
+            document.getElementById('sessionTimeout').value = userSettings.security.sessionTimeout;
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            
+            if (theme === 'auto') {
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            }
+        }
+
+        function saveSettings() {
+            try {
+                localStorage.setItem('globalway_settings', JSON.stringify(userSettings));
+                showNotification('Settings saved successfully', 'success');
+                
+                // Анимация успешного сохранения
+                const saveBtn = document.getElementById('saveSettings');
+                saveBtn.classList.add('animate-success');
+                setTimeout(() => saveBtn.classList.remove('animate-success'), 600);
+                
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showNotification('Failed to save settings', 'error');
+            }
+        }
+
+        function resetSettings() {
+            if (confirm(i18n.t('settings.confirmReset') || 'Reset all settings to default?')) {
+                // Сброс к значениям по умолчанию
+                Object.assign(userSettings, {
+                    language: 'en',
+                    theme: 'dark',
+                    currency: 'BNB',
+                    dateFormat: 'DD/MM/YYYY',
+                    notifications: {
+                        email: true,
+                        push: false,
+                        referral: true,
+                        levels: true,
+                        earnings: true
+                    },
+                    security: {
+                        twoFactor: false,
+                        sessionTimeout: 30
+                    }
+                });
+                
+                applySettings();
+                saveSettings();
+                showNotification('Settings reset to default', 'success');
+            }
+        }
+
+        function copyWalletAddress() {
+            const address = document.getElementById('currentWalletAddress').textContent;
+            if (address && address !== 'Not connected') {
+                navigator.clipboard.writeText(address).then(() => {
+                    showNotification('Address copied to clipboard', 'success');
+                });
+            }
+        }
+
+        function viewWalletHistory() {
+            // Заглушка для истории кошелька
+            showNotification('Wallet history feature coming soon', 'info');
+        }
+
+        function exportUserData() {
+            const data = {
+                settings: userSettings,
+                exportDate: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `globalway-settings-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showNotification('Settings exported successfully', 'success');
+        }
+
+        async function requestPushPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    userSettings.notifications.push = false;
+                    document.getElementById('pushNotifications').checked = false;
+                    showNotification('Push notifications permission denied', 'warning');
+                }
+            }
+        }
+
+        function showModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+        }
+
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+        }
+
+        function setupModalClosing() {
+            // Закрытие по кнопке X
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const modal = e.target.closest('.modal-overlay');
+                    modal.classList.remove('active');
+                });
+            });
+
+            // Закрытие по клику на overlay
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
+
+            // Обработчики конкретных модальных окон
+            setupModalHandlers();
+        }
+
+        function setupModalHandlers() {
+            // 2FA Setup
+            document.getElementById('confirm2FA').addEventListener('click', () => {
+                const code = document.getElementById('verificationCode').value;
+                if (code.length === 6) {
+                    userSettings.security.twoFactor = true;
+                    hideModal('modal2FA');
+                    showNotification('Two-factor authentication enabled', 'success');
+                } else {
+                    showNotification('Please enter a valid 6-digit code', 'error');
+                }
+            });
+
+            document.getElementById('cancel2FA').addEventListener('click', () => {
+                hideModal('modal2FA');
+                document.getElementById('verificationCode').value = '';
+            });
+
+            // Password Change
+            document.getElementById('confirmPasswordChange').addEventListener('click', () => {
+                const current = document.getElementById('currentPassword').value;
+                const newPass = document.getElementById('newPassword').value;
+                const confirm = document.getElementById('confirmPassword').value;
+
+                if (!current || !newPass || !confirm) {
+                    showNotification('Please fill all fields', 'error');
+                    return;
+                }
+
+                if (newPass !== confirm) {
+                    showNotification('Passwords do not match', 'error');
+                    return;
+                }
+
+                if (newPass.length < 8) {
+                    showNotification('Password must be at least 8 characters', 'error');
+                    return;
+                }
+
+                // Здесь будет реальная логика смены пароля
+                hideModal('modalPasswordChange');
+                clearPasswordFields();
+                showNotification('Recovery password updated successfully', 'success');
+            });
+
+            document.getElementById('cancelPasswordChange').addEventListener('click', () => {
+                hideModal('modalPasswordChange');
+                clearPasswordFields();
+            });
+        }
+
+        function clearPasswordFields() {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌', 
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            notification.innerHTML = `
+                <span class="notification-icon">${icons[type]}</span>
+                <span class="notification-message">${message}</span>
+                <button class="notification-close">&times;</button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Анимация появления
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            // Автоматическое скрытие
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+            
+            // Закрытие по кнопке
+            notification.querySelector('.notification-close').addEventListener('click', () => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            });
+        }
+
+        // Обновление адреса кошелька при подключении
+        window.addEventListener('walletConnected', (event) => {
+            const address = event.detail.address;
+            const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+            document.getElementById('currentWalletAddress').textContent = shortAddress;
+        });
+
+        // Обновление при смене языка
+        window.addEventListener('languageChanged', (event) => {
+            console.log(`Language changed from ${event.detail.from} to ${event.detail.to}`);
+        });
+
+        // Автосохранение настроек при изменении
+        function autoSaveSettings() {
+            clearTimeout(window.settingsAutoSaveTimeout);
+            window.settingsAutoSaveTimeout = setTimeout(() => {
+                saveSettings();
+            }, 2000);
+        }
+
+        // Подписываемся на изменения настроек для автосохранения
+        ['languageSelect', 'themeSelect', 'currencySelect', 'dateFormatSelect', 'sessionTimeout'].forEach(id => {
+            document.getElementById(id).addEventListener('change', autoSaveSettings);
+        });
+    </script>
+
+    <style>
+        /* Дополнительные стили для Settings страницы */
+        .main-content {
+            padding: 120px var(--spacing-lg) var(--spacing-xxl);
+            min-height: 100vh;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xxl);
+        }
+
+        .page-header h1 {
+            font-size: var(--font-size-xxl);
+            font-weight: var(--font-weight-bold);
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .page-subtitle {
+            font-size: var(--font-size-lg);
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .settings-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .settings-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: var(--spacing-lg) 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-info {
+            flex: 1;
+            margin-right: var(--spacing-lg);
+        }
+
+        .setting-info h3 {
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-primary);
+            margin: 0 0 var(--spacing-xs);
+        }
+
+        .setting-info p {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .setting-control {
+            flex-shrink: 0;
+            min-width: 150px;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            transition: var(--transition-medium);
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--text-primary);
+            transition: var(--transition-medium);
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--primary-gold);
+            border-color: var(--primary-gold);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+            background-color: var(--text-inverse);
+        }
+
+        /* Wallet Address */
+        .wallet-address {
+            font-family: 'Monaco', 'Menlo', monospace;
+            background: var(--glass-bg);
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            border: 1px solid var(--glass-border);
+            font-size: var(--font-size-sm);
+        }
+
+        /* Settings Actions */
+        .settings-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: center;
+            margin-top: var(--spacing-xxl);
+        }
+
+        /* Technical Accounts in Modal */
+        .technical-account-item {
+            padding: var(--spacing-lg);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .technical-account-item h3 {
+            margin: 0 0 var(--spacing-sm);
+            color: var(--primary-gold);
+        }
+
+        .account-address {
+            font-family: monospace;
+            background: var(--glass-bg-dark);
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            margin: var(--spacing-sm) 0;
+            font-size: var(--font-size-sm);
+        }
+
+        .account-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        /* QR Code Placeholder */
+        .qr-code-container {
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            background: var(--glass-bg);
+            border: 2px dashed var(--glass-border);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: var(--font-size-sm);
+        }
+
+        /* Notifications */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: var(--z-tooltip);
+            max-width: 400px;
+        }
+
+        .notification {
+            background: var(--glass-bg-dark);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all var(--transition-medium);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification-success {
+            border-left: 4px solid #00ff88;
+        }
+
+        .notification-error {
+            border-left: 4px solid #ff4444;
+        }
+
+        .notification-warning {
+            border-left: 4px solid #ffaa00;
+        }
+
+        .notification-info {
+            border-left: 4px solid #00aaff;
+        }
+
+        .notification-icon {
+            font-size: var(--font-size-lg);
+        }
+
+        .notification-message {
+            flex: 1;
+            font-size: var(--font-size-sm);
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: var(--font-size-lg);
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-close:hover {
+            color: var(--primary-gold);
+        }
+
+        /* Адаптивность для Settings */
+        @media (max-width: 768px) {
+            .setting-item {
+                flex-direction: column;
+                gap: var(--spacing-md);
+            }
+
+            .setting-info {
+                margin-right: 0;
+            }
+
+            .setting-control {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .settings-actions {
+                flex-direction: column;
+            }
+
+            .account-actions {
+                flex-direction: column;
+            }
+
+            .notification-container {
+                left: 20px;
+                right: 20px;
+                max-width: none;
+            }
+        }
+    </style>
+</body>
+</html>
