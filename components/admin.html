@@ -1,0 +1,2396 @@
+</div>
+                    <div class="voting-actions">
+                        <button class="btn-primary" id="voteYes">✅ Vote Yes</button>
+                        <button class="btn-danger" id="voteNo">❌ Vote No</button>
+                        <button class="btn-secondary" id="abstain">⚪ Abstain</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div class="notification-container" id="notificationContainer"></div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/web3-manager.js"></script>
+    <script src="/js/contract-manager.js"></script>
+    <script src="/js/ui-controller.js"></script>
+    <script src="/js/admin-controller.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Привилегированные адреса из ТЗ
+        const PRIVILEGED_ADDRESSES = {
+            OWNER: "0x7261b8aeaee2f806f64001596a67d68f2055acd2",
+            FOUNDERS: [
+                "0x03284a899147f5a07f82c622f34df92198671635",
+                "0x9b49bd9c9458615e11c051afd1ebe983563b67ee",
+                "0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7"
+            ],
+            DIRECTORS: [
+                "0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA",
+                "0x0AB97e3934b1Afc9F1F6447CCF676E4f1D8B9639",
+                "0x0561671297Eed07accACB41b4882ED61e87E3644",
+                "0x012E0B2b502FE0131Cb342117415a43d59094D6d",
+                "0x15b546a61865bdc46783ACfc50c3101a1121c69B",
+                "0xB5986B808dad481ad86D63DF152cC0ad7B473e48",
+                "0x4d2C77e59538deFe89E3B2951680547FC24aD52C",
+                "0xAB17aDbe29c4E1d695C239206682B02ebdB3f707"
+            ]
+        };
+
+        // Права доступа
+        const ADMIN_PERMISSIONS = {
+            owner: ['all'],
+            founder: ['all'], 
+            director: ['delegation', 'mailing', 'support', 'news'],
+            support: ['mailing', 'support', 'news']
+        };
+
+        let currentUserRole = null;
+        let currentUserAddress = null;
+
+        // Инициализация админки
+        document.addEventListener('DOMContentLoaded', async () => {
+            await i18n.loadTranslations();
+            await checkAdminAccess();
+            if (currentUserRole) {
+                initializeAdminPanel();
+                setupAdminEventListeners();
+            }
+        });
+
+        async function checkAdminAccess() {
+            try {
+                // Показываем проверку доступа
+                document.getElementById('accessCheck').style.display = 'block';
+                
+                // Получаем адрес пользователя из Web3
+                if (window.web3Manager && window.web3Manager.currentAccount) {
+                    currentUserAddress = window.web3Manager.currentAccount.toLowerCase();
+                } else {
+                    // Попытка подключения кошелька
+                    const connected = await connectWallet();
+                    if (!connected) {
+                        showNoAccess();
+                        return;
+                    }
+                    currentUserAddress = window.web3Manager.currentAccount.toLowerCase();
+                }
+
+                // Определяем роль пользователя
+                currentUserRole = determineUserRole(currentUserAddress);
+                
+                if (currentUserRole) {
+                    // Доступ разрешен
+                    document.getElementById('accessCheck').style.display = 'none';
+                    document.getElementById('adminContent').style.display = 'block';
+                    setupRoleUI();
+                    loadStatistics();
+                } else {
+                    // Доступ запрещен
+                    showNoAccess();
+                }
+            } catch (error) {
+                console.error('Error checking admin access:', error);
+                showNoAccess();
+            }
+        }
+
+        function determineUserRole(address) {
+            address = address.toLowerCase();
+            
+            if (PRIVILEGED_ADDRESSES.OWNER.toLowerCase() === address) {
+                return 'owner';
+            }
+            
+            if (PRIVILEGED_ADDRESSES.FOUNDERS.map(a => a.toLowerCase()).includes(address)) {
+                return 'founder';
+            }
+            
+            if (PRIVILEGED_ADDRESSES.DIRECTORS.map(a => a.toLowerCase()).includes(address)) {
+                return 'director';
+            }
+            
+            return null;
+        }
+
+        function setupRoleUI() {
+            const roleElement = document.getElementById('adminRole');
+            const roleNames = {
+                owner: 'OWNER',
+                founder: 'FOUNDER', 
+                director: 'DIRECTOR'
+            };
+            
+            const permissionTexts = {
+                owner: 'Full Access to All Functions',
+                founder: 'Full Access to All Functions',
+                director: 'Limited Access: Delegation, Mailing, Support, News'
+            };
+            
+            roleElement.innerHTML = `
+                <span class="role-badge role-${currentUserRole}">${roleNames[currentUserRole]}</span>
+                <span class="permissions-text">${permissionTexts[currentUserRole]}</span>
+            `;
+            
+            // Скрываем табы, к которым нет доступа
+            hideRestrictedTabs();
+        }
+
+        function hideRestrictedTabs() {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const userPermissions = ADMIN_PERMISSIONS[currentUserRole];
+            
+            if (!userPermissions.includes('all')) {
+                tabs.forEach(tab => {
+                    const tabName = tab.dataset.tab;
+                    if (!userPermissions.includes(tabName) && tabName !== 'dashboard') {
+                        tab.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        function showNoAccess() {
+            document.getElementById('accessCheck').style.display = 'none';
+            document.getElementById('noAccess').style.display = 'block';
+        }
+
+        function initializeAdminPanel() {
+            // Инициализируем табы
+            setupTabs();
+            
+            // Инициализируем редакторы
+            setupRichTextEditors();
+            
+            // Загружаем данные
+            loadDelegationData();
+            loadMailingHistory();
+            loadNewsArchive();
+            
+            console.log(`👑 Admin panel initialized for ${currentUserRole}`);
+        }
+
+        function setupAdminEventListeners() {
+            // Активация пользователя
+            document.getElementById('activateUser').addEventListener('click', activateUser);
+            
+            // Пакетная активация
+            document.getElementById('batchActivateTeam').addEventListener('click', batchActivateTeam);
+            
+            // Управление разрешениями
+            document.getElementById('setPermission').addEventListener('click', setUserPermission);
+            
+            // Обновление статистики
+            document.getElementById('refreshStats').addEventListener('click', loadStatistics);
+            
+            // Управление контрактами
+            document.getElementById('pauseContract').addEventListener('click', pauseContract);
+            document.getElementById('unpauseContract').addEventListener('click', unpauseContract);
+            document.getElementById('connectProject').addEventListener('click', connectProject);
+            document.getElementById('disconnectProject').addEventListener('click', disconnectProject);
+            
+            // Блокировка пользователей
+            document.getElementById('blockUser').addEventListener('click', blockUser);
+            document.getElementById('replaceAddress').addEventListener('click', replaceUserAddress);
+            
+            // Вывод средств
+            document.getElementById('submitWithdrawal').addEventListener('click', submitWithdrawal);
+            setupWithdrawalTabs();
+            
+            // Делегирование
+            document.getElementById('delegatePermissions').addEventListener('click', delegatePermissions);
+            
+            // Проекты
+            document.getElementById('saveProjectChanges').addEventListener('click', saveProjectChanges);
+            document.getElementById('addRoadmapItem').addEventListener('click', addRoadmapItem);
+            
+            // Рассылка
+            document.getElementById('sendMessage').addEventListener('click', sendMessage);
+            document.getElementById('previewMessage').addEventListener('click', previewMessage);
+            setupMailingTabs();
+            
+            // Новости
+            document.getElementById('publishNews').addEventListener('click', publishNews);
+            document.getElementById('saveDraftNews').addEventListener('click', saveDraftNews);
+            document.getElementById('previewNews').addEventListener('click', previewNews);
+        }
+
+        function setupTabs() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+                    
+                    // Обновляем активные табы
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    btn.classList.add('active');
+                    document.getElementById(`tab-${targetTab}`).classList.add('active');
+                });
+            });
+        }
+
+        async function loadStatistics() {
+            try {
+                // Анимация загрузки
+                const refreshBtn = document.getElementById('refreshStats');
+                refreshBtn.classList.add('animate-loading');
+                
+                // Здесь будет реальная загрузка из контрактов
+                // Пока используем заглушки
+                const stats = {
+                    totalUsers: 1247,
+                    activeUsers: 892,
+                    todayRegistrations: 23,
+                    contractBalance: 245.67,
+                    totalVolume: 15698.45,
+                    treasury: 89.34,
+                    charity: 56.78,
+                    development: 34.56,
+                    tokenomics: 65.99,
+                    totalSupply: 1000000000,
+                    circulating: 125000000,
+                    currentPrice: 0.0075
+                };
+                
+                // Обновляем статистику с анимацией
+                updateStatWithAnimation('totalUsers', stats.totalUsers);
+                updateStatWithAnimation('statTotalUsers', stats.totalUsers);
+                updateStatWithAnimation('statActiveUsers', stats.activeUsers);
+                updateStatWithAnimation('statTodayRegistrations', stats.todayRegistrations);
+                updateStatWithAnimation('contractBalance', stats.contractBalance);
+                updateStatWithAnimation('statContractBalance', stats.contractBalance);
+                updateStatWithAnimation('statTotalVolume', stats.totalVolume);
+                updateStatWithAnimation('statTreasury', stats.treasury);
+                updateStatWithAnimation('statCharity', stats.charity);
+                updateStatWithAnimation('statDevelopment', stats.development);
+                updateStatWithAnimation('statTokenomics', stats.tokenomics);
+                updateStatWithAnimation('statCirculating', formatNumber(stats.circulating));
+                updateStatWithAnimation('statCurrentPrice', stats.currentPrice);
+                
+                refreshBtn.classList.remove('animate-loading');
+                showNotification('Statistics updated successfully', 'success');
+                
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+                showNotification('Failed to load statistics', 'error');
+            }
+        }
+
+        function updateStatWithAnimation(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('animate-success');
+                element.textContent = value;
+                setTimeout(() => element.classList.remove('animate-success'), 600);
+            }
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000000) return (num / 1000000000).toFixed(1) + 'B';
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+            return num.toString();
+        }
+
+        async function activateUser() {
+            const userAddress = document.getElementById('activationUserAddress').value;
+            const sponsorAddress = document.getElementById('activationSponsorAddress').value;
+            const maxLevel = document.getElementById('activationMaxLevel').value;
+            
+            if (!userAddress || !sponsorAddress) {
+                showNotification('Please fill all required fields', 'error');
+                return;
+            }
+            
+            try {
+                // Здесь будет вызов смарт-контракта
+                // await contractManager.freeActivateUser(userAddress, sponsorAddress, maxLevel);
+                
+                showNotification(`User activated successfully with ${maxLevel} levels`, 'success');
+                
+                // Очищаем поля
+                document.getElementById('activationUserAddress').value = '';
+                document.getElementById('activationSponsorAddress').value = '';
+                
+            } catch (error) {
+                console.error('Error activating user:', error);
+                showNotification('Failed to activate user', 'error');
+            }
+        }
+
+        async function batchActivateTeam() {
+            const members = document.getElementById('batchMembers').value.split('\n').filter(a => a.trim());
+            const sponsors = document.getElementById('batchSponsors').value.split('\n').filter(a => a.trim());
+            const levels = document.getElementById('batchLevels').value.split('\n').filter(l => l.trim());
+            
+            if (members.length !== sponsors.length || members.length !== levels.length) {
+                showNotification('Members, sponsors and levels must have the same count', 'error');
+                return;
+            }
+            
+            try {
+                for (let i = 0; i < members.length; i++) {
+                    // await contractManager.freeActivateUser(members[i], sponsors[i], levels[i]);
+                }
+                
+                showNotification(`Successfully activated ${members.length} team members`, 'success');
+                
+                // Очищаем поля
+                document.getElementById('batchMembers').value = '';
+                document.getElementById('batchSponsors').value = '';
+                document.getElementById('batchLevels').value = '';
+                
+            } catch (error) {
+                console.error('Error batch activating:', error);
+                showNotification('Failed to batch activate team', 'error');
+            }
+        }
+
+        function setupWithdrawalTabs() {
+            const withdrawalTabs = document.querySelectorAll('.withdrawal-tab-btn');
+            
+            withdrawalTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    withdrawalTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    const pool = tab.dataset.pool;
+                    updateWithdrawalLimits(pool);
+                });
+            });
+            
+            // Отслеживаем изменение суммы
+            document.getElementById('withdrawalAmount').addEventListener('input', (e) => {
+                const amount = parseFloat(e.target.value) || 0;
+                const activePool = document.querySelector('.withdrawal-tab-btn.active').dataset.pool;
+                
+                if (activePool === 'emergency' || amount > 5) {
+                    document.getElementById('votingSection').style.display = 'block';
+                } else {
+                    document.getElementById('votingSection').style.display = 'none';
+                }
+            });
+        }
+
+        function updateWithdrawalLimits(pool) {
+            const limitElement = document.getElementById('amountLimit');
+            const limits = {
+                charity: 'Limit without voting: 5 BNB',
+                treasury: 'Limit without voting: 5 BNB', 
+                development: 'Limit without voting: 5 BNB',
+                emergency: 'Voting required for any amount'
+            };
+            
+            limitElement.textContent = limits[pool];
+        }
+
+        function setupRichTextEditors() {
+            const editors = document.querySelectorAll('.rich-text-editor');
+            
+            editors.forEach(editor => {
+                const toolbar = editor.querySelector('.editor-toolbar');
+                const content = editor.querySelector('.editor-content');
+                
+                toolbar.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        e.preventDefault();
+                        const command = e.target.dataset.command;
+                        
+                        if (command === 'createLink') {
+                            const url = prompt('Enter URL:');
+                            if (url) document.execCommand(command, false, url);
+                        } else if (command === 'insertImage') {
+                            const url = prompt('Enter image URL:');
+                            if (url) document.execCommand(command, false, url);
+                        } else {
+                            document.execCommand(command, false, null);
+                        }
+                        
+                        content.focus();
+                    }
+                });
+            });
+        }
+
+        function setupMailingTabs() {
+            const recipientTabs = document.querySelectorAll('.recipient-tab');
+            const recipientOptions = document.querySelectorAll('.recipient-options');
+            
+            recipientTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    recipientTabs.forEach(t => t.classList.remove('active'));
+                    recipientOptions.forEach(o => o.style.display = 'none');
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${tab.dataset.type}-options`).style.display = 'block';
+                });
+            });
+        }
+
+        function loadDelegationData() {
+            // Заглушка для загрузки данных делегирования
+            const tableBody = document.getElementById('delegationTable');
+            tableBody.innerHTML = `
+                <tr>
+                    <td>0x1234...5678</td>
+                    <td>Mailing/Support</td>
+                    <td>OWNER</td>
+                    <td>2024-01-15</td>
+                    <td><button class="btn-danger btn-sm">Revoke</button></td>
+                </tr>
+            `;
+        }
+
+        function loadMailingHistory() {
+            // Заглушка для истории рассылок
+            const tableBody = document.getElementById('mailingHistoryTable');
+            tableBody.innerHTML = `
+                <tr>
+                    <td>2024-01-15</td>
+                    <td>Weekly Update</td>
+                    <td>All Users (1247)</td>
+                    <td>1247</td>
+                    <td>892 (71.5%)</td>
+                </tr>
+            `;
+        }
+
+        function loadNewsArchive() {
+            // Заглушка для архива новостей
+            const tableBody = document.getElementById('newsArchiveTable');
+            tableBody.innerHTML = `
+                <tr>
+                    <td>2024-01-15</td>
+                    <td>New Project Launch</td>
+                    <td>1,542</td>
+                    <td><span class="status-published">Published</span></td>
+                    <td>
+                        <button class="btn-secondary btn-sm">Edit</button>
+                        <button class="btn-danger btn-sm">Delete</button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            notification.innerHTML = `
+                <span class="notification-icon">${icons[type]}</span>
+                <span class="notification-message">${message}</span>
+                <button class="notification-close">&times;</button>
+            `;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+            
+            notification.querySelector('.notification-close').addEventListener('click', () => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            });
+        }
+
+        // Заглушки для остальных функций
+        async function setUserPermission() { showNotification('Permission set successfully', 'success'); }
+        async function pauseContract() { showNotification('Contract paused', 'warning'); }
+        async function unpauseContract() { showNotification('Contract unpaused', 'success'); }
+        async function connectProject() { showNotification('Project connected', 'success'); }
+        async function disconnectProject() { showNotification('Project disconnected', 'warning'); }
+        async function blockUser() { showNotification('User blocked', 'warning'); }
+        async function replaceUserAddress() { showNotification('Address replaced', 'success'); }
+        async function submitWithdrawal() { showNotification('Withdrawal submitted', 'success'); }
+        async function delegatePermissions() { showNotification('Permissions delegated', 'success'); }
+        async function saveProjectChanges() { showNotification('Project changes saved', 'success'); }
+        async function addRoadmapItem() { showNotification('Roadmap item added', 'success'); }
+        async function sendMessage() { showNotification('Message sent to all recipients', 'success'); }
+        async function previewMessage() { document.getElementById('previewModal').classList.add('active'); }
+        async function publishNews() { showNotification('News published successfully', 'success'); }
+        async function saveDraftNews() { showNotification('News saved as draft', 'success'); }
+        async function previewNews() { document.getElementById('previewModal').classList.add('active'); }
+        async function connectWallet() { return true; } // Заглушка
+
+        // Закрытие модальных окон
+        document.querySelectorAll('.modal-close').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const modal = e.target.closest('.modal-overlay');
+                modal.classList.remove('active');
+            });
+        });
+    </script>
+
+    <style>
+        /* Дополнительные стили для Admin панели */
+        .main-content {
+            padding: 120px var(--spacing-lg) var(--spacing-xxl);
+            min-height: 100vh;
+        }
+
+        .access-check, .no-access {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--glass-border);
+            border-top: 4px solid var(--primary-gold);
+            border-radius: 50%;
+            animation: loading 1s linear infinite;
+            margin: var(--spacing-lg) auto;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            padding: var(--spacing-lg);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(15px);
+        }
+
+        .admin-title-section h1 {
+            font-size: var(--font-size-xxl);
+            color: var(--primary-gold);
+            margin: 0;
+        }
+
+        .admin-role {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-sm);
+        }
+
+        .role-badge {
+            background: var(--gradient-gold);
+            color: var(--text-inverse);
+            padding: var(--spacing-xs) var(--spacing-md);
+            border-radius: 20px;
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-bold);
+            text-transform: uppercase;
+        }
+
+        .role-owner { background: var(--gradient-gold); }
+        .role-founder { background: linear-gradient(135deg, #9c27b0, #673ab7); }
+        .role-director { background: linear-gradient(135deg, #2196f3, #03a9f4); }
+
+        .permissions-text {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+        }
+
+        .admin-stats-mini {
+            display: flex;
+            gap: var(--spacing-lg);
+        }
+
+        .stat-mini {
+            text-align: center;
+        }
+
+        .stat-mini .stat-value {
+            display: block;
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--primary-gold);
+        }
+
+        .stat-mini .stat-label {
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .admin-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+            padding: 0 var(--spacing-md);
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .admin-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 25px;
+            color: var(--text-primary);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn:hover {
+            background: var(--glass-border);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: var(--gradient-gold);
+            color: var(--text-inverse);
+            border-color: var(--primary-gold);
+        }
+
+        .tab-icon {
+            font-size: var(--font-size-md);
+        }
+
+        .admin-tab-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .admin-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-lg);
+        }
+
+        .textarea-large {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .textarea-small {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            cursor: pointer;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            opacity: 0;
+            position: absolute;
+        }
+
+        .checkmark {
+            width: 20px;
+            height: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            position: relative;
+            transition: all var(--transition-medium);
+        }
+
+        .checkbox-container input:checked + .checkmark {
+            background: var(--primary-gold);
+            border-color: var(--primary-gold);
+        }
+
+        .checkbox-container input:checked + .checkmark::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-inverse);
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .permission-checkboxes {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .contract-controls, .contract-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border: none;
+            border-radius: 25px;
+            padding: var(--spacing-md) var(--spacing-xl);
+            color: var(--text-inverse);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            border: none;
+            border-radius: 25px;
+            padding: var(--spacing-md) var(--spacing-xl);
+            color: var(--text-inverse);
+            font-size: var(--font-size-md);
+            font-weight: var(--font-weight-semibold);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+        }
+
+        .danger-zone {
+            border-color: #f44336 !important;
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .warning-badge {
+            background: #ff9800;
+            color: white;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .stat-section h3 {
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-md);
+            font-size: var(--font-size-md);
+        }
+
+        .withdrawal-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .withdrawal-tab-btn {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-small);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+        }
+
+        .withdrawal-tab-btn.active {
+            background: var(--primary-gold);
+            color: var(--text-inverse);
+        }
+
+        .amount-limit {
+            font-size: var(--font-size-xs);
+            color: var(--text-muted);
+            margin-top: var(--spacing-xs);
+        }
+
+        .voting-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin: var(--spacing-lg) 0;
+        }
+
+        .voting-progress {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-sm);
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--glass-bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary-gold);
+            transition: width var(--transition-medium);
+        }
+
+        .rich-text-editor {
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            overflow: hidden;
+        }
+
+        .editor-toolbar {
+            background: var(--glass-bg-dark);
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .editor-toolbar button {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-small);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 30px;
+        }
+
+        .editor-toolbar button:hover {
+            background: var(--primary-gold);
+            color: var(--text-inverse);
+        }
+
+        .editor-content {
+            padding: var(--spacing-md);
+            min-height: 120px;
+            outline: none;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .editor-content[placeholder]:empty::before {
+            content: attr(placeholder);
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .recipient-selector {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+        }
+
+        .recipient-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .recipient-tab {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-small);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+        }
+
+        .recipient-tab.active {
+            background: var(--primary-gold);
+            color: var(--text-inverse);
+        }
+
+        .recipient-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .audience-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .mailing-actions, .news-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+            margin-top: var(--spacing-lg);
+        }
+
+        .status-completed {
+            background: #4caf50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: var(--font-size-xs);
+        }
+
+        .status-published {
+            background: var(--primary-gold);
+            color: var(--text-inverse);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: var(--font-size-xs);
+        }
+
+        .btn-sm {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: var(--font-size-xs);
+        }
+
+        .technical-account-item {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .account-address {
+            font-family: monospace;
+            background: var(--glass-bg-dark);
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            margin: var(--spacing-sm) 0;
+            font-size: var(--font-size-sm);
+        }
+
+        .account-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .support-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .tickets-filter {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .tickets-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: var(--z-tooltip);
+            max-width: 400px;
+        }
+
+        .notification {
+            background: var(--glass-bg-dark);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all var(--transition-medium);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification-success {
+            border-left: 4px solid #00ff88;
+        }
+
+        .notification-error {
+            border-left: 4px solid #ff4444;
+        }
+
+        .notification-warning {
+            border-left: 4px solid #ffaa00;
+        }
+
+        .notification-info {
+            border-left: 4px solid #00aaff;
+        }
+
+        .notification-icon {
+            font-size: var(--font-size-lg);
+        }
+
+        .notification-message {
+            flex: 1;
+            font-size: var(--font-size-sm);
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: var(--font-size-lg);
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-close:hover {
+            color: var(--primary-gold);
+        }
+
+        .modal-large {
+            max-width: 800px;
+            width: 95%;
+        }
+
+        .refresh-stats {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        /* Адаптивность для Admin панели */
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                text-align: center;
+            }
+
+            .admin-stats-mini {
+                justify-content: center;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .contract-controls, .contract-actions {
+                flex-direction: column;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .withdrawal-tabs {
+                flex-wrap: wrap;
+            }
+
+            .recipient-tabs {
+                flex-wrap: wrap;
+            }
+
+            .recipient-options {
+                grid-template-columns: 1fr;
+            }
+
+            .mailing-actions, .news-actions {
+                flex-direction: column;
+            }
+
+            .support-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .audience-selector {
+                flex-direction: column;
+            }
+
+            .admin-tabs {
+                justify-content: flex-start;
+            }
+
+            .tab-btn {
+                font-size: var(--font-size-xs);
+                padding: var(--spacing-sm);
+            }
+
+            .tab-btn span:not(.tab-icon) {
+                display: none;
+            }
+
+            .notification-container {
+                left: 20px;
+                right: 20px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 100px var(--spacing-sm) var(--spacing-lg);
+            }
+
+            .admin-header {
+                padding: var(--spacing-md);
+            }
+
+            .admin-title-section h1 {
+                font-size: var(--font-size-xl);
+            }
+
+            .role-badge {
+                font-size: 10px;
+                padding: 2px var(--spacing-xs);
+            }
+
+            .permissions-text {
+                font-size: 10px;
+            }
+        }
+
+        /* Анимации для админки */
+        .admin-highlight {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .admin-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+            animation: adminSweep 2s ease-in-out infinite;
+        }
+
+        @keyframes adminSweep {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Успешное действие */
+        .animate-success {
+            animation: success 0.6s ease-out;
+        }
+
+        @keyframes success {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
+            }
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 10px rgba(0, 255, 136, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
+            }
+        }
+    </style>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GlobalWay Admin Panel - Management dashboard for privileged users">
+    <meta name="theme-color" content="#FFD700">
+    
+    <title data-i18n="admin.title">Admin Panel - GlobalWay</title>
+    
+    <!-- Иконки -->
+    <link rel="icon" type="image/x-icon" href="/assets/icons/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/logo-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/logo-32x32.png">
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+    <!-- Фон Земли -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth at night" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Навигация -->
+    <nav class="navigation">
+        <a href="/components/dashboard.html" class="nav-item">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text" data-i18n="nav.dashboard">Dashboard</span>
+        </a>
+        <a href="/components/partners.html" class="nav-item">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text" data-i18n="nav.partners">Partners</span>
+        </a>
+        <a href="/components/matrix.html" class="nav-item">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-text" data-i18n="nav.matrix">Matrix</span>
+        </a>
+        <a href="/components/tokens.html" class="nav-item">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-text" data-i18n="nav.tokens">Tokens</span>
+        </a>
+        <a href="/components/projects.html" class="nav-item">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text" data-i18n="nav.projects">Projects</span>
+        </a>
+        <a href="/components/settings.html" class="nav-item">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text" data-i18n="nav.settings">Settings</span>
+        </a>
+        <a href="/components/admin.html" class="nav-item active">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text" data-i18n="nav.admin">Admin</span>
+        </a>
+    </nav>
+
+    <!-- Основной контент -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Проверка доступа -->
+            <div class="access-check" id="accessCheck">
+                <div class="card text-center">
+                    <h2>🔐 Checking Access...</h2>
+                    <p>Verifying administrative privileges</p>
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+
+            <!-- Содержимое админки (скрыто до проверки) -->
+            <div class="admin-content" id="adminContent" style="display: none;">
+                <!-- Заголовок и права -->
+                <header class="admin-header animate-fade-in-up">
+                    <div class="admin-title-section">
+                        <h1 data-i18n="admin.title">👑 Administration Panel</h1>
+                        <div class="admin-role" id="adminRole">
+                            <span class="role-badge">OWNER</span>
+                            <span class="permissions-text" data-i18n="admin.allAccess">Full Access</span>
+                        </div>
+                    </div>
+                    <div class="admin-stats-mini">
+                        <div class="stat-mini">
+                            <span class="stat-value" id="totalUsers">--</span>
+                            <span class="stat-label" data-i18n="admin.totalUsers">Users</span>
+                        </div>
+                        <div class="stat-mini">
+                            <span class="stat-value" id="contractBalance">--</span>
+                            <span class="stat-label">BNB</span>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Админские табы -->
+                <nav class="admin-tabs animate-fade-in-up animate-delay-100">
+                    <button class="tab-btn active" data-tab="dashboard">
+                        <span class="tab-icon">📊</span>
+                        <span data-i18n="admin.tabs.dashboard">Dashboard</span>
+                    </button>
+                    <button class="tab-btn" data-tab="addresses">
+                        <span class="tab-icon">🏠</span>
+                        <span data-i18n="admin.tabs.addresses">Addresses</span>
+                    </button>
+                    <button class="tab-btn" data-tab="finances">
+                        <span class="tab-icon">💰</span>
+                        <span data-i18n="admin.tabs.finances">Finances</span>
+                    </button>
+                    <button class="tab-btn" data-tab="delegation">
+                        <span class="tab-icon">🤝</span>
+                        <span data-i18n="admin.tabs.delegation">Delegation</span>
+                    </button>
+                    <button class="tab-btn" data-tab="projects">
+                        <span class="tab-icon">🚀</span>
+                        <span data-i18n="admin.tabs.projects">Projects</span>
+                    </button>
+                    <button class="tab-btn" data-tab="mailing">
+                        <span class="tab-icon">📧</span>
+                        <span data-i18n="admin.tabs.mailing">Mailing</span>
+                    </button>
+                    <button class="tab-btn" data-tab="support">
+                        <span class="tab-icon">🆘</span>
+                        <span data-i18n="admin.tabs.support">Support</span>
+                    </button>
+                    <button class="tab-btn" data-tab="news">
+                        <span class="tab-icon">📰</span>
+                        <span data-i18n="admin.tabs.news">News</span>
+                    </button>
+                </nav>
+
+                <!-- Контент табов -->
+                <div class="admin-tab-content">
+                    <!-- Dashboard Tab -->
+                    <div class="tab-content active" id="tab-dashboard">
+                        <!-- Бесплатная активация -->
+                        <section class="admin-section animate-fade-in-up animate-delay-200">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🎁</span>
+                                        <span data-i18n="admin.freeActivation.title">Free User Activation</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.freeActivation.userAddress">User Address:</label>
+                                            <input type="text" class="form-input" id="activationUserAddress" placeholder="0x...">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.freeActivation.sponsorAddress">Sponsor Address:</label>
+                                            <input type="text" class="form-input" id="activationSponsorAddress" placeholder="0x...">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.freeActivation.maxLevel">Maximum Level:</label>
+                                        <select class="form-input" id="activationMaxLevel">
+                                            <option value="3">Client (1-3)</option>
+                                            <option value="4">Mini-Admin (1-4)</option>
+                                            <option value="7">Admin (1-7)</option>
+                                            <option value="10">Super-Admin (1-10)</option>
+                                            <option value="12">Manager (1-12)</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn-primary" id="activateUser">
+                                        <span data-i18n="admin.freeActivation.activate">🚀 Activate User</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Пакетная активация -->
+                        <section class="admin-section animate-fade-in-up animate-delay-300">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">⚡</span>
+                                        <span data-i18n="admin.batchActivation.title">Batch Team Activation</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.batchActivation.members">Team Members (one per line):</label>
+                                        <textarea class="form-input textarea-large" id="batchMembers" 
+                                                  placeholder="0x123...&#10;0x456...&#10;0x789..."></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.batchActivation.sponsors">Sponsors (corresponding to members):</label>
+                                        <textarea class="form-input textarea-large" id="batchSponsors" 
+                                                  placeholder="0xabc...&#10;0xdef...&#10;0xghi..."></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.batchActivation.levels">Max Levels (corresponding to members):</label>
+                                        <textarea class="form-input textarea-small" id="batchLevels" 
+                                                  placeholder="3&#10;4&#10;7"></textarea>
+                                    </div>
+                                    <button class="btn-primary" id="batchActivateTeam">
+                                        <span data-i18n="admin.batchActivation.activate">⚡ Batch Activate Team</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Управление авторизацией -->
+                        <section class="admin-section animate-fade-in-up animate-delay-400">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🔓</span>
+                                        <span data-i18n="admin.authorization.title">Authorization Management</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.authorization.userAddress">User Address:</label>
+                                        <input type="text" class="form-input" id="authUserAddress" placeholder="0x...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="checkbox-container">
+                                            <input type="checkbox" id="allowFreeActivation">
+                                            <span class="checkmark"></span>
+                                            <span data-i18n="admin.authorization.allowFree">Allow Free Activation</span>
+                                        </label>
+                                    </div>
+                                    <button class="btn-primary" id="setPermission">
+                                        <span data-i18n="admin.authorization.set">✅ Set Permission</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Статистика в реальном времени -->
+                        <section class="admin-section animate-fade-in-up animate-delay-500">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📊</span>
+                                        <span data-i18n="admin.stats.title">Real-Time Statistics</span>
+                                    </h2>
+                                    <button class="btn-secondary refresh-stats" id="refreshStats">
+                                        <span data-i18n="admin.stats.refresh">🔄 Refresh</span>
+                                    </button>
+                                </div>
+                                <div class="card-content">
+                                    <div class="stats-grid">
+                                        <!-- Пользователи -->
+                                        <div class="stat-section">
+                                            <h3 data-i18n="admin.stats.users">Users</h3>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statTotalUsers">0</span>
+                                                <span class="stat-label" data-i18n="admin.stats.totalUsers">Total</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statActiveUsers">0</span>
+                                                <span class="stat-label" data-i18n="admin.stats.activeUsers">Active</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statTodayRegistrations">0</span>
+                                                <span class="stat-label" data-i18n="admin.stats.todayRegs">Today</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Финансы -->
+                                        <div class="stat-section">
+                                            <h3 data-i18n="admin.stats.finances">Finances</h3>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statContractBalance">0</span>
+                                                <span class="stat-label">Contract BNB</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statTotalVolume">0</span>
+                                                <span class="stat-label" data-i18n="admin.stats.totalVolume">Total Volume</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Пулы -->
+                                        <div class="stat-section">
+                                            <h3 data-i18n="admin.stats.pools">Pool Balances</h3>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statTreasury">0</span>
+                                                <span class="stat-label">Treasury</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statCharity">0</span>
+                                                <span class="stat-label">Charity</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statDevelopment">0</span>
+                                                <span class="stat-label">Development</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statTokenomics">0</span>
+                                                <span class="stat-label">Tokenomics</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Токены -->
+                                        <div class="stat-section">
+                                            <h3 data-i18n="admin.stats.tokens">Tokens</h3>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statTotalSupply">1B</span>
+                                                <span class="stat-label" data-i18n="admin.stats.totalSupply">Total Supply</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statCirculating">0</span>
+                                                <span class="stat-label" data-i18n="admin.stats.circulating">Circulating</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-value" id="statCurrentPrice">0</span>
+                                                <span class="stat-label" data-i18n="admin.stats.currentPrice">Price ¢</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Addresses Tab -->
+                    <div class="tab-content" id="tab-addresses">
+                        <!-- Управление контрактами -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🔧</span>
+                                        <span data-i18n="admin.contracts.title">Contract Management</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="contract-controls">
+                                        <button class="btn-warning" id="pauseContract">
+                                            <span data-i18n="admin.contracts.pause">⏸️ Pause Contract</span>
+                                        </button>
+                                        <button class="btn-primary" id="unpauseContract">
+                                            <span data-i18n="admin.contracts.unpause">▶️ Unpause Contract</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.contracts.projectAddress">Project Contract Address:</label>
+                                            <input type="text" class="form-input" id="projectContractAddress" placeholder="0x...">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.contracts.projectName">Project Name:</label>
+                                            <input type="text" class="form-input" id="projectName" placeholder="Project Name">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="contract-actions">
+                                        <button class="btn-primary" id="connectProject">
+                                            <span data-i18n="admin.contracts.connect">🔗 Connect Project</span>
+                                        </button>
+                                        <button class="btn-danger" id="disconnectProject">
+                                            <span data-i18n="admin.contracts.disconnect">❌ Disconnect Project</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Блокировка пользователей -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🚫</span>
+                                        <span data-i18n="admin.blocking.title">User Blocking</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.blocking.userAddress">User Address:</label>
+                                        <input type="text" class="form-input" id="blockUserAddress" placeholder="0x...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.blocking.tempAddress">Temporary Address:</label>
+                                        <input type="text" class="form-input" id="tempAddress" placeholder="0x...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.blocking.note">Note (stored in archive):</label>
+                                        <textarea class="form-input" id="blockingNote" placeholder="Reason for blocking..."></textarea>
+                                    </div>
+                                    <button class="btn-danger" id="blockUser">
+                                        <span data-i18n="admin.blocking.block">🚫 Block User</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Замена адреса -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🔄</span>
+                                        <span data-i18n="admin.addressReplace.title">Address Replacement</span>
+                                    </h2>
+                                    <div class="warning-badge" data-i18n="admin.addressReplace.warning">
+                                        Available only until full decentralization
+                                    </div>
+                                </div>
+                                <div class="card-content">
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.addressReplace.oldAddress">Current Address:</label>
+                                        <input type="text" class="form-input" id="oldUserAddress" placeholder="0x...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.addressReplace.newAddress">New Address:</label>
+                                        <input type="text" class="form-input" id="newUserAddress" placeholder="0x...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.addressReplace.note">Note:</label>
+                                        <textarea class="form-input" id="replaceNote" placeholder="Reason for replacement..."></textarea>
+                                    </div>
+                                    <button class="btn-warning" id="replaceAddress">
+                                        <span data-i18n="admin.addressReplace.replace">🔄 Replace Address</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Опасная зона -->
+                        <section class="admin-section">
+                            <div class="card danger-zone">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">⚠️</span>
+                                        <span data-i18n="admin.dangerZone.title">DANGER ZONE</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <button class="btn-danger" id="transferToMultisig">
+                                        <span data-i18n="admin.dangerZone.transfer">🔄 Transfer to Multisig (IRREVERSIBLE!)</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Finances Tab -->
+                    <div class="tab-content" id="tab-finances">
+                        <!-- Вывод средств -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">💰</span>
+                                        <span data-i18n="admin.withdrawal.title">Fund Withdrawal</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="withdrawal-tabs">
+                                        <button class="withdrawal-tab-btn active" data-pool="charity">Charity</button>
+                                        <button class="withdrawal-tab-btn" data-pool="treasury">Treasury</button>
+                                        <button class="withdrawal-tab-btn" data-pool="development">Development</button>
+                                        <button class="withdrawal-tab-btn" data-pool="emergency">Emergency</button>
+                                    </div>
+                                    
+                                    <div class="withdrawal-content">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.withdrawal.address">Withdrawal Address:</label>
+                                            <input type="text" class="form-input" id="withdrawalAddress" placeholder="0x...">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.withdrawal.amount">Amount (BNB):</label>
+                                            <input type="number" class="form-input" id="withdrawalAmount" step="0.001" placeholder="0.000">
+                                            <div class="amount-limit" id="amountLimit">
+                                                Limit without voting: 5 BNB
+                                            </div>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.withdrawal.note">Note (for history):</label>
+                                            <textarea class="form-input" id="withdrawalNote" placeholder="Purpose of withdrawal..."></textarea>
+                                        </div>
+                                        
+                                        <div class="voting-section" id="votingSection" style="display: none;">
+                                            <div class="voting-info">
+                                                <h4 data-i18n="admin.withdrawal.votingRequired">Voting Required</h4>
+                                                <p data-i18n="admin.withdrawal.votingDesc">Minimum 8 votes needed for approval</p>
+                                                <div class="voting-progress">
+                                                    <span class="votes-count">0/8</span>
+                                                    <div class="progress-bar">
+                                                        <div class="progress-fill" style="width: 0%"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn-primary" id="submitWithdrawal">
+                                            <span data-i18n="admin.withdrawal.submit">💰 Submit Withdrawal</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- История выводов -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📋</span>
+                                        <span data-i18n="admin.withdrawalHistory.title">Withdrawal History</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="table-container">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-i18n="admin.withdrawalHistory.date">Date</th>
+                                                    <th data-i18n="admin.withdrawalHistory.pool">Pool</th>
+                                                    <th data-i18n="admin.withdrawalHistory.amount">Amount</th>
+                                                    <th data-i18n="admin.withdrawalHistory.address">Address</th>
+                                                    <th data-i18n="admin.withdrawalHistory.status">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="withdrawalHistoryTable">
+                                                <tr>
+                                                    <td>2024-01-15</td>
+                                                    <td>Charity</td>
+                                                    <td>3.5 BNB</td>
+                                                    <td>0x1234...5678</td>
+                                                    <td><span class="status-completed">Completed</span></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Delegation Tab -->
+                    <div class="tab-content" id="tab-delegation">
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🤝</span>
+                                        <span data-i18n="admin.delegation.title">Permission Delegation</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="delegation-info">
+                                        <h3 data-i18n="admin.delegation.rules">Delegation Rules:</h3>
+                                        <ul>
+                                            <li data-i18n="admin.delegation.ownerRule">Owner: Can delegate to everyone</li>
+                                            <li data-i18n="admin.delegation.founderRule">Founders: Can delegate to their team</li>
+                                            <li data-i18n="admin.delegation.directorRule">Directors: Limited permissions</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.delegation.partnerAddress">Partner Address:</label>
+                                        <input type="text" class="form-input" id="delegationAddress" placeholder="0x...">
+                                    </div>
+                                    
+                                                                            <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.delegation.permissions">Permissions (format: Mailing/Support/History/News):</label>
+                                        <div class="permission-checkboxes">
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" name="permissions" value="mailing">
+                                                <span class="checkmark"></span>
+                                                <span data-i18n="admin.delegation.mailing">Mailing</span>
+                                            </label>
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" name="permissions" value="support">
+                                                <span class="checkmark"></span>
+                                                <span data-i18n="admin.delegation.support">Support</span>
+                                            </label>
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" name="permissions" value="history">
+                                                <span class="checkmark"></span>
+                                                <span data-i18n="admin.delegation.history">History</span>
+                                            </label>
+                                            <label class="checkbox-container">
+                                                <input type="checkbox" name="permissions" value="news">
+                                                <span class="checkmark"></span>
+                                                <span data-i18n="admin.delegation.news">News</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label class="form-label" data-i18n="admin.delegation.note">Note (stored in delegation history):</label>
+                                        <textarea class="form-input" id="delegationNote" placeholder="Delegation reason..."></textarea>
+                                    </div>
+                                    
+                                    <button class="btn-primary" id="delegatePermissions">
+                                        <span data-i18n="admin.delegation.delegate">🤝 Delegate Permissions</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Текущие делегации -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">👥</span>
+                                        <span data-i18n="admin.delegation.current">Current Delegations</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="table-container">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-i18n="admin.delegation.address">Address</th>
+                                                    <th data-i18n="admin.delegation.permissions">Permissions</th>
+                                                    <th data-i18n="admin.delegation.delegatedBy">Delegated By</th>
+                                                    <th data-i18n="admin.delegation.date">Date</th>
+                                                    <th data-i18n="admin.delegation.actions">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="delegationTable">
+                                                <!-- Данные будут загружены динамически -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Projects Tab -->
+                    <div class="tab-content" id="tab-projects">
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🚀</span>
+                                        <span data-i18n="admin.projects.title">Projects Management</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="projects-editor">
+                                        <div class="editor-toolbar">
+                                            <button class="btn-secondary" id="addProjectBlock">
+                                                <span data-i18n="admin.projects.addBlock">+ Add Block</span>
+                                            </button>
+                                            <button class="btn-secondary" id="addModal">
+                                                <span data-i18n="admin.projects.addModal">+ Add Modal</span>
+                                            </button>
+                                            <button class="btn-secondary" id="uploadMedia">
+                                                <span data-i18n="admin.projects.uploadMedia">📁 Upload Media</span>
+                                            </button>
+                                            <button class="btn-primary" id="saveProjectChanges">
+                                                <span data-i18n="admin.projects.save">💾 Save Changes</span>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="project-form">
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.projects.name">Project Name:</label>
+                                                <input type="text" class="form-input" id="projectFormName" placeholder="GlobalTub">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.projects.logo">Logo URL:</label>
+                                                <input type="text" class="form-input" id="projectFormLogo" placeholder="https://...">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.projects.shortDesc">Short Description:</label>
+                                                <textarea class="form-input" id="projectFormShortDesc" placeholder="3-5 lines description..."></textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.projects.fullDesc">Full Description (for modal):</label>
+                                                <div class="rich-text-editor" id="projectFullDesc">
+                                                    <div class="editor-toolbar">
+                                                        <button type="button" data-command="bold">B</button>
+                                                        <button type="button" data-command="italic">I</button>
+                                                        <button type="button" data-command="underline">U</button>
+                                                        <button type="button" data-command="insertOrderedList">OL</button>
+                                                        <button type="button" data-command="insertUnorderedList">UL</button>
+                                                    </div>
+                                                    <div class="editor-content" contenteditable="true" placeholder="Enter full project description..."></div>
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label class="form-label" data-i18n="admin.projects.status">Status:</label>
+                                                    <select class="form-input" id="projectFormStatus">
+                                                        <option value="active">Active</option>
+                                                        <option value="development">In Development</option>
+                                                        <option value="soon">Coming Soon</option>
+                                                        <option value="review">Under Review</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label class="form-label" data-i18n="admin.projects.launchDate">Launch Date:</label>
+                                                    <input type="date" class="form-input" id="projectFormLaunchDate">
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.projects.contractAddress">Contract Address:</label>
+                                                <input type="text" class="form-input" id="projectFormContract" placeholder="0x...">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.projects.entryLink">Entry Link:</label>
+                                                <input type="text" class="form-input" id="projectFormEntryLink" placeholder="https://...">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="roadmap-editor">
+                                            <h3 data-i18n="admin.projects.roadmap">Roadmap Editor</h3>
+                                            <div class="roadmap-items" id="roadmapItems">
+                                                <!-- Roadmap items будут добавляться динамически -->
+                                            </div>
+                                            <button class="btn-secondary" id="addRoadmapItem">
+                                                <span data-i18n="admin.projects.addRoadmapItem">+ Add Roadmap Item</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Предложенные проекты -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📝</span>
+                                        <span data-i18n="admin.projects.submitted">Submitted Project Proposals</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="table-container">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-i18n="admin.projects.author">Author</th>
+                                                    <th data-i18n="admin.projects.idea">Project Idea</th>
+                                                    <th data-i18n="admin.projects.field">Field</th>
+                                                    <th data-i18n="admin.projects.submittedDate">Submitted</th>
+                                                    <th data-i18n="admin.projects.actions">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="submittedProjectsTable">
+                                                <!-- Данные будут загружены динамически -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Mailing Tab -->
+                    <div class="tab-content" id="tab-mailing">
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📧</span>
+                                        <span data-i18n="admin.mailing.title">Mailing System</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="mailing-composer">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.mailing.recipients">Recipients:</label>
+                                            <div class="recipient-selector">
+                                                <div class="recipient-tabs">
+                                                    <button class="recipient-tab active" data-type="levels">By Levels</button>
+                                                    <button class="recipient-tab" data-type="qualification">By Qualification</button>
+                                                    <button class="recipient-tab" data-type="role">By Role</button>
+                                                    <button class="recipient-tab" data-type="custom">Custom</button>
+                                                </div>
+                                                
+                                                <div class="recipient-content">
+                                                    <div class="recipient-options" id="levels-options">
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="1-4">
+                                                            <span class="checkmark"></span>
+                                                            <span>Levels 1-4</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="1-7">
+                                                            <span class="checkmark"></span>
+                                                            <span>Levels 1-7</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="1-10">
+                                                            <span class="checkmark"></span>
+                                                            <span>Levels 1-10</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="1-12">
+                                                            <span class="checkmark"></span>
+                                                            <span>Levels 1-12</span>
+                                                        </label>
+                                                    </div>
+                                                    
+                                                    <div class="recipient-options" id="qualification-options" style="display: none;">
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="bronze">
+                                                            <span class="checkmark"></span>
+                                                            <span>Bronze</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="silver">
+                                                            <span class="checkmark"></span>
+                                                            <span>Silver</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="gold">
+                                                            <span class="checkmark"></span>
+                                                            <span>Gold</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="platinum">
+                                                            <span class="checkmark"></span>
+                                                            <span>Platinum</span>
+                                                        </label>
+                                                    </div>
+                                                    
+                                                    <div class="recipient-options" id="role-options" style="display: none;">
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="founders">
+                                                            <span class="checkmark"></span>
+                                                            <span>Founders</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="directors">
+                                                            <span class="checkmark"></span>
+                                                            <span>Directors</span>
+                                                        </label>
+                                                        <label class="checkbox-container">
+                                                            <input type="checkbox" value="support">
+                                                            <span class="checkmark"></span>
+                                                            <span>Support</span>
+                                                        </label>
+                                                    </div>
+                                                    
+                                                    <div class="recipient-options" id="custom-options" style="display: none;">
+                                                        <textarea class="form-input" placeholder="Enter user addresses (one per line)"></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.mailing.messageType">Message Type:</label>
+                                            <select class="form-input" id="messageType">
+                                                <option value="news">News (HTML)</option>
+                                                <option value="notification">Notification (Text)</option>
+                                                <option value="system">System (Template)</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.mailing.subject">Subject:</label>
+                                            <input type="text" class="form-input" id="mailSubject" placeholder="Message subject...">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.mailing.message">Message:</label>
+                                            <div class="rich-text-editor" id="mailMessage">
+                                                <div class="editor-toolbar">
+                                                    <button type="button" data-command="bold">B</button>
+                                                    <button type="button" data-command="italic">I</button>
+                                                    <button type="button" data-command="underline">U</button>
+                                                    <button type="button" data-command="createLink">🔗</button>
+                                                    <button type="button" data-command="insertImage">🖼️</button>
+                                                </div>
+                                                <div class="editor-content" contenteditable="true" placeholder="Enter your message..."></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mailing-actions">
+                                            <button class="btn-secondary" id="previewMessage">
+                                                <span data-i18n="admin.mailing.preview">👁️ Preview</span>
+                                            </button>
+                                            <button class="btn-primary" id="sendMessage">
+                                                <span data-i18n="admin.mailing.send">📧 Send Message</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- История рассылок -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📋</span>
+                                        <span data-i18n="admin.mailing.history">Mailing History</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="table-container">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-i18n="admin.mailing.historyDate">Date</th>
+                                                    <th data-i18n="admin.mailing.historySubject">Subject</th>
+                                                    <th data-i18n="admin.mailing.historyRecipients">Recipients</th>
+                                                    <th data-i18n="admin.mailing.historySent">Sent</th>
+                                                    <th data-i18n="admin.mailing.historyOpened">Opened</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="mailingHistoryTable">
+                                                <!-- Данные будут загружены динамически -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Support Tab -->
+                    <div class="tab-content" id="tab-support">
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">🆘</span>
+                                        <span data-i18n="admin.support.title">Support System</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="support-stats">
+                                        <div class="stat-item">
+                                            <span class="stat-value" id="openTickets">12</span>
+                                            <span class="stat-label" data-i18n="admin.support.openTickets">Open Tickets</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="stat-value" id="pendingTickets">5</span>
+                                            <span class="stat-label" data-i18n="admin.support.pendingTickets">Pending</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <span class="stat-value" id="resolvedToday">8</span>
+                                            <span class="stat-label" data-i18n="admin.support.resolvedToday">Resolved Today</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="support-tickets">
+                                        <div class="tickets-filter">
+                                            <select class="form-input" id="ticketFilter">
+                                                <option value="all">All Tickets</option>
+                                                <option value="open">Open</option>
+                                                <option value="pending">Pending</option>
+                                                <option value="resolved">Resolved</option>
+                                                <option value="escalated">Escalated</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="tickets-list" id="ticketsList">
+                                            <!-- Тикеты будут загружены динамически -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- База знаний -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📚</span>
+                                        <span data-i18n="admin.support.knowledgeBase">Knowledge Base</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="knowledge-base-editor">
+                                        <button class="btn-primary" id="addFAQ">
+                                            <span data-i18n="admin.support.addFAQ">+ Add FAQ</span>
+                                        </button>
+                                        <div class="faq-list" id="faqList">
+                                            <!-- FAQ items будут загружены динамически -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- News Tab -->
+                    <div class="tab-content" id="tab-news">
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📰</span>
+                                        <span data-i18n="admin.news.title">News Management</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="news-composer">
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.news.title">News Title:</label>
+                                            <input type="text" class="form-input" id="newsTitle" placeholder="Enter news title...">
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.news.content">News Content:</label>
+                                            <div class="rich-text-editor" id="newsContent">
+                                                <div class="editor-toolbar">
+                                                    <button type="button" data-command="bold">B</button>
+                                                    <button type="button" data-command="italic">I</button>
+                                                    <button type="button" data-command="underline">U</button>
+                                                    <button type="button" data-command="createLink">🔗</button>
+                                                    <button type="button" data-command="insertImage">🖼️</button>
+                                                    <button type="button" data-command="insertOrderedList">OL</button>
+                                                    <button type="button" data-command="insertUnorderedList">UL</button>
+                                                </div>
+                                                <div class="editor-content" contenteditable="true" placeholder="Enter news content..."></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.news.link">Related Link:</label>
+                                                <input type="url" class="form-input" id="newsLink" placeholder="https://...">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label" data-i18n="admin.news.image">News Image:</label>
+                                                <input type="url" class="form-input" id="newsImage" placeholder="https://...">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label class="form-label" data-i18n="admin.news.targetAudience">Target Audience:</label>
+                                            <div class="audience-selector">
+                                                <label class="checkbox-container">
+                                                    <input type="checkbox" value="all" checked>
+                                                    <span class="checkmark"></span>
+                                                    <span data-i18n="admin.news.allUsers">All Users</span>
+                                                </label>
+                                                <label class="checkbox-container">
+                                                    <input type="checkbox" value="active">
+                                                    <span class="checkmark"></span>
+                                                    <span data-i18n="admin.news.activeUsers">Active Users Only</span>
+                                                </label>
+                                                <label class="checkbox-container">
+                                                    <input type="checkbox" value="privileged">
+                                                    <span class="checkmark"></span>
+                                                    <span data-i18n="admin.news.privilegedUsers">Privileged Users</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="news-actions">
+                                            <button class="btn-secondary" id="previewNews">
+                                                <span data-i18n="admin.news.preview">👁️ Preview</span>
+                                            </button>
+                                            <button class="btn-secondary" id="saveDraftNews">
+                                                <span data-i18n="admin.news.saveDraft">💾 Save Draft</span>
+                                            </button>
+                                            <button class="btn-primary" id="publishNews">
+                                                <span data-i18n="admin.news.publish">📰 Publish News</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Архив новостей -->
+                        <section class="admin-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h2 class="card-title">
+                                        <span class="nav-icon">📋</span>
+                                        <span data-i18n="admin.news.archive">News Archive</span>
+                                    </h2>
+                                </div>
+                                <div class="card-content">
+                                    <div class="table-container">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-i18n="admin.news.archiveDate">Date</th>
+                                                    <th data-i18n="admin.news.archiveTitle">Title</th>
+                                                    <th data-i18n="admin.news.archiveViews">Views</th>
+                                                    <th data-i18n="admin.news.archiveStatus">Status</th>
+                                                    <th data-i18n="admin.news.archiveActions">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="newsArchiveTable">
+                                                <!-- Данные будут загружены динамически -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Нет доступа -->
+            <div class="no-access" id="noAccess" style="display: none;">
+                <div class="card text-center">
+                    <h2>🚫 Access Denied</h2>
+                    <p>You don't have administrative privileges for this panel.</p>
+                    <p>Only Owner, Founders, and Directors can access this area.</p>
+                    <a href="/components/dashboard.html" class="btn-primary">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальные окна -->
+    <!-- Модальное окно предпросмотра -->
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-content modal-large">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" data-i18n="admin.preview.title">Preview</h2>
+            <div class="modal-text">
+                <div class="preview-content" id="previewContent">
+                    <!-- Контент предпросмотра -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно голосования -->
+    <div class="modal-overlay" id="votingModal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <h2 class="modal-title" data-i18n="admin.voting.title">Voting Required</h2>
+            <div class="modal-text">
+                <div class="voting-details">
+                    <h3 id="votingSubject">Withdrawal Request</h3>
+                    <div class="voting-info">
+                        <p><strong>Amount:</strong> <span id="votingAmount">10 BNB</span></p>
+                        <p><strong>Pool:</strong> <span id="votingPool">Treasury</span></p>
+                        <p><strong>Address:</strong> <span id="votingAddress">0x...</span></p>
+                    </div>
+                    <div class="voting-progress">
+                        <div class="progress-info">
+                            <span class="votes-needed">Votes needed: 8</span>
+                            <span class="votes-current">Current: <span id="currentVotes">0</span></span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="votingProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="voting-actions">
+                        <button class="btn-primary" id="voteYes">✅ Vote
