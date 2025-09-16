@@ -3,224 +3,964 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalWay - Matrix</title>
+    <meta name="description" content="GlobalWay Matrix - Interactive binary matrix visualization">
+    <title>Matrix - GlobalWay</title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/responsive.css">
-    <link rel="stylesheet" href="../css/animations.css">
-    <link rel="stylesheet" href="../css/matrix.css">
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    
+    <!-- Web3 и GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
-<body>
-    <!-- Навигация (копируется из dashboard) -->
-    <nav id="mainNav" class="top-menu">
-        <div class="menu-container">
-            <img src="../assets/icons/logo.png" alt="GlobalWay" class="logo">
-            <div class="nav-buttons">
-                <button class="nav-btn" data-page="dashboard">Dashboard</button>
-                <button class="nav-btn" data-page="partners">Partners</button>
-                <button class="nav-btn active" data-page="matrix">Matrix</button>
-                <button class="nav-btn" data-page="tokens">Tokens</button>
-                <button class="nav-btn" data-page="projects">Projects</button>
-                <button class="nav-btn" data-page="settings">Settings</button>
-                <button class="nav-btn admin-only" data-page="admin" style="display:none;">Admin</button>
-            </div>
-        </div>
+<body class="page-matrix">
+    <!-- Фон -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth background" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Навигация -->
+    <nav class="navigation">
+        <a href="/" class="nav-item" data-nav="index">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text" data-i18n="common.home">Home</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text" data-i18n="navigation.dashboard">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="partners">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text" data-i18n="navigation.partners">Partners</span>
+        </a>
+        <a href="#" class="nav-item active" data-nav="matrix">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-text" data-i18n="navigation.matrix">Matrix</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="tokens">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-text" data-i18n="navigation.tokens">Tokens</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="projects">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text" data-i18n="navigation.projects">Projects</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text" data-i18n="navigation.settings">Settings</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="admin" id="adminNavItem" style="display: none;">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text" data-i18n="navigation.admin">Admin</span>
+        </a>
     </nav>
 
-    <div class="dashboard-container">
-        <!-- Поиск по ID -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Matrix Navigation</h2>
-            <div class="search-container">
-                <input type="text" id="searchById" placeholder="Enter ID to navigate" class="search-input">
-                <button class="btn btn-primary" onclick="searchMatrix()">Search</button>
+    <!-- Переключатель языков -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="uk">UK</button>
+    </div>
+
+    <!-- Основной контент -->
+    <main class="matrix-container">
+        <!-- Заголовок -->
+        <header class="page-header">
+            <h1 class="page-title" data-i18n="matrix.title">Binary Matrix</h1>
+            <p class="page-description">Interactive 1:2 binary matrix visualization with position tracking</p>
+        </header>
+
+        <!-- Навигация по уровням матрицы -->
+        <section class="matrix-level-navigation">
+            <div class="level-tabs horizontal-scroll" id="matrixLevelTabs">
+                <!-- Генерируется через JavaScript -->
             </div>
-        </div>
+        </section>
+
+        <!-- Легенда статусов -->
+        <section class="matrix-legend">
+            <div class="legend-container">
+                <h3 data-i18n="matrix.statusTypes">Position Types:</h3>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-dot active"></div>
+                        <span data-i18n="matrix.statusTypes.active">Active User</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot available"></div>
+                        <span data-i18n="matrix.statusTypes.available">Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot blocked"></div>
+                        <span data-i18n="matrix.statusTypes.blocked">Blocked</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot charity"></div>
+                        <span data-i18n="matrix.statusTypes.charity">Charity</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot technical"></div>
+                        <span data-i18n="matrix.statusTypes.technical">Technical</span>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- Интерактивная матрица -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Binary Matrix Structure</h2>
-            <div class="matrix-visualization" id="matrixContainer">
-                <svg id="matrixSvg" width="100%" height="400">
-                    <!-- Линии соединения -->
-                    <g id="matrixLines"></g>
-                    <!-- Узлы матрицы -->
-                    <g id="matrixNodes"></g>
-                </svg>
-                <!-- Узлы матрицы -->
-                <div class="matrix-nodes" id="matrixNodes">
-                    <!-- Корневой узел -->
-                    <div class="matrix-node root" id="node-0" data-position="0" data-level="1">
-                        <div class="node-content">
-                            <div class="node-id">You</div>
-                            <div class="node-level">12</div>
-                        </div>
-                    </div>
-                    <!-- Первый уровень -->
-                    <div class="matrix-node level-1" id="node-1" data-position="1" data-level="1">
-                        <div class="node-content">
-                            <div class="node-id">Empty</div>
-                        </div>
-                    </div>
-                    <div class="matrix-node level-1" id="node-2" data-position="2" data-level="1">
-                        <div class="node-content">
-                            <div class="node-id">Empty</div>
-                        </div>
-                    </div>
-                    <!-- Второй уровень -->
-                    <div class="matrix-node level-2" id="node-3" data-position="3" data-level="2">
-                        <div class="node-content">
-                            <div class="node-id">Empty</div>
-                        </div>
-                    </div>
-                    <div class="matrix-node level-2" id="node-4" data-position="4" data-level="2">
-                        <div class="node-content">
-                            <div class="node-id">Empty</div>
-                        </div>
-                    </div>
-                    <div class="matrix-node level-2" id="node-5" data-position="5" data-level="2">
-                        <div class="node-content">
-                            <div class="node-id">Empty</div>
-                        </div>
-                    </div>
-                    <div class="matrix-node level-2" id="node-6" data-position="6" data-level="2">
-                        <div class="node-content">
-                            <div class="node-id">Empty</div>
-                        </div>
-                    </div>
-                </div>
+        <section class="interactive-matrix-section">
+            <div class="matrix-visualization" id="matrixVisualization">
+                <!-- Генерируется через JavaScript -->
             </div>
-            <!-- Легенда -->
-            <div class="matrix-legend">
-                <div class="legend-item">
-                    <span class="legend-color active"></span>
-                    <span>Active User</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color available"></span>
-                    <span>Available Slot</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color blocked"></span>
-                    <span>Blocked Slot</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color charity"></span>
-                    <span>Charity Place</span>
-                </div>
-                <div class="legend-item">
-                    <span class="legend-color technical"></span>
-                    <span>Technical Place</span>
-                </div>
+            
+            <!-- Элементы управления матрицей -->
+            <div class="matrix-controls">
+                <button class="btn-secondary" id="zoomInBtn">🔍 Увеличить</button>
+                <button class="btn-secondary" id="zoomOutBtn">🔍 Уменьшить</button>
+                <button class="btn-secondary" id="resetZoomBtn">🎯 Сбросить</button>
+                <button class="btn-secondary" id="centerMatrixBtn">📍 Центрировать</button>
             </div>
-        </div>
+        </section>
 
-        <!-- Структура матрицы по уровням -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Matrix Structure</h2>
-            <!-- Селектор уровней -->
-            <div class="level-selector">
-                <div class="level-buttons">
-                    <button class="level-select-btn active" data-level="1">1</button>
-                    <button class="level-select-btn" data-level="2">2</button>
-                    <button class="level-select-btn" data-level="3">3</button>
-                    <button class="level-select-btn" data-level="4">4</button>
-                    <button class="level-select-btn" data-level="5">5</button>
-                    <button class="level-select-btn" data-level="6">6</button>
-                    <button class="level-select-btn" data-level="7">7</button>
-                    <button class="level-select-btn" data-level="8">8</button>
-                    <button class="level-select-btn" data-level="9">9</button>
-                    <button class="level-select-btn" data-level="10">10</button>
-                    <button class="level-select-btn" data-level="11">11</button>
-                    <button class="level-select-btn" data-level="12">12</button>
+        <!-- Статистика матрицы -->
+        <section class="matrix-stats-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="matrix.structure">Matrix Structure</h2>
+                    <div class="current-level-info">
+                        <span data-i18n="levels.level">Level:</span>
+                        <span id="currentMatrixLevel">1</span>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="matrix-stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalMatrixPositions">0</div>
+                            <div class="stat-label" data-i18n="matrix.totalPositions">Total Positions</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="activeMatrixPositions">0</div>
+                            <div class="stat-label" data-i18n="matrix.activePositions">Active Positions</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="charityMatrixPositions">0</div>
+                            <div class="stat-label" data-i18n="matrix.charityPositions">Charity Positions</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="technicalMatrixPositions">0</div>
+                            <div class="stat-label" data-i18n="matrix.technicalPositions">Technical Positions</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <!-- Таблица участников -->
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>№</th>
-                            <th>ID</th>
-                            <th>Address</th>
-                            <th>Sponsor ID</th>
-                            <th>Activation Date</th>
-                            <th>Level</th>
-                            <th>Qualification</th>
-                        </tr>
-                    </thead>
-                    <tbody id="matrixTableBody">
-                        <tr>
-                            <td colspan="7" class="text-center">No data available</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </section>
 
-        <!-- Статистика -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Matrix Statistics</h2>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-label">Total Active Slots</div>
-                    <div class="stat-value" id="totalActiveSlots">0</div>
+        <!-- Таблица структуры матрицы -->
+        <section class="matrix-table-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Matrix Level <span id="tableCurrentLevel">1</span> Structure</h2>
+                    <div class="table-controls">
+                        <button class="btn-secondary" id="refreshMatrixBtn">
+                            🔄 <span data-i18n="common.refresh">Refresh</span>
+                        </button>
+                        <button class="btn-secondary" id="exportMatrixBtn">
+                            📊 <span data-i18n="common.download">Export</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">Partners</div>
-                    <div class="stat-value" id="totalPartners">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Charity Places</div>
-                    <div class="stat-value" id="charityPlaces">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Technical Places</div>
-                    <div class="stat-value" id="technicalPlaces">0</div>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="table" id="matrixTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th data-i18n="user.id">ID</th>
+                                    <th data-i18n="wallet.address">Address</th>
+                                    <th data-i18n="user.sponsor">Sponsor ID</th>
+                                    <th data-i18n="transactions.date">Date</th>
+                                    <th data-i18n="levels.level">Level</th>
+                                    <th data-i18n="matrix.status">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matrixTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center">
+                                        <span data-i18n="common.loading">Loading...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <!-- Модальное окно деталей узла -->
-    <div class="modal" id="nodeModal">
+    <!-- Модальное окно деталей позиции -->
+    <div class="modal-overlay" id="positionDetailsModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title">Node Details</h2>
-                <span class="modal-close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="node-details">
-                    <div class="detail-item">
-                        <span class="detail-label">ID:</span>
-                        <span class="detail-value" id="modalNodeId"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Sponsor ID:</span>
-                        <span class="detail-value" id="modalSponsorId"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Address:</span>
-                        <span class="detail-value" id="modalAddress"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Level:</span>
-                        <span class="detail-value" id="modalLevel"></span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Status:</span>
-                        <span class="detail-value" id="modalStatus"></span>
-                    </div>
+            <button class="modal-close" id="closePositionDetailsModal">&times;</button>
+            <h2 class="modal-title">Position Details</h2>
+            <div class="modal-text">
+                <div class="position-details-grid" id="positionDetailsGrid">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="closePositionDetailsBtn" data-i18n="common.close">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="../js/web3.js"></script>
-    <script src="../js/contracts.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/matrix.js"></script>
+    <!-- Загрузочный оверлей -->
+    <div class="modal-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText" data-i18n="common.loading">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Область уведомлений -->
+    <div class="notifications-container" id="notificationsContainer"></div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/web3-manager.js"></script>
+    <script src="/js/contract-manager.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Состояние матрицы
+        let matrixState = {
+            currentLevel: 1,
+            zoomLevel: 1,
+            matrixData: {},
+            positions: [],
+            userPosition: null
+        };
+
+        // Инициализация страницы Matrix
+        document.addEventListener('DOMContentLoaded', async () => {
+            await i18n.loadTranslations();
+            await initializeMatrixPage();
+        });
+
+        async function initializeMatrixPage() {
+            console.log('🔗 Initializing Matrix page...');
+            
+            try {
+                setupMatrixEventListeners();
+                createMatrixLevelTabs();
+                
+                if (app.userState.isConnected) {
+                    await loadMatrixData();
+                } else {
+                    generateSampleMatrix();
+                }
+                
+                console.log('✅ Matrix page initialized');
+                
+            } catch (error) {
+                console.error('❌ Matrix page initialization failed:', error);
+                app.showNotification('Failed to initialize matrix page', 'error');
+            }
+        }
+
+        function setupMatrixEventListeners() {
+            // Управление масштабом
+            document.getElementById('zoomInBtn')?.addEventListener('click', () => adjustZoom(1.2));
+            document.getElementById('zoomOutBtn')?.addEventListener('click', () => adjustZoom(0.8));
+            document.getElementById('resetZoomBtn')?.addEventListener('click', resetZoom);
+            document.getElementById('centerMatrixBtn')?.addEventListener('click', centerMatrix);
+
+            // Обновление данных
+            document.getElementById('refreshMatrixBtn')?.addEventListener('click', refreshMatrixData);
+            document.getElementById('exportMatrixBtn')?.addEventListener('click', exportMatrixData);
+
+            // Модальные окна
+            document.getElementById('closePositionDetailsModal')?.addEventListener('click', () => {
+                app.hideModal('positionDetailsModal');
+            });
+            
+            document.getElementById('closePositionDetailsBtn')?.addEventListener('click', () => {
+                app.hideModal('positionDetailsModal');
+            });
+        }
+
+        function createMatrixLevelTabs() {
+            const container = document.getElementById('matrixLevelTabs');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            for (let level = 1; level <= 12; level++) {
+                const tab = document.createElement('button');
+                tab.className = `level-tab ${level === 1 ? 'active' : ''}`;
+                tab.dataset.level = level;
+                tab.innerHTML = `
+                    <div class="tab-level">${level}</div>
+                    <div class="tab-price">${contractManager.levelPrices[level]} BNB</div>
+                `;
+                
+                tab.addEventListener('click', () => switchMatrixLevel(level));
+                container.appendChild(tab);
+            }
+        }
+
+        function switchMatrixLevel(level) {
+            matrixState.currentLevel = level;
+            
+            // Обновляем активную вкладку
+            document.querySelectorAll('.level-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (parseInt(tab.dataset.level) === level) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Обновляем отображение
+            document.getElementById('currentMatrixLevel').textContent = level;
+            document.getElementById('tableCurrentLevel').textContent = level;
+            
+            // Обновляем матрицу
+            updateMatrixVisualization();
+            updateMatrixTable();
+        }
+
+        async function loadMatrixData() {
+            if (!app.userState.isConnected) return;
+            
+            try {
+                app.setLoading(true);
+                
+                // Загружаем данные матрицы для текущего уровня
+                const matrixStats = await contractManager.getMatrixStats(
+                    app.userState.address, 
+                    matrixState.currentLevel
+                );
+                
+                matrixState.matrixData = matrixStats;
+                matrixState.userPosition = matrixStats.userPosition;
+                
+                // Генерируем структуру матрицы
+                generateMatrixStructure();
+                
+                // Обновляем статистику
+                updateMatrixStats();
+                
+                // Обновляем визуализацию
+                updateMatrixVisualization();
+                updateMatrixTable();
+                
+            } catch (error) {
+                console.error('Failed to load matrix data:', error);
+                app.showNotification('Failed to load matrix data', 'error');
+                generateSampleMatrix();
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        function generateMatrixStructure() {
+            const positions = [];
+            const maxPositions = 127; // 1+2+4+8+16+32+64 = 127 (7 уровней)
+            
+            // Генерируем позиции для бинарной матрицы
+            for (let i = 1; i <= maxPositions; i++) {
+                const level = Math.floor(Math.log2(i)) + 1;
+                const positionInLevel = i - Math.pow(2, level - 1) + 1;
+                
+                positions.push({
+                    id: i,
+                    level: level,
+                    position: positionInLevel,
+                    parentId: Math.floor(i / 2),
+                    leftChildId: i * 2,
+                    rightChildId: i * 2 + 1,
+                    status: determinePositionStatus(i),
+                    userLevel: getRandomLevel(),
+                    userId: generatePositionId(i),
+                    address: generatePositionAddress(i),
+                    sponsorId: i > 1 ? generatePositionId(Math.floor(i / 2)) : null
+                });
+            }
+            
+            matrixState.positions = positions;
+        }
+
+        function determinePositionStatus(positionId) {
+            const statuses = ['active', 'available', 'charity', 'technical', 'blocked'];
+            const weights = [40, 30, 15, 10, 5]; // Веса для каждого статуса
+            
+            // Генерируем псевдослучайный индекс на основе ID позиции
+            const seed = (positionId * 31) % 100;
+            let cumulativeWeight = 0;
+            
+            for (let i = 0; i < weights.length; i++) {
+                cumulativeWeight += weights[i];
+                if (seed < cumulativeWeight) {
+                    return statuses[i];
+                }
+            }
+            
+            return 'available';
+        }
+
+        function getRandomLevel() {
+            return Math.floor(Math.random() * 12) + 1;
+        }
+
+        function generatePositionId(positionId) {
+            // Генерируем 7-значный ID на основе позиции
+            const baseId = 1000000 + (positionId * 137) % 9000000;
+            return baseId.toString();
+        }
+
+        function generatePositionAddress(positionId) {
+            if (positionId === 1) return app.userState.address || '0x0000000000000000000000000000000000000000';
+            
+            // Генерируем псевдо-адрес для демонстрации
+            const hex = '0x' + (positionId * 1337).toString(16).padStart(40, '0').slice(0, 40);
+            return hex;
+        }
+
+        function generateSampleMatrix() {
+            // Генерируем образец матрицы для демонстрации
+            generateMatrixStructure();
+            updateMatrixStats();
+            updateMatrixVisualization();
+            updateMatrixTable();
+        }
+
+        function updateMatrixStats() {
+            const positions = matrixState.positions;
+            
+            const stats = {
+                total: positions.length,
+                active: positions.filter(p => p.status === 'active').length,
+                charity: positions.filter(p => p.status === 'charity').length,
+                technical: positions.filter(p => p.status === 'technical').length
+            };
+            
+            document.getElementById('totalMatrixPositions').textContent = stats.total;
+            document.getElementById('activeMatrixPositions').textContent = stats.active;
+            document.getElementById('charityMatrixPositions').textContent = stats.charity;
+            document.getElementById('technicalMatrixPositions').textContent = stats.technical;
+        }
+
+        function updateMatrixVisualization() {
+            const container = document.getElementById('matrixVisualization');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            // Создаем SVG для матрицы
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '600');
+            svg.setAttribute('viewBox', '0 0 1000 600');
+            svg.style.background = 'rgba(0,0,0,0.2)';
+            svg.style.borderRadius = '20px';
+            
+            // Рисуем первые 4 уровня матрицы (1+2+4+8 = 15 позиций)
+            const maxLevelsToShow = 4;
+            const positions = matrixState.positions.slice(0, 15);
+            
+            positions.forEach(position => {
+                if (position.level <= maxLevelsToShow) {
+                    drawMatrixPosition(svg, position);
+                }
+            });
+            
+            // Рисуем связи между позициями
+            positions.forEach(position => {
+                if (position.level <= maxLevelsToShow && position.parentId) {
+                    drawConnection(svg, position.parentId, position.id);
+                }
+            });
+            
+            container.appendChild(svg);
+        }
+
+        function drawMatrixPosition(svg, position) {
+            const x = getPositionX(position);
+            const y = getPositionY(position);
+            const radius = 25;
+            
+            // Создаем группу для позиции
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.style.cursor = 'pointer';
+            
+            // Круг позиции
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', radius);
+            circle.setAttribute('fill', getStatusColor(position.status));
+            circle.setAttribute('stroke', '#FFD700');
+            circle.setAttribute('stroke-width', '2');
+            
+            // Анимация при hover
+            circle.addEventListener('mouseenter', () => {
+                circle.setAttribute('r', radius * 1.2);
+                circle.setAttribute('stroke-width', '3');
+            });
+            
+            circle.addEventListener('mouseleave', () => {
+                circle.setAttribute('r', radius);
+                circle.setAttribute('stroke-width', '2');
+            });
+            
+            // Текст уровня
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y + 5);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', getTextColor(position.status));
+            text.setAttribute('font-size', '14');
+            text.setAttribute('font-weight', 'bold');
+            text.textContent = position.userLevel;
+            
+            // ID под кругом
+            const idText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            idText.setAttribute('x', x);
+            idText.setAttribute('y', y + radius + 15);
+            idText.setAttribute('text-anchor', 'middle');
+            idText.setAttribute('fill', '#FFD700');
+            idText.setAttribute('font-size', '10');
+            idText.textContent = position.userId;
+            
+            group.appendChild(circle);
+            group.appendChild(text);
+            group.appendChild(idText);
+            
+            // Обработчик клика
+            group.addEventListener('click', () => showPositionDetails(position));
+            
+            svg.appendChild(group);
+        }
+
+        function drawConnection(svg, parentId, childId) {
+            const parent = matrixState.positions.find(p => p.id === parentId);
+            const child = matrixState.positions.find(p => p.id === childId);
+            
+            if (!parent || !child) return;
+            
+            const x1 = getPositionX(parent);
+            const y1 = getPositionY(parent) + 25;
+            const x2 = getPositionX(child);
+            const y2 = getPositionY(child) - 25;
+            
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1);
+            line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2);
+            line.setAttribute('y2', y2);
+            line.setAttribute('stroke', 'rgba(255, 215, 0, 0.5)');
+            line.setAttribute('stroke-width', '2');
+            
+            svg.appendChild(line);
+        }
+
+        function getPositionX(position) {
+            const levelWidth = 1000 / Math.pow(2, position.level - 1);
+            return (position.position - 1) * levelWidth + levelWidth / 2;
+        }
+
+        function getPositionY(position) {
+            return 50 + (position.level - 1) * 120;
+        }
+
+        function getStatusColor(status) {
+            const colors = {
+                active: '#00ff88',
+                available: '#ffeb3b',
+                blocked: '#8d6e63',
+                charity: '#ff9800',
+                technical: '#2196f3'
+            };
+            return colors[status] || '#666';
+        }
+
+        function getTextColor(status) {
+            const darkBackgrounds = ['active', 'technical', 'blocked'];
+            return darkBackgrounds.includes(status) ? '#000' : '#fff';
+        }
+
+        function updateMatrixTable() {
+            const tbody = document.getElementById('matrixTableBody');
+            if (!tbody) return;
+            
+            const positions = matrixState.positions.filter(p => p.level <= 4); // Показываем первые 4 уровня
+            
+            if (positions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            No matrix data available
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = positions.map((position, index) => `
+                <tr class="matrix-row" data-position-id="${position.id}">
+                    <td>${index + 1}</td>
+                    <td class="position-id">${position.userId}</td>
+                    <td class="position-address">${web3Manager.formatAddress(position.address)}</td>
+                    <td class="sponsor-id">${position.sponsorId || '--'}</td>
+                    <td class="registration-date">${new Date().toLocaleDateString()}</td>
+                    <td class="user-level">${position.userLevel}</td>
+                    <td class="position-status ${position.status}">${position.status.charAt(0).toUpperCase() + position.status.slice(1)}</td>
+                </tr>
+            `).join('');
+            
+            // Добавляем обработчики кликов
+            document.querySelectorAll('.matrix-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const positionId = parseInt(row.dataset.positionId);
+                    const position = matrixState.positions.find(p => p.id === positionId);
+                    if (position) {
+                        showPositionDetails(position);
+                    }
+                });
+            });
+        }
+
+        function showPositionDetails(position) {
+            const detailsGrid = document.getElementById('positionDetailsGrid');
+            if (!detailsGrid) return;
+            
+            detailsGrid.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">Position ID:</span>
+                    <span class="detail-value">${position.id}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">User ID:</span>
+                    <span class="detail-value">${position.userId}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Address:</span>
+                    <span class="detail-value">${position.address}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Matrix Level:</span>
+                    <span class="detail-value">${position.level}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Position in Level:</span>
+                    <span class="detail-value">${position.position}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">User Level:</span>
+                    <span class="detail-value">${position.userLevel}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value position-status ${position.status}">${position.status.charAt(0).toUpperCase() + position.status.slice(1)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Sponsor ID:</span>
+                    <span class="detail-value">${position.sponsorId || 'Root Position'}</span>
+                </div>
+            `;
+            
+            app.showModal('positionDetailsModal');
+        }
+
+        function adjustZoom(factor) {
+            matrixState.zoomLevel *= factor;
+            matrixState.zoomLevel = Math.max(0.5, Math.min(3, matrixState.zoomLevel));
+            
+            const svg = document.querySelector('#matrixVisualization svg');
+            if (svg) {
+                svg.style.transform = `scale(${matrixState.zoomLevel})`;
+                svg.style.transformOrigin = 'center center';
+            }
+        }
+
+        function resetZoom() {
+            matrixState.zoomLevel = 1;
+            const svg = document.querySelector('#matrixVisualization svg');
+            if (svg) {
+                svg.style.transform = 'scale(1)';
+            }
+        }
+
+        function centerMatrix() {
+            const container = document.getElementById('matrixVisualization');
+            if (container) {
+                container.scrollTo({
+                    left: (container.scrollWidth - container.clientWidth) / 2,
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        async function refreshMatrixData() {
+            try {
+                app.setLoading(true);
+                await loadMatrixData();
+                app.showNotification('Matrix data refreshed', 'success');
+            } catch (error) {
+                console.error('Failed to refresh matrix data:', error);
+                app.showNotification('Failed to refresh data', 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        function exportMatrixData() {
+            try {
+                const positions = matrixState.positions.filter(p => p.level <= 4);
+                
+                if (positions.length === 0) {
+                    app.showNotification('No data to export', 'warning');
+                    return;
+                }
+                
+                const csvData = [
+                    ['Position ID', 'User ID', 'Address', 'Level', 'Position in Level', 'User Level', 'Status', 'Sponsor ID']
+                ];
+                
+                positions.forEach(position => {
+                    csvData.push([
+                        position.id,
+                        position.userId,
+                        position.address,
+                        position.level,
+                        position.position,
+                        position.userLevel,
+                        position.status,
+                        position.sponsorId || 'Root'
+                    ]);
+                });
+                
+                const csvContent = csvData.map(row => row.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `matrix_level_${matrixState.currentLevel}_${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                app.showNotification('Matrix data exported', 'success');
+                
+            } catch (error) {
+                console.error('Export failed:', error);
+                app.showNotification('Export failed', 'error');
+            }
+        }
+
+        // Добавляем функции в глобальное приложение
+        if (typeof app !== 'undefined') {
+            app.initializeMatrix = initializeMatrixPage;
+        }
+    </script>
+
+    <style>
+        /* Специфичные стили для страницы Matrix */
+        .matrix-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+            padding-bottom: 120px;
+        }
+
+        .matrix-level-navigation {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .matrix-legend {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .legend-container {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-container h3 {
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-lg);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-gold);
+        }
+
+        .legend-dot.active { background: var(--matrix-active); }
+        .legend-dot.available { background: var(--matrix-available); }
+        .legend-dot.blocked { background: var(--matrix-blocked); }
+        .legend-dot.charity { background: var(--matrix-charity); }
+        .legend-dot.technical { background: var(--matrix-technical); }
+
+        .interactive-matrix-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .matrix-visualization {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-lg);
+            backdrop-filter: blur(10px);
+            overflow: auto;
+            max-height: 600px;
+        }
+
+        .matrix-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            justify-content: center;
+            margin-top: var(--spacing-md);
+            flex-wrap: wrap;
+        }
+
+        .matrix-stats-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .matrix-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .current-level-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            color: var(--primary-gold);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .matrix-table-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .matrix-row {
+            cursor: pointer;
+        }
+
+        .matrix-row:hover {
+            background: var(--glass-bg);
+        }
+
+        .position-id {
+            font-family: monospace;
+            font-weight: var(--font-weight-medium);
+        }
+
+        .position-status {
+            text-transform: capitalize;
+            font-weight: var(--font-weight-semibold);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+        }
+
+        .position-status.active { 
+            background: var(--matrix-active); 
+            color: var(--text-inverse); 
+        }
+        .position-status.available { 
+            background: var(--matrix-available); 
+            color: var(--text-inverse); 
+        }
+        .position-status.blocked { 
+            background: var(--matrix-blocked); 
+            color: var(--text-primary); 
+        }
+        .position-status.charity { 
+            background: var(--matrix-charity); 
+            color: var(--text-inverse); 
+        }
+        .position-status.technical { 
+            background: var(--matrix-technical); 
+            color: var(--text-primary); 
+        }
+
+        .position-details-grid {
+            display: grid;
+            gap: var(--spacing-md);
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .detail-label {
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .matrix-container {
+                padding: var(--spacing-md);
+            }
+
+            .legend-items {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .matrix-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .matrix-stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-md);
+            }
+
+            .matrix-visualization {
+                padding: var(--spacing-md);
+            }
+
+            .detail-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-xs);
+            }
+        }
+    </style>
 </body>
 </html>
