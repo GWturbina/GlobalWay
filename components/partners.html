@@ -3,247 +3,1107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalWay - Partners</title>
+    <meta name="description" content="GlobalWay Partners - Manage your team structure and partner program">
+    <title>Partners - GlobalWay</title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/responsive.css">
-    <link rel="stylesheet" href="../css/animations.css">
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    
+    <!-- Web3 и GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
-<body>
-    <!-- Навигация (копируется из dashboard.html) -->
-    <nav id="mainNav" class="top-menu">
-        <!-- Тот же код навигации -->
+<body class="page-partners">
+    <!-- Фон -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth background" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
+    <!-- Навигация -->
+    <nav class="navigation">
+        <a href="/" class="nav-item" data-nav="index">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text" data-i18n="common.home">Home</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text" data-i18n="navigation.dashboard">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item active" data-nav="partners">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text" data-i18n="navigation.partners">Partners</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="matrix">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-text" data-i18n="navigation.matrix">Matrix</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="tokens">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-text" data-i18n="navigation.tokens">Tokens</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="projects">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text" data-i18n="navigation.projects">Projects</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text" data-i18n="navigation.settings">Settings</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="admin" id="adminNavItem" style="display: none;">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text" data-i18n="navigation.admin">Admin</span>
+        </a>
     </nav>
 
-    <div class="dashboard-container">
+    <!-- Переключатель языков -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="uk">UK</button>
+    </div>
+
+    <!-- Основной контент -->
+    <main class="partners-container">
+        <!-- Заголовок -->
+        <header class="page-header">
+            <h1 class="page-title" data-i18n="partners.title">Partners Program</h1>
+            <p class="page-description">Manage your team structure and track partner earnings across 12 levels</p>
+        </header>
+
         <!-- Статистика команды -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Team Statistics</h2>
-            <div class="user-info">
-                <div class="info-item">
-                    <div class="info-label">Personal Partners:</div>
-                    <div class="info-value" id="personalPartners">0</div>
+        <section class="team-stats-section">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="personalPartners">0</div>
+                    <div class="stat-label" data-i18n="partners.personalPartners">Personal Partners</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Active Partners:</div>
-                    <div class="info-value" id="activePartners">0</div>
+                <div class="stat-item">
+                    <div class="stat-value" id="activePartners">0</div>
+                    <div class="stat-label" data-i18n="partners.activePartners">Active Partners</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Total Team:</div>
-                    <div class="info-value" id="totalTeam">0</div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalTeam">0</div>
+                    <div class="stat-label" data-i18n="partners.totalTeam">Total Team</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="currentQualification">Bronze</div>
+                    <div class="stat-label" data-i18n="partners.qualification">Qualification</div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Квалификации -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Qualifications</h2>
-            <div class="qualifications-container">
-                <div class="qualification-card" data-status="inactive">
-                    <div class="qualification-icon">🥉</div>
-                    <div class="qualification-name">Bronze</div>
-                    <div class="qualification-status">Not achieved</div>
-                </div>
-                <div class="qualification-card" data-status="inactive">
-                    <div class="qualification-icon">🥈</div>
-                    <div class="qualification-name">Silver</div>
-                    <div class="qualification-status">Not achieved</div>
-                </div>
-                <div class="qualification-card" data-status="inactive">
-                    <div class="qualification-icon">🥇</div>
-                    <div class="qualification-name">Gold</div>
-                    <div class="qualification-status">Not achieved</div>
-                </div>
-                <div class="qualification-card" data-status="inactive">
-                    <div class="qualification-icon">💎</div>
-                    <div class="qualification-name">Platinum</div>
-                    <div class="qualification-status">Not achieved</div>
-                </div>
+        <!-- Навигация по уровням -->
+        <section class="level-navigation-section">
+            <div class="level-tabs horizontal-scroll" id="levelTabs">
+                <!-- Генерируется через JavaScript -->
             </div>
-        </div>
-
-        <!-- Уровни партнеров -->
-        <div class="dashboard-section">
-            <h2 class="section-title">🔍 Team Structure</h2>
-            
-            <!-- Селектор уровней с горизонтальным скроллом -->
-            <div class="level-selector-wrapper">
-                <div class="level-selector" id="partnerLevelSelector">
-                    <!-- Генерируется через JS -->
-                </div>
-            </div>
-
-            <!-- Таблица партнеров -->
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>№</th>
-                            <th>ID</th>
-                            <th>Address</th>
-                            <th>Sponsor ID</th>
-                            <th>Registration Date</th>
-                            <th>Level</th>
-                            <th>Qualification</th>
-                        </tr>
-                    </thead>
-                    <tbody id="partnersTableBody">
-                        <tr>
-                            <td colspan="7" class="text-center">Select level to view partners</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </section>
 
         <!-- Информация о текущем уровне -->
-        <div class="dashboard-section">
-            <h2 class="section-title">Current Level Information</h2>
-            <div class="level-info-grid">
-                <div class="info-item">
-                    <div class="info-label">Level:</div>
-                    <div class="info-value" id="currentLevel">-</div>
+        <section class="current-level-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span data-i18n="partners.levelInfo" data-i18n-params='{"level": "1"}'>Level 1 Information</span>
+                        <span class="level-indicator" id="currentLevelIndicator">1</span>
+                    </h2>
+                    <div class="level-stats">
+                        <span class="level-price" id="currentLevelPrice">0.0015 BNB</span>
+                        <span class="level-status" id="currentLevelStatus">Available</span>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Level Cost:</div>
-                    <div class="info-value" id="levelCost">-</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Total Income:</div>
-                    <div class="info-value" id="levelIncome">0 BNB</div>
+                <div class="card-content">
+                    <div class="level-summary">
+                        <div class="summary-item">
+                            <span class="label" data-i18n="partners.partnersCount">Partners Count:</span>
+                            <span class="value" id="currentLevelPartnersCount">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label" data-i18n="partners.earnings">Earnings:</span>
+                            <span class="value" id="currentLevelEarnings">0.0000 BNB</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="income-breakdown">
-                <h3>Income Breakdown:</h3>
-                <div class="income-item">
-                    <span>Direct Bonus:</span>
-                    <span id="directBonus">0 BNB</span>
+        </section>
+
+        <!-- Таблица партнеров -->
+        <section class="partners-table-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="partners.structure">Team Structure</h2>
+                    <div class="table-controls">
+                        <button class="btn-secondary" id="refreshPartnersBtn">
+                            🔄 <span data-i18n="common.refresh">Refresh</span>
+                        </button>
+                        <button class="btn-secondary" id="exportPartnersBtn">
+                            📊 <span data-i18n="common.download">Export</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="income-item">
-                    <span>Partner Bonus:</span>
-                    <span id="partnerBonus">0 BNB</span>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="table" id="partnersTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th data-i18n="user.id">ID</th>
+                                    <th data-i18n="wallet.address">Address</th>
+                                    <th data-i18n="user.sponsor">Sponsor ID</th>
+                                    <th data-i18n="transactions.date">Date</th>
+                                    <th data-i18n="levels.level">Level</th>
+                                    <th data-i18n="partners.qualification">Qualification</th>
+                                </tr>
+                            </thead>
+                            <tbody id="partnersTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center">
+                                        <span data-i18n="common.loading">Loading...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Пагинация -->
+                    <div class="table-pagination" id="partnersPagination">
+                        <button class="btn-secondary" id="prevPageBtn" disabled>
+                            <span data-i18n="common.previous">Previous</span>
+                        </button>
+                        <span class="page-info">
+                            <span data-i18n="common.page">Page</span> 
+                            <span id="currentPage">1</span> 
+                            <span data-i18n="common.of">of</span> 
+                            <span id="totalPages">1</span>
+                        </span>
+                        <button class="btn-secondary" id="nextPageBtn" disabled>
+                            <span data-i18n="common.next">Next</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="income-item">
-                    <span>Matrix Bonus:</span>
-                    <span id="matrixBonus">0 BNB</span>
+            </div>
+        </section>
+
+        <!-- Доходы -->
+        <section class="earnings-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="earnings.breakdown">Earnings Breakdown</h2>
                 </div>
-                <div class="income-item">
-                    <span>Leadership Bonus:</span>
-                    <span id="leadershipBonus">0 BNB</span>
+                <div class="card-content">
+                    <div class="earnings-grid">
+                        <div class="earning-item">
+                            <div class="earning-label" data-i18n="partners.directBonus">Direct Bonus</div>
+                            <div class="earning-value" id="directBonus">0.0000 BNB</div>
+                        </div>
+                        <div class="earning-item">
+                            <div class="earning-label" data-i18n="partners.partnerBonus">Partner Bonus</div>
+                            <div class="earning-value" id="partnerBonus">0.0000 BNB</div>
+                        </div>
+                        <div class="earning-item">
+                            <div class="earning-label" data-i18n="partners.matrixBonus">Matrix Bonus</div>
+                            <div class="earning-value" id="matrixBonus">0.0000 BNB</div>
+                        </div>
+                        <div class="earning-item">
+                            <div class="earning-label" data-i18n="partners.leadershipBonus">Leadership Bonus</div>
+                            <div class="earning-value" id="leadershipBonus">0.0000 BNB</div>
+                        </div>
+                    </div>
+                    <div class="total-earnings">
+                        <div class="total-label" data-i18n="earnings.total">Total Earnings:</div>
+                        <div class="total-value" id="totalPartnerEarnings">0.0000 BNB</div>
+                    </div>
                 </div>
-                <div class="income-total">
-                    <span>Total Earned:</span>
-                    <span id="totalEarnedPartners">0 BNB</span>
+            </div>
+        </section>
+
+        <!-- Квалификация -->
+        <section class="qualification-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="partners.qualification">Qualification System</h2>
+                </div>
+                <div class="card-content">
+                    <div class="qualification-grid">
+                        <div class="qualification-item bronze">
+                            <div class="qualification-icon">🥉</div>
+                            <div class="qualification-name" data-i18n="qualification.bronze">Bronze</div>
+                            <div class="qualification-requirements">
+                                <div data-i18n="qualification.minPartners">Min Partners: 2</div>
+                                <div data-i18n="qualification.minVolume">Min Volume: 0.1 BNB</div>
+                            </div>
+                            <div class="qualification-status" id="bronzeStatus">
+                                <span data-i18n="qualification.achieved">Achieved</span>
+                            </div>
+                        </div>
+                        
+                        <div class="qualification-item silver">
+                            <div class="qualification-icon">🥈</div>
+                            <div class="qualification-name" data-i18n="qualification.silver">Silver</div>
+                            <div class="qualification-requirements">
+                                <div data-i18n="qualification.minPartners">Min Partners: 5</div>
+                                <div data-i18n="qualification.minVolume">Min Volume: 0.5 BNB</div>
+                            </div>
+                            <div class="qualification-status" id="silverStatus">
+                                <span data-i18n="qualification.pending">Pending</span>
+                            </div>
+                        </div>
+                        
+                        <div class="qualification-item gold">
+                            <div class="qualification-icon">🥇</div>
+                            <div class="qualification-name" data-i18n="qualification.gold">Gold</div>
+                            <div class="qualification-requirements">
+                                <div data-i18n="qualification.minPartners">Min Partners: 10</div>
+                                <div data-i18n="qualification.minVolume">Min Volume: 2.0 BNB</div>
+                            </div>
+                            <div class="qualification-status" id="goldStatus">
+                                <span data-i18n="qualification.pending">Pending</span>
+                            </div>
+                        </div>
+                        
+                        <div class="qualification-item platinum">
+                            <div class="qualification-icon">💎</div>
+                            <div class="qualification-name" data-i18n="qualification.platinum">Platinum</div>
+                            <div class="qualification-requirements">
+                                <div data-i18n="qualification.minPartners">Min Partners: 20</div>
+                                <div data-i18n="qualification.minVolume">Min Volume: 10.0 BNB</div>
+                            </div>
+                            <div class="qualification-status" id="platinumStatus">
+                                <span data-i18n="qualification.pending">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Модальное окно деталей партнера -->
+    <div class="modal-overlay" id="partnerDetailsModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closePartnerDetailsModal">&times;</button>
+            <h2 class="modal-title">Partner Details</h2>
+            <div class="modal-text">
+                <div class="partner-details-grid" id="partnerDetailsGrid">
+                    <!-- Заполняется через JavaScript -->
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="closePartnerDetailsBtn" data-i18n="common.close">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Загрузочный оверлей -->
+    <div class="modal-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText" data-i18n="common.loading">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Область уведомлений -->
+    <div class="notifications-container" id="notificationsContainer"></div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/web3-manager.js"></script>
+    <script src="/js/contract-manager.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Состояние страницы Partners
+        let partnersPageState = {
+            currentLevel: 1,
+            currentPage: 1,
+            partnersPerPage: 10,
+            partnersData: [],
+            totalPartners: 0
+        };
+
+        // Инициализация страницы Partners
+        document.addEventListener('DOMContentLoaded', async () => {
+            await i18n.loadTranslations();
+            await initializePartnersPage();
+        });
+
+        async function initializePartnersPage() {
+            console.log('👥 Initializing Partners page...');
+            
+            try {
+                setupPartnersEventListeners();
+                createLevelTabs();
+                
+                if (app.userState.isConnected) {
+                    await loadPartnersData();
+                }
+                
+                console.log('✅ Partners page initialized');
+                
+            } catch (error) {
+                console.error('❌ Partners page initialization failed:', error);
+                app.showNotification('Failed to initialize partners page', 'error');
+            }
+        }
+
+        function setupPartnersEventListeners() {
+            // Обновление данных
+            document.getElementById('refreshPartnersBtn')?.addEventListener('click', refreshPartnersData);
+            
+            // Экспорт данных
+            document.getElementById('exportPartnersBtn')?.addEventListener('click', exportPartnersData);
+            
+            // Пагинация
+            document.getElementById('prevPageBtn')?.addEventListener('click', () => {
+                if (partnersPageState.currentPage > 1) {
+                    partnersPageState.currentPage--;
+                    updatePartnersTable();
+                }
+            });
+            
+            document.getElementById('nextPageBtn')?.addEventListener('click', () => {
+                const totalPages = Math.ceil(partnersPageState.totalPartners / partnersPageState.partnersPerPage);
+                if (partnersPageState.currentPage < totalPages) {
+                    partnersPageState.currentPage++;
+                    updatePartnersTable();
+                }
+            });
+
+            // Модальные окна
+            document.getElementById('closePartnerDetailsModal')?.addEventListener('click', () => {
+                app.hideModal('partnerDetailsModal');
+            });
+            
+            document.getElementById('closePartnerDetailsBtn')?.addEventListener('click', () => {
+                app.hideModal('partnerDetailsModal');
+            });
+        }
+
+        function createLevelTabs() {
+            const container = document.getElementById('levelTabs');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            for (let level = 1; level <= 12; level++) {
+                const tab = document.createElement('button');
+                tab.className = `level-tab ${level === 1 ? 'active' : ''}`;
+                tab.dataset.level = level;
+                tab.innerHTML = `
+                    <div class="tab-level">${level}</div>
+                    <div class="tab-price">${contractManager.levelPrices[level]} BNB</div>
+                    <div class="tab-count" id="levelCount${level}">0</div>
+                `;
+                
+                tab.addEventListener('click', () => switchLevel(level));
+                container.appendChild(tab);
+            }
+        }
+
+        function switchLevel(level) {
+            partnersPageState.currentLevel = level;
+            partnersPageState.currentPage = 1;
+            
+            // Обновляем активную вкладку
+            document.querySelectorAll('.level-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (parseInt(tab.dataset.level) === level) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Обновляем информацию о текущем уровне
+            updateCurrentLevelInfo();
+            
+            // Обновляем таблицу партнеров
+            updatePartnersTable();
+        }
+
+        async function loadPartnersData() {
+            if (!app.userState.isConnected) return;
+            
+            try {
+                app.setLoading(true);
+                
+                // Загружаем статистику пользователя
+                const userStats = await contractManager.getUserStats(app.userState.address);
+                const earningsBreakdown = await contractManager.getEarningsBreakdown(app.userState.address);
+                
+                // Обновляем статистику команды
+                updateTeamStats(userStats);
+                
+                // Обновляем доходы
+                updateEarningsDisplay(earningsBreakdown);
+                
+                // Загружаем партнеров для каждого уровня
+                await loadPartnersForAllLevels(userStats.referrals);
+                
+            } catch (error) {
+                console.error('Failed to load partners data:', error);
+                app.showNotification('Failed to load partners data', 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        function updateTeamStats(userStats) {
+            const personalPartners = userStats.personalInvites || 0;
+            const activePartners = userStats.referrals?.filter(ref => isPartnerActive(ref)).length || 0;
+            const totalTeam = userStats.referrals?.length || 0;
+            
+            document.getElementById('personalPartners').textContent = personalPartners;
+            document.getElementById('activePartners').textContent = activePartners;
+            document.getElementById('totalTeam').textContent = totalTeam;
+            
+            // Определяем квалификацию
+            const qualification = determineQualification(personalPartners, userStats.totalEarned);
+            document.getElementById('currentQualification').textContent = qualification;
+            updateQualificationStatus(qualification);
+        }
+
+        function updateEarningsDisplay(earnings) {
+            document.getElementById('directBonus').textContent = 
+                `${web3Manager.fromWei(earnings.personalBonus || 0)} BNB`;
+            document.getElementById('partnerBonus').textContent = 
+                `${web3Manager.fromWei(earnings.referralBonus || 0)} BNB`;
+            document.getElementById('matrixBonus').textContent = 
+                `${web3Manager.fromWei(earnings.matrixBonus || 0)} BNB`;
+            document.getElementById('leadershipBonus').textContent = 
+                `${web3Manager.fromWei(earnings.leaderBonus || 0)} BNB`;
+            document.getElementById('totalPartnerEarnings').textContent = 
+                `${web3Manager.fromWei(earnings.totalEarned || 0)} BNB`;
+        }
+
+        async function loadPartnersForAllLevels(referrals) {
+            if (!referrals || referrals.length === 0) {
+                partnersPageState.partnersData = [];
+                updatePartnersTable();
+                return;
+            }
+            
+            const partnersData = [];
+            
+            for (const referralAddress of referrals) {
+                try {
+                    const referralData = await contractManager.getUserStats(referralAddress);
+                    const userData = await contractManager.getUserData(referralAddress);
+                    
+                    partnersData.push({
+                        address: referralAddress,
+                        id: generateDisplayId(referralAddress),
+                        sponsorId: generateDisplayId(userData.sponsor),
+                        registrationTime: userData.registrationTime,
+                        activeLevels: referralData.activeLevels,
+                        personalInvites: referralData.personalInvites,
+                        totalEarned: referralData.totalEarned,
+                        qualification: determineQualification(referralData.personalInvites, referralData.totalEarned)
+                    });
+                } catch (error) {
+                    console.warn('Failed to load data for partner:', referralAddress);
+                }
+            }
+            
+            partnersPageState.partnersData = partnersData;
+            updateLevelCounts();
+            updatePartnersTable();
+        }
+
+        function updateLevelCounts() {
+            for (let level = 1; level <= 12; level++) {
+                const count = partnersPageState.partnersData.filter(partner => 
+                    partner.activeLevels.includes(level)
+                ).length;
+                
+                const countElement = document.getElementById(`levelCount${level}`);
+                if (countElement) {
+                    countElement.textContent = count;
+                }
+            }
+        }
+
+        function updateCurrentLevelInfo() {
+            const level = partnersPageState.currentLevel;
+            const price = contractManager.levelPrices[level];
+            
+            document.getElementById('currentLevelIndicator').textContent = level;
+            document.getElementById('currentLevelPrice').textContent = `${price} BNB`;
+            
+            // Подсчитываем партнеров на текущем уровне
+            const levelPartners = partnersPageState.partnersData.filter(partner => 
+                partner.activeLevels.includes(level)
+            );
+            
+            document.getElementById('currentLevelPartnersCount').textContent = levelPartners.length;
+            
+            // Подсчитываем доходы с уровня (примерно)
+            const levelEarnings = levelPartners.length * parseFloat(price) * 0.1; // 10% от цены уровня
+            document.getElementById('currentLevelEarnings').textContent = `${levelEarnings.toFixed(4)} BNB`;
+        }
+
+        function updatePartnersTable() {
+            const level = partnersPageState.currentLevel;
+            const page = partnersPageState.currentPage;
+            const perPage = partnersPageState.partnersPerPage;
+            
+            // Фильтруем партнеров по текущему уровню
+            const levelPartners = partnersPageState.partnersData.filter(partner => 
+                partner.activeLevels.includes(level)
+            );
+            
+            partnersPageState.totalPartners = levelPartners.length;
+            
+            // Пагинация
+            const startIndex = (page - 1) * perPage;
+            const endIndex = startIndex + perPage;
+            const pagePartners = levelPartners.slice(startIndex, endIndex);
+            
+            // Обновляем таблицу
+            const tbody = document.getElementById('partnersTableBody');
+            if (!tbody) return;
+            
+            if (pagePartners.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            No partners found for level ${level}
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pagePartners.map((partner, index) => `
+                    <tr class="partner-row" data-address="${partner.address}">
+                        <td>${startIndex + index + 1}</td>
+                        <td class="partner-id">${partner.id}</td>
+                        <td class="partner-address">${web3Manager.formatAddress(partner.address)}</td>
+                        <td class="sponsor-id">${partner.sponsorId}</td>
+                        <td class="registration-date">${formatDate(partner.registrationTime)}</td>
+                        <td class="active-level">${partner.activeLevels.length > 0 ? Math.max(...partner.activeLevels) : 0}</td>
+                        <td class="qualification ${partner.qualification.toLowerCase()}">${partner.qualification}</td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Добавляем обработчики кликов на строки
+            document.querySelectorAll('.partner-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const address = row.dataset.address;
+                    showPartnerDetails(address);
+                });
+            });
+            
+            // Обновляем пагинацию
+            updatePagination();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(partnersPageState.totalPartners / partnersPageState.partnersPerPage);
+            const currentPage = partnersPageState.currentPage;
+            
+            document.getElementById('currentPage').textContent = currentPage;
+            document.getElementById('totalPages').textContent = totalPages;
+            
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+            
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        function showPartnerDetails(address) {
+            const partner = partnersPageState.partnersData.find(p => p.address === address);
+            if (!partner) return;
+            
+            const detailsGrid = document.getElementById('partnerDetailsGrid');
+            if (!detailsGrid) return;
+            
+            detailsGrid.innerHTML = `
+                <div class="detail-item">
+                    <span class="detail-label">ID:</span>
+                    <span class="detail-value">${partner.id}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Address:</span>
+                    <span class="detail-value">${partner.address}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Sponsor ID:</span>
+                    <span class="detail-value">${partner.sponsorId}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Registration Date:</span>
+                    <span class="detail-value">${formatDate(partner.registrationTime)}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Active Levels:</span>
+                    <span class="detail-value">${partner.activeLevels.join(', ')}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Personal Invites:</span>
+                    <span class="detail-value">${partner.personalInvites}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Total Earned:</span>
+                    <span class="detail-value">${web3Manager.fromWei(partner.totalEarned)} BNB</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Qualification:</span>
+                    <span class="detail-value qualification ${partner.qualification.toLowerCase()}">${partner.qualification}</span>
+                </div>
+            `;
+            
+            app.showModal('partnerDetailsModal');
+        }
+
+        function determineQualification(personalInvites, totalEarned) {
+            const earnedBNB = parseFloat(web3Manager.fromWei(totalEarned || 0));
+            
+            if (personalInvites >= 20 && earnedBNB >= 10.0) return 'Platinum';
+            if (personalInvites >= 10 && earnedBNB >= 2.0) return 'Gold';
+            if (personalInvites >= 5 && earnedBNB >= 0.5) return 'Silver';
+            if (personalInvites >= 2 && earnedBNB >= 0.1) return 'Bronze';
+            return 'None';
+        }
+
+        function updateQualificationStatus(currentQualification) {
+            const qualifications = ['bronze', 'silver', 'gold', 'platinum'];
+            const currentIndex = qualifications.indexOf(currentQualification.toLowerCase());
+            
+            qualifications.forEach((qual, index) => {
+                const statusElement = document.getElementById(`${qual}Status`);
+                if (statusElement) {
+                    if (index <= currentIndex) {
+                        statusElement.innerHTML = '<span data-i18n="qualification.achieved">Achieved</span>';
+                        statusElement.className = 'qualification-status achieved';
+                    } else {
+                        statusElement.innerHTML = '<span data-i18n="qualification.pending">Pending</span>';
+                        statusElement.className = 'qualification-status pending';
+                    }
+                }
+            });
+        }
+
+        function isPartnerActive(partnerAddress) {
+            const partner = partnersPageState.partnersData.find(p => p.address === partnerAddress);
+            return partner && partner.activeLevels.length > 0;
+        }
+
+        function generateDisplayId(address) {
+            if (!address) return '-------';
+            
+            // Проверяем сохраненный ID
+            const savedId = localStorage.getItem(`user_id_${address}`);
+            if (savedId) return savedId;
+            
+            // Генерируем новый ID на основе адреса
+            const hash = address.slice(2, 9); // Берем первые 7 символов после 0x
+            const numericId = parseInt(hash, 16).toString().slice(0, 7).padStart(7, '0');
+            
+            localStorage.setItem(`user_id_${address}`, numericId);
+            return numericId;
+        }
+
+        function formatDate(timestamp) {
+            if (!timestamp) return '--';
+            
+            const date = new Date(parseInt(timestamp) * 1000);
+            return date.toLocaleDateString(i18n.getCurrentLanguage() === 'en' ? 'en-US' : 
+                                         i18n.getCurrentLanguage() === 'ru' ? 'ru-RU' : 'uk-UA');
+        }
+
+        async function refreshPartnersData() {
+            try {
+                app.setLoading(true);
+                await loadPartnersData();
+                app.showNotification('Partners data refreshed', 'success');
+            } catch (error) {
+                console.error('Failed to refresh partners data:', error);
+                app.showNotification('Failed to refresh data', 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        function exportPartnersData() {
+            try {
+                const level = partnersPageState.currentLevel;
+                const levelPartners = partnersPageState.partnersData.filter(partner => 
+                    partner.activeLevels.includes(level)
+                );
+                
+                if (levelPartners.length === 0) {
+                    app.showNotification('No data to export', 'warning');
+                    return;
+                }
+                
+                const csvData = [
+                    ['ID', 'Address', 'Sponsor ID', 'Registration Date', 'Level', 'Qualification', 'Personal Invites', 'Total Earned']
+                ];
+                
+                levelPartners.forEach(partner => {
+                    csvData.push([
+                        partner.id,
+                        partner.address,
+                        partner.sponsorId,
+                        formatDate(partner.registrationTime),
+                        Math.max(...partner.activeLevels),
+                        partner.qualification,
+                        partner.personalInvites,
+                        `${web3Manager.fromWei(partner.totalEarned)} BNB`
+                    ]);
+                });
+                
+                const csvContent = csvData.map(row => row.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `partners_level_${level}_${new Date().toISOString().slice(0, 10)}.csv`;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                app.showNotification('Partners data exported', 'success');
+                
+            } catch (error) {
+                console.error('Export failed:', error);
+                app.showNotification('Export failed', 'error');
+            }
+        }
+
+        // Добавляем функции в глобальное приложение
+        if (typeof app !== 'undefined') {
+            app.initializePartners = initializePartnersPage;
+        }
+    </script>
+
     <style>
-        /* Стили для Partners */
-        .qualifications-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
+        /* Специфичные стили для страницы Partners */
+        .partners-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+            padding-bottom: 120px; /* Место для навигации */
         }
 
-        .qualification-card {
+        .page-header {
             text-align: center;
-            padding: 20px;
-            background: rgba(0, 51, 102, 0.3);
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            border-radius: 10px;
-            transition: all 0.3s;
+            margin-bottom: var(--spacing-xxl);
         }
 
-        .qualification-card[data-status="active"] {
-            background: rgba(255, 215, 0, 0.1);
-            border-color: var(--primary-gold);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        .page-title {
+            font-size: var(--font-size-xxl);
+            color: var(--primary-gold);
+            margin-bottom: var(--spacing-md);
         }
+
+        .page-description {
+            color: var(--text-secondary);
+            font-size: var(--font-size-lg);
+        }
+
+        .team-stats-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .level-navigation-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .level-tabs {
+            display: flex;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+        }
+
+        .level-tab {
+            min-width: 80px;
+            padding: var(--spacing-sm);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-small);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all var(--transition-medium);
+            text-align: center;
+        }
+
+        .level-tab:hover {
+            border-color: var(--primary-gold);
+            transform: translateY(-2px);
+        }
+
+        .level-tab.active {
+            background: var(--gradient-gold);
+            color: var(--text-inverse);
+            border-color: var(--primary-gold);
+        }
+
+        .tab-level {
+            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-md);
+        }
+
+        .tab-price {
+            font-size: var(--font-size-xs);
+            opacity: 0.8;
+        }
+
+        .tab-count {
+            font-size: var(--font-size-sm);
+            color: var(--primary-gold);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .level-tab.active .tab-count {
+            color: var(--text-inverse);
+        }
+
+        .current-level-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .level-indicator {
+            background: var(--gradient-gold);
+            color: var(--text-inverse);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-small);
+            font-weight: var(--font-weight-bold);
+        }
+
+        .level-stats {
+            display: flex;
+            gap: var(--spacing-md);
+            align-items: center;
+        }
+
+        .level-price {
+            font-weight: var(--font-weight-semibold);
+            color: var(--primary-gold);
+        }
+
+        .level-status {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            background: var(--matrix-active);
+            color: var(--text-inverse);
+            border-radius: var(--border-radius-small);
+            font-size: var(--font-size-sm);
+        }
+
+        .level-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-item .label {
+            color: var(--text-secondary);
+        }
+
+        .summary-item .value {
+            font-weight: var(--font-weight-semibold);
+            color: var(--primary-gold);
+        }
+
+        .partners-table-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .table-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .partner-row {
+            cursor: pointer;
+        }
+
+        .partner-row:hover {
+            background: var(--glass-bg);
+        }
+
+        .partner-id,
+        .sponsor-id {
+            font-family: monospace;
+            font-weight: var(--font-weight-medium);
+        }
+
+        .qualification {
+            text-transform: capitalize;
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .qualification.bronze { color: #cd7f32; }
+        .qualification.silver { color: #c0c0c0; }
+        .qualification.gold { color: #ffd700; }
+        .qualification.platinum { color: #e5e4e2; }
+
+        .earnings-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .earnings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .earning-item {
+            text-align: center;
+        }
+
+        .earning-label {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .earning-value {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            color: var(--primary-gold);
+        }
+
+        .qualification-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .qualification-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .qualification-item {
+            padding: var(--spacing-lg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius);
+            background: var(--glass-bg);
+            text-align: center;
+            transition: all var(--transition-medium);
+        }
+
+        .qualification-item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-large);
+        }
+
+        .qualification-item.bronze { border-color: #cd7f32; }
+        .qualification-item.silver { border-color: #c0c0c0; }
+        .qualification-item.gold { border-color: #ffd700; }
+        .qualification-item.platinum { border-color: #e5e4e2; }
 
         .qualification-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
         }
 
         .qualification-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary-gold);
-            margin-bottom: 5px;
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            margin-bottom: var(--spacing-md);
         }
 
-        .level-selector-wrapper {
-            overflow-x: auto;
-            margin-bottom: 20px;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
+        .qualification-requirements {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
         }
 
-        .level-selector-wrapper::-webkit-scrollbar {
-            display: none;
+        .qualification-status.achieved {
+            color: var(--matrix-active);
+            font-weight: var(--font-weight-semibold);
         }
 
-        .level-selector {
-            display: flex;
-            gap: 10px;
-            padding: 5px;
-            min-width: max-content;
+        .qualification-status.pending {
+            color: var(--text-muted);
         }
 
-        .level-select-btn {
-            padding: 10px 20px;
-            background: rgba(0, 51, 102, 0.5);
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            color: var(--text-light);
-            border-radius: 20px;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.3s;
+        .partner-details-grid {
+            display: grid;
+            gap: var(--spacing-md);
         }
 
-        .level-select-btn:hover {
-            background: rgba(255, 215, 0, 0.1);
-            border-color: var(--primary-gold);
-        }
-
-        .level-select-btn.active {
-            background: var(--primary-gold);
-            color: var(--dark-blue);
-            font-weight: bold;
-        }
-
-        .income-breakdown {
-            margin-top: 20px;
-            padding: 20px;
-            background: rgba(0, 51, 102, 0.2);
-            border-radius: 8px;
-        }
-
-        .income-item {
+        .detail-item {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+            align-items: center;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--glass-border);
         }
 
-        .income-total {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px 0 0;
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--primary-gold);
+        .detail-label {
+            color: var(--text-secondary);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .partners-container {
+                padding: var(--spacing-md);
+            }
+
+            .level-tabs {
+                padding: var(--spacing-sm);
+            }
+
+            .level-tab {
+                min-width: 60px;
+                padding: var(--spacing-xs);
+            }
+
+            .tab-level {
+                font-size: var(--font-size-sm);
+            }
+
+            .tab-price,
+            .tab-count {
+                font-size: var(--font-size-xs);
+            }
+
+            .level-stats {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+            }
+
+            .earnings-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-md);
+            }
+
+            .qualification-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table-controls {
+                flex-direction: column;
+            }
+
+            .detail-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-xs);
+            }
         }
     </style>
-
-    <!-- JavaScript файлы -->
-    <script src="../js/web3.js"></script>
-    <script src="../js/contracts.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/partners.js"></script>
 </body>
 </html>
