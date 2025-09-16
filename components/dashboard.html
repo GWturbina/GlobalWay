@@ -3,399 +3,660 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalWay - Dashboard</title>
+    <meta name="description" content="GlobalWay Dashboard - Manage your account, levels, and earnings">
+    <title>Dashboard - GlobalWay</title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/responsive.css">
-    <link rel="stylesheet" href="../css/animations.css">
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/variables.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/responsive.css">
     
-    <!-- Web3 и контракты -->
-    <script src="https://cdn.jsdelivr.net/npm/web3@1.9.0/dist/web3.min.js"></script>
+    <!-- Web3 и GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
-<body>
+<body class="page-dashboard">
+    <!-- Фон -->
+    <div class="earth-background">
+        <img src="/assets/images/background.jpg" alt="Earth background" class="background-image">
+        <div class="stars-overlay"></div>
+    </div>
+
     <!-- Навигация -->
-    <nav id="mainNav" class="top-menu">
-        <div class="menu-container">
-            <img src="../assets/icons/logo.png" alt="GlobalWay" class="logo">
-            <div class="nav-buttons">
-                <button class="nav-btn active" data-page="dashboard">
-                    <span class="nav-text">Dashboard</span>
-                </button>
-                <button class="nav-btn" data-page="partners">
-                    <span class="nav-text">Partners</span>
-                </button>
-                <button class="nav-btn" data-page="matrix">
-                    <span class="nav-text">Matrix</span>
-                </button>
-                <button class="nav-btn" data-page="tokens">
-                    <span class="nav-text">Tokens</span>
-                </button>
-                <button class="nav-btn" data-page="projects">
-                    <span class="nav-text">Projects</span>
-                </button>
-                <button class="nav-btn" data-page="settings">
-                    <span class="nav-text">Settings</span>
-                </button>
-                <button class="nav-btn admin-only" data-page="admin" style="display:none;">
-                    <span class="nav-text">Admin</span>
-                </button>
-            </div>
-        </div>
+    <nav class="navigation">
+        <a href="/" class="nav-item" data-nav="index">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text" data-i18n="common.home">Home</span>
+        </a>
+        <a href="#" class="nav-item active" data-nav="dashboard">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text" data-i18n="navigation.dashboard">Dashboard</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="partners">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text" data-i18n="navigation.partners">Partners</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="matrix">
+            <span class="nav-icon">🔗</span>
+            <span class="nav-text" data-i18n="navigation.matrix">Matrix</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="tokens">
+            <span class="nav-icon">🪙</span>
+            <span class="nav-text" data-i18n="navigation.tokens">Tokens</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="projects">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text" data-i18n="navigation.projects">Projects</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="settings">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text" data-i18n="navigation.settings">Settings</span>
+        </a>
+        <a href="#" class="nav-item" data-nav="admin" id="adminNavItem" style="display: none;">
+            <span class="nav-icon">👑</span>
+            <span class="nav-text" data-i18n="navigation.admin">Admin</span>
+        </a>
     </nav>
 
-    <!-- Dashboard Content -->
-    <div class="dashboard-container">
-        <!-- Подключение кошелька -->
-        <div class="dashboard-section" id="walletSection">
-            <h2 class="section-title">Wallet Connection</h2>
-            <div id="connectWalletArea">
-                <button class="btn btn-primary" id="connectWalletBtn">
-                    Connect SafePal Wallet
-                </button>
-            </div>
-            <div id="walletInfo" style="display:none;">
-                <div class="user-info">
-                    <div class="info-item">
-                        <div class="info-label">Address:</div>
-                        <div class="info-value" id="userAddress">Not connected</div>
+    <!-- Переключатель языков -->
+    <div class="language-selector">
+        <button class="lang-btn active" data-lang="en">EN</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+        <button class="lang-btn" data-lang="uk">UK</button>
+    </div>
+
+    <!-- Основной контент -->
+    <main class="dashboard-container">
+        <!-- Заголовок -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1 class="page-title" data-i18n="dashboard.title">Dashboard</h1>
+                <div class="wallet-status" id="walletStatus">
+                    <div class="wallet-disconnected" id="walletDisconnected">
+                        <p data-i18n="dashboard.connectWallet">Connect your SafePal wallet to get started</p>
+                        <button class="btn-primary" id="connectWalletBtn">
+                            <span data-i18n="wallet.connect">Connect Wallet</span>
+                        </button>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label">Balance:</div>
-                        <div class="info-value" id="walletBalance">0.0000 BNB</div>
+                    <div class="wallet-connected" id="walletConnected" style="display: none;">
+                        <div class="wallet-info">
+                            <div class="wallet-address">
+                                <span class="label" data-i18n="wallet.address">Address:</span>
+                                <span class="value" id="userAddress">0x...</span>
+                                <button class="copy-btn" id="copyAddressBtn" data-i18n="common.copy">📋</button>
+                            </div>
+                            <div class="wallet-balance">
+                                <span class="label" data-i18n="wallet.balance">Balance:</span>
+                                <span class="value" id="userBalance">0.0000 BNB</span>
+                            </div>
+                        </div>
+                        <button class="btn-secondary" id="disconnectWalletBtn">
+                            <span data-i18n="wallet.disconnect">Disconnect</span>
+                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Информация пользователя -->
-        <div class="dashboard-section" id="userInfoSection" style="display:none;">
-            <h2 class="section-title">User Information</h2>
-            <div class="user-info">
-                <div class="info-item">
-                    <div class="info-label">User ID:</div>
-                    <div class="info-value" id="userId">-</div>
+        <!-- Статистика пользователя -->
+        <section class="user-stats-section" id="userStatsSection" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="userId">-------</div>
+                    <div class="stat-label" data-i18n="user.id">ID</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Rank:</div>
-                    <div class="info-value" id="userRank">Beginner</div>
+                <div class="stat-item">
+                    <div class="stat-value" id="userRank">0</div>
+                    <div class="stat-label" data-i18n="user.rank">Rank</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Sponsor ID:</div>
-                    <div class="info-value" id="sponsorId">-</div>
+                <div class="stat-item">
+                    <div class="stat-value" id="totalEarned">0.0000 BNB</div>
+                    <div class="stat-label" data-i18n="user.totalEarned">Total Earned</div>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Total Earned:</div>
-                    <div class="info-value" id="totalEarned">0.000 BNB</div>
+                <div class="stat-item">
+                    <div class="stat-value" id="activeUntil">--</div>
+                    <div class="stat-label" data-i18n="quarterly.nextPayment">Next Payment</div>
                 </div>
             </div>
-            <div class="referral-link-section">
-                <h3>Your Referral Link:</h3>
-                <div class="referral-link-container">
-                    <input type="text" id="referralLink" readonly class="referral-input">
-                    <button class="btn btn-secondary" onclick="copyReferralLink()">Copy</button>
+            
+            <!-- Реферальная ссылка -->
+            <div class="referral-section">
+                <label for="referralLink" data-i18n="user.referralLink">Referral Link:</label>
+                <div class="referral-input-group">
+                    <input type="text" id="referralLink" readonly class="form-input" placeholder="https://globalway.club/ref">
+                    <button class="btn-secondary" id="copyReferralBtn" data-i18n="common.copy">📋</button>
+                    <button class="btn-secondary" id="shareReferralBtn" data-i18n="common.share">📤</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Регистрация -->
-        <div class="dashboard-section" id="registrationSection" style="display:none;">
-            <h2 class="section-title">Registration</h2>
-            <p>You are not registered in the system. Click the button below to activate your account.</p>
-            <button class="btn btn-primary" id="registerBtn">
-                Activate Account in GlobalWay
-            </button>
-        </div>
-
-        <!-- Квартальная активность -->
-        <div class="dashboard-section" id="quarterlySection" style="display:none;">
-            <h2 class="section-title">Quarterly Activity</h2>
-            <div class="quarterly-info">
-                <div class="info-item">
-                    <div class="info-label">Current Quarter:</div>
-                    <div class="info-value" id="currentQuarter">-</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Days Until Payment:</div>
-                    <div class="info-value" id="daysUntilPayment">-</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Activity Status:</div>
-                    <div class="info-value" id="activityStatus">-</div>
-                </div>
-            </div>
-            <button class="btn btn-primary" id="payQuarterlyBtn">
-                Pay Quarterly Activity (0.075 BNB)
-            </button>
-        </div>
+        </section>
 
         <!-- Управление уровнями -->
-        <div class="dashboard-section" id="levelsSection" style="display:none;">
-            <h2 class="section-title">Level Management</h2>
+        <section class="level-management-section" id="levelManagementSection" style="display: none;">
+            <h2 data-i18n="levels.title">Levels</h2>
             
-            <!-- Сетка уровней -->
-            <div class="levels-grid" id="levelsGrid">
-                <!-- Генерируется через JS -->
-            </div>
-            
-            <!-- Пакеты -->
-            <h3>Level Packages</h3>
-            <div class="packages-container">
-                <div class="package-card" data-package="1-4">
-                    <div class="package-name">Client</div>
-                    <div class="package-levels">Levels 1-4</div>
-                    <div class="package-price">0.0225 BNB</div>
-                </div>
-                <div class="package-card" data-package="1-7">
-                    <div class="package-name">Partner</div>
-                    <div class="package-levels">Levels 1-7</div>
-                    <div class="package-price">0.1185 BNB</div>
-                </div>
-                <div class="package-card" data-package="1-10">
-                    <div class="package-name">Leader</div>
-                    <div class="package-levels">Levels 1-10</div>
-                    <div class="package-price">0.6945 BNB</div>
-                </div>
-                <div class="package-card" data-package="1-12">
-                    <div class="package-name">Manager</div>
-                    <div class="package-levels">Levels 1-12</div>
-                    <div class="package-price">5.3025 BNB</div>
+            <!-- Кнопки массовой покупки -->
+            <div class="bulk-purchase-section">
+                <h3 data-i18n="levels.bulkPurchase">Bulk Purchase</h3>
+                <div class="bulk-buttons">
+                    <button class="btn-primary bulk-btn" data-max-level="4" id="bulkBtn4">
+                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "4"}'>Buy Levels 1-4</span>
+                        <small class="bulk-price" id="bulkPrice4">0.0000 BNB</small>
+                    </button>
+                    <button class="btn-primary bulk-btn" data-max-level="7" id="bulkBtn7">
+                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "7"}'>Buy Levels 1-7</span>
+                        <small class="bulk-price" id="bulkPrice7">0.0000 BNB</small>
+                    </button>
+                    <button class="btn-primary bulk-btn" data-max-level="10" id="bulkBtn10">
+                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "10"}'>Buy Levels 1-10</span>
+                        <small class="bulk-price" id="bulkPrice10">0.0000 BNB</small>
+                    </button>
+                    <button class="btn-primary bulk-btn" data-max-level="12" id="bulkBtn12">
+                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "12"}'>Buy Levels 1-12</span>
+                        <small class="bulk-price" id="bulkPrice12">0.0000 BNB</small>
+                    </button>
                 </div>
             </div>
-        </div>
+
+            <!-- Индивидуальные уровни -->
+            <div class="individual-levels-section">
+                <h3 data-i18n="levels.selectLevels">Select levels to purchase</h3>
+                <div class="level-buttons" id="levelButtons">
+                    <!-- Уровни генерируются через JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Квартальная активность -->
+        <section class="quarterly-section" id="quarterlySection" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="quarterly.title">Quarterly Activity</h2>
+                    <div class="quarterly-status" id="quarterlyStatus">
+                        <span class="status-indicator active" id="quarterlyIndicator"></span>
+                        <span class="status-text" id="quarterlyStatusText" data-i18n="user.active">Active</span>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="quarterly-info">
+                        <div class="quarterly-item">
+                            <span class="label" data-i18n="quarterly.fee">Activity Fee:</span>
+                            <span class="value">0.075 BNB</span>
+                        </div>
+                        <div class="quarterly-item">
+                            <span class="label" data-i18n="quarterly.daysLeft">Days Left:</span>
+                            <span class="value" id="daysLeft">--</span>
+                        </div>
+                    </div>
+                    <p class="quarterly-description" data-i18n="quarterly.description">
+                        Pay quarterly activity fee to maintain access to all features
+                    </p>
+                    <button class="btn-primary" id="payQuarterlyBtn">
+                        💰 <span data-i18n="quarterly.payNow">Pay Now</span>
+                    </button>
+                    
+                    <!-- Информация о распределении -->
+                    <div class="distribution-info">
+                        <h4 data-i18n="quarterly.distribution">Fee Distribution:</h4>
+                        <ul>
+                            <li>60% (0.045 BNB) - <span data-i18n="quarterly.marketing">Marketing</span></li>
+                            <li>30% (0.0225 BNB) - <span data-i18n="quarterly.charity">Charity Package</span></li>
+                            <li>10% - <span data-i18n="quarterly.development">Development Pool</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- Доходы по рангам -->
-        <div class="dashboard-section" id="rankEarningsSection" style="display:none;">
-            <h2 class="section-title">💎 Earnings by Ranks</h2>
-            <div class="rank-earnings">
-                <div class="rank-item">
-                    <span class="rank-icon">🌟</span>
-                    <span class="rank-name">Beginner</span>
-                    <span class="rank-earnings-value">0 BNB</span>
+        <section class="rank-earnings-section" id="rankEarningsSection" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="earnings.title">💎 Rank Earnings</h2>
                 </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🔍</span>
-                    <span class="rank-name">Explorer</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">💡</span>
-                    <span class="rank-name">Innovator</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🔧</span>
-                    <span class="rank-name">Tech-enthusiast</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🎓</span>
-                    <span class="rank-name">Crypto-student</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">⛓️</span>
-                    <span class="rank-name">Blockchain-adept</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🛠️</span>
-                    <span class="rank-name">Smart Contract Master</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🌐</span>
-                    <span class="rank-name">Web3 Professional</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🏗️</span>
-                    <span class="rank-name">Meta-architect</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🤖</span>
-                    <span class="rank-name">AI-visionary</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">⚡</span>
-                    <span class="rank-name">Quantum Leader</span>
-                    <span class="rank-earnings-value">0 BNB</span>
-                </div>
-                <div class="rank-item">
-                    <span class="rank-icon">🌟</span>
-                    <span class="rank-name">Global Tech-titan</span>
-                    <span class="rank-earnings-value">0 BNB</span>
+                <div class="card-content">
+                    <div class="rank-earnings-grid" id="rankEarningsGrid">
+                        <!-- Генерируется через JavaScript -->
+                    </div>
+                    <div class="total-earnings">
+                        <div class="total-label" data-i18n="earnings.total">💰 Total Earnings:</div>
+                        <div class="total-value" id="totalEarningsValue">0.0000 BNB</div>
+                    </div>
                 </div>
             </div>
-            <div class="total-earnings">
-                <span>💰 Total Earnings:</span>
-                <span id="totalRankEarnings">0 BNB</span>
-            </div>
-        </div>
+        </section>
 
         <!-- История транзакций -->
-        <div class="dashboard-section" id="transactionHistorySection" style="display:none;">
-            <h2 class="section-title">Transaction History</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>№</th>
-                            <th>Level</th>
-                            <th>Amount</th>
-                            <th>Date</th>
-                            <th>ID</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionTableBody">
-                        <tr>
-                            <td colspan="5" class="text-center">No transactions yet</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <section class="transactions-section" id="transactionsSection" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="transactions.title">Transaction History</h2>
+                    <button class="btn-secondary" id="refreshTransactionsBtn">
+                        🔄 <span data-i18n="common.refresh">Refresh</span>
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table class="table" id="transactionsTable">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="transactions.type">Type</th>
+                                    <th data-i18n="levels.level">Level</th>
+                                    <th data-i18n="transactions.amount">Amount</th>
+                                    <th data-i18n="transactions.date">Date</th>
+                                    <th data-i18n="transactions.hash">Hash</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionsTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center">
+                                        <span data-i18n="common.loading">Loading...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Токены -->
-        <div class="dashboard-section" id="tokensSection" style="display:none;">
-            <h2 class="section-title">Tokens</h2>
-            <div class="tokens-info">
-                <div class="info-item">
-                    <div class="info-label">Token Balance:</div>
-                    <div class="info-value" id="tokenBalance">0 GWT</div>
+        <!-- Информация о токенах -->
+        <section class="token-info-section" id="tokenInfoSection" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title" data-i18n="tokens.title">🪙 Token Information</h2>
+                    <button class="btn-secondary" data-nav="tokens">
+                        <span data-i18n="tokens.trading">Go to Trading</span> →
+                    </button>
                 </div>
-                <div class="info-item">
-                    <div class="info-label">Token Price:</div>
-                    <div class="info-value" id="tokenPrice">$0.00</div>
+                <div class="card-content">
+                    <div class="token-stats">
+                        <div class="token-stat">
+                            <div class="token-stat-value" id="tokenBalance">0 GWT</div>
+                            <div class="token-stat-label" data-i18n="tokens.balance">Token Balance</div>
+                        </div>
+                        <div class="token-stat">
+                            <div class="token-stat-value" id="tokenPrice">$0.00</div>
+                            <div class="token-stat-label" data-i18n="tokens.price">Current Price</div>
+                        </div>
+                        <div class="token-stat">
+                            <div class="token-stat-value" id="tokenValue">$0.00</div>
+                            <div class="token-stat-label" data-i18n="tokens.totalValue">Total Value</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="navigateToTokens()">
-                Manage Tokens
-            </button>
+        </section>
+    </main>
+
+    <!-- Модальные окна -->
+
+    <!-- Модальное окно регистрации -->
+    <div class="modal-overlay" id="registrationModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeRegistrationModal">&times;</button>
+            <h2 class="modal-title" data-i18n="dashboard.activateAccount">Activate Account</h2>
+            <div class="modal-text">
+                <p data-i18n="user.notRegistered">You are not registered yet. Please enter your sponsor's address to register.</p>
+                <div class="form-group">
+                    <label for="sponsorAddress" data-i18n="admin.sponsorAddress">Sponsor Address:</label>
+                    <input type="text" id="sponsorAddress" class="form-input" placeholder="0x..." required>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancelRegistrationBtn" data-i18n="common.cancel">Cancel</button>
+                    <button class="btn-primary" id="registerUserBtn" data-i18n="admin.activateUser">Register</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Уведомления -->
-    <div id="notificationArea"></div>
+    <!-- Модальное окно активации уровней -->
+    <div class="modal-overlay" id="levelActivationModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeLevelActivationModal">&times;</button>
+            <h2 class="modal-title" data-i18n="levels.activate">Activate Levels</h2>
+            <div class="modal-text">
+                <p>Select which levels you want to activate to start earning.</p>
+                <div class="activation-level-grid" id="activationLevelGrid">
+                    <!-- Генерируется через JavaScript -->
+                </div>
+                <div class="activation-total">
+                    <span data-i18n="levels.totalCost">Total Cost:</span>
+                    <span id="activationTotalCost">0.0000 BNB</span>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancelActivationBtn" data-i18n="common.cancel">Cancel</button>
+                    <button class="btn-primary" id="confirmActivationBtn" data-i18n="levels.confirmPurchase">Confirm Purchase</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- JavaScript файлы -->
-    <script src="../contracts/GlobalWay.json"></script>
-    <script src="../contracts/GlobalWayStats.json"></script>
-    <script src="../contracts/GWTToken.json"></script>
-    <script src="../js/contracts.js"></script>
-    <script src="../js/web3.js"></script>
-    <script src="../js/ui.js"></script>
-    <script src="../js/app.js"></script>
-    <script src="../js/dashboard.js"></script>
+    <!-- Загрузочный оверлей -->
+    <div class="modal-overlay" id="loadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText" data-i18n="common.loading">Loading...</p>
+        </div>
+    </div>
 
-    <style>
-        /* Дополнительные стили для Dashboard */
-        .referral-link-container {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
+    <!-- Область уведомлений -->
+    <div class="notifications-container" id="notificationsContainer"></div>
+
+    <!-- Скрипты -->
+    <script src="/js/i18n.js"></script>
+    <script src="/js/web3-manager.js"></script>
+    <script src="/js/contract-manager.js"></script>
+    <script src="/js/app.js"></script>
+    
+    <script>
+        // Специфичная для Dashboard инициализация
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Ожидаем загрузки переводов
+            await i18n.loadTranslations();
+            
+            // Инициализируем Dashboard
+            await initializeDashboard();
+        });
+
+        async function initializeDashboard() {
+            console.log('🏠 Initializing Dashboard...');
+            
+            try {
+                // Настраиваем обработчики событий
+                setupDashboardEventListeners();
+                
+                // Обновляем интерфейс
+                updateDashboardUI();
+                
+                // Если кошелек подключен, загружаем данные
+                if (app.userState.isConnected) {
+                    await loadDashboardData();
+                }
+                
+                console.log('✅ Dashboard initialized');
+                
+            } catch (error) {
+                console.error('❌ Dashboard initialization failed:', error);
+                app.showNotification('Failed to initialize dashboard', 'error');
+            }
         }
 
-        .referral-input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid var(--primary-gold);
-            background: rgba(0, 51, 102, 0.3);
-            color: var(--text-light);
-            border-radius: 5px;
+        function setupDashboardEventListeners() {
+            // Кнопки подключения кошелька
+            document.getElementById('connectWalletBtn')?.addEventListener('click', () => {
+                app.connectWallet();
+            });
+            
+            document.getElementById('disconnectWalletBtn')?.addEventListener('click', () => {
+                app.disconnectWallet();
+            });
+
+            // Копирование адреса и реферальной ссылки
+            document.getElementById('copyAddressBtn')?.addEventListener('click', copyAddress);
+            document.getElementById('copyReferralBtn')?.addEventListener('click', copyReferralLink);
+            document.getElementById('shareReferralBtn')?.addEventListener('click', shareReferralLink);
+
+            // Управление уровнями
+            document.querySelectorAll('.bulk-btn').forEach(btn => {
+                btn.addEventListener('click', handleBulkPurchase);
+            });
+
+            // Квартальная активность
+            document.getElementById('payQuarterlyBtn')?.addEventListener('click', payQuarterlyActivity);
+
+            // Модальные окна
+            document.getElementById('closeRegistrationModal')?.addEventListener('click', () => {
+                app.hideModal('registrationModal');
+            });
+            
+            document.getElementById('registerUserBtn')?.addEventListener('click', handleUserRegistration);
+
+            // Закрытие модальных окон при клике вне них
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('active');
+                    }
+                });
+            });
         }
 
-        .rank-earnings {
-            display: grid;
-            gap: 10px;
+        function updateDashboardUI() {
+            const isConnected = app.userState.isConnected;
+            
+            // Показываем/скрываем секции
+            document.getElementById('walletDisconnected').style.display = isConnected ? 'none' : 'block';
+            document.getElementById('walletConnected').style.display = isConnected ? 'block' : 'none';
+            
+            const sections = [
+                'userStatsSection',
+                'levelManagementSection', 
+                'quarterlySection',
+                'rankEarningsSection',
+                'transactionsSection',
+                'tokenInfoSection'
+            ];
+            
+            sections.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.style.display = isConnected ? 'block' : 'none';
+                }
+            });
+
+            if (isConnected) {
+                updateUserInfo();
+                updateLevelButtons();
+                updateRankEarnings();
+            }
         }
 
-        .rank-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            background: rgba(0, 51, 102, 0.3);
-            border-radius: 5px;
-            border: 1px solid rgba(255, 215, 0, 0.2);
+        async function loadDashboardData() {
+            try {
+                app.setLoading(true);
+                
+                // Загружаем данные пользователя
+                await app.loadUserData();
+                
+                // Обновляем интерфейс с новыми данными
+                updateDashboardUI();
+                
+            } catch (error) {
+                console.error('Failed to load dashboard data:', error);
+                app.showNotification('Failed to load data', 'error');
+            } finally {
+                app.setLoading(false);
+            }
         }
 
-        .rank-icon {
-            font-size: 20px;
-            margin-right: 10px;
-        }
-
-        .rank-name {
-            flex: 1;
-        }
-
-        .rank-earnings-value {
-            color: var(--primary-gold);
-            font-weight: bold;
-        }
-
-        .total-earnings {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            padding: 15px;
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
-            border: 2px solid var(--primary-gold);
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-        }
-
-        th {
-            background: rgba(255, 215, 0, 0.1);
-            color: var(--primary-gold);
-            font-weight: bold;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        /* Мобильное меню */
-        @media (max-width: 768px) {
-            .top-menu {
-                display: none;
+        function updateUserInfo() {
+            if (!app.userState.address) return;
+            
+            // Обновляем адрес и баланс
+            const addressElement = document.getElementById('userAddress');
+            if (addressElement) {
+                addressElement.textContent = web3Manager.formatAddress(app.userState.address);
             }
             
-            .bottom-menu {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                background: rgba(0, 26, 51, 0.98);
-                border-top: 2px solid var(--primary-gold);
-                display: flex;
-                justify-content: space-around;
-                padding: 5px 0;
-                z-index: 999;
+            const balanceElement = document.getElementById('userBalance');
+            if (balanceElement) {
+                balanceElement.textContent = `${app.userState.balance.toFixed(4)} BNB`;
             }
-            
-            .nav-btn {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                font-size: 11px;
-                padding: 5px;
+
+            // Обновляем пользовательскую статистику
+            if (app.userState.userData) {
+                const userData = app.userState.userData;
+                
+                document.getElementById('totalEarned').textContent = 
+                    `${(userData.earnings?.totalEarned || 0).toFixed(4)} BNB`;
             }
         }
-    </style>
+
+        function updateLevelButtons() {
+            const container = document.getElementById('levelButtons');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            // Создаем кнопки для каждого уровня
+            for (let level = 1; level <= 12; level++) {
+                const price = contractManager.levelPrices[level];
+                const reward = contractManager.levelRewards[level];
+                
+                const button = document.createElement('button');
+                button.className = 'level-btn';
+                button.dataset.level = level;
+                
+                button.innerHTML = `
+                    <div class="level-number">${level}</div>
+                    <div class="level-price">${price} BNB</div>
+                    <div class="level-reward">${reward} GWT</div>
+                `;
+                
+                button.addEventListener('click', () => purchaseLevel(level));
+                container.appendChild(button);
+            }
+        }
+
+        function updateRankEarnings() {
+            const container = document.getElementById('rankEarningsGrid');
+            if (!container) return;
+            
+            const ranks = [
+                'Новичок', 'Исследователь', 'Инноватор', 'Техно-энтузиаст',
+                'Крипто-ученик', 'Блокчейн-адепт', 'Мастер смарт-контрактов',
+                'Web3 Профессионал', 'Мета-архитектор', 'AI-визионер',
+                'Квантовый лидер', 'Глобальный тех-титан'
+            ];
+            
+            container.innerHTML = '';
+            
+            ranks.forEach((rank, index) => {
+                const rankItem = document.createElement('div');
+                rankItem.className = 'rank-earning-item';
+                rankItem.innerHTML = `
+                    <span class="rank-icon">${getRankIcon(index + 1)}</span>
+                    <span class="rank-name">${rank}</span>
+                    <span class="rank-earnings">0 BNB</span>
+                `;
+                container.appendChild(rankItem);
+            });
+        }
+
+        function getRankIcon(level) {
+            const icons = ['🌟', '🔍', '💡', '🔧', '🎓', '⛓️', '🛠️', '🌐', '🏗️', '🤖', '⚡', '🌟'];
+            return icons[level - 1] || '⭐';
+        }
+
+        async function handleBulkPurchase(event) {
+            const maxLevel = parseInt(event.currentTarget.dataset.maxLevel);
+            
+            try {
+                app.setLoading(true);
+                app.showNotification(`Purchasing levels 1-${maxLevel}...`, 'info');
+                
+                const result = await contractManager.buyLevelsBulk(maxLevel, app.userState.address);
+                
+                app.showNotification('Levels purchased successfully!', 'success');
+                await loadDashboardData();
+                
+            } catch (error) {
+                console.error('Bulk purchase failed:', error);
+                app.showNotification(error.message, 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        async function purchaseLevel(level) {
+            try {
+                app.setLoading(true);
+                app.showNotification(`Purchasing level ${level}...`, 'info');
+                
+                const result = await contractManager.buyLevel(level, app.userState.address);
+                
+                app.showNotification(`Level ${level} purchased successfully!`, 'success');
+                await loadDashboardData();
+                
+            } catch (error) {
+                console.error('Level purchase failed:', error);
+                app.showNotification(error.message, 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        async function payQuarterlyActivity() {
+            try {
+                app.setLoading(true);
+                app.showNotification('Processing quarterly payment...', 'info');
+                
+                const result = await contractManager.payQuarterlyActivity(app.userState.address);
+                
+                app.showNotification('Quarterly activity paid successfully!', 'success');
+                await loadDashboardData();
+                
+            } catch (error) {
+                console.error('Quarterly payment failed:', error);
+                app.showNotification(error.message, 'error');
+            } finally {
+                app.setLoading(false);
+            }
+        }
+
+        async function handleUserRegistration() {
+            const sponsorAddress = document.getElementById('sponsorAddress').value.trim();
+            
+            if (!sponsorAddress) {
+                app.showNotification('Please enter sponsor address', 'warning');
+                return;
+            }
+            
+            if (!web3Manager.isValidAddress(sponsorAddress)) {
+                app.showNotification('Invalid sponsor address', 'error');
+                return;
+            }
+            
+            try {
+                await app.registerUser(sponsorAddress);
+            } catch (error) {
+                console.error('Registration failed:', error);
+            }
+        }
+
+        function copyAddress() {
+            const address = app.userState.address;
+            navigator.clipboard.writeText(address).then(() => {
+                app.showNotification('Address copied!', 'success');
+            });
+        }
+
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink').value;
+            navigator.clipboard.writeText(referralLink).then(() => {
+                app.showNotification('Referral link copied!', 'success');
+            });
+        }
+
+        function shareReferralLink() {
+            const referralLink = document.getElementById('referralLink').value;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join GlobalWay',
+                    text: 'Join me on GlobalWay - decentralized ecosystem for financial independence',
+                    url: referralLink
+                });
+            } else {
+                copyReferralLink();
+            }
+        }
+
+        // Добавляем функции в глобальное приложение
+        if (typeof app !== 'undefined') {
+            app.initializeDashboard = initializeDashboard;
+        }
+    </script>
 </body>
 </html>
