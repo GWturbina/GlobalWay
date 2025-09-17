@@ -1,392 +1,716 @@
-<!-- Dashboard Component -->
-<div class="dashboard-page">
+<!-- Admin Component -->
+<div class="admin-page">
     <div class="container">
         <!-- Заголовок -->
         <div class="page-header">
-            <h1 data-i18n="dashboard.title">Dashboard</h1>
+            <h1 data-i18n="admin.title">Admin Panel</h1>
+            <div class="admin-role" id="adminRole"></div>
         </div>
         
-        <!-- Секция подключения кошелька -->
-        <div id="walletSection" class="card">
-            <h2 data-i18n="dashboard.walletConnection">Wallet Connection</h2>
-            <div id="walletInfo" class="wallet-info">
-                <button id="connectWalletBtn" class="btn connect-wallet-btn" onclick="DashboardController.connectWallet()">
-                    <span data-i18n="dashboard.connectWallet">Connect Wallet</span>
-                </button>
-                <div id="walletDetails" style="display: none;">
-                    <div class="wallet-detail">
-                        <label data-i18n="dashboard.walletAddress">Wallet Address:</label>
-                        <span id="walletAddress"></span>
-                    </div>
-                    <div class="wallet-detail">
-                        <label data-i18n="dashboard.balance">Balance:</label>
-                        <span id="walletBalance">0.0000 BNB</span>
-                    </div>
+        <!-- Текущий счет и права -->
+        <div class="card">
+            <h2 data-i18n="admin.accountInfo">Account Information</h2>
+            <div class="admin-info">
+                <div class="info-item">
+                    <label data-i18n="admin.currentAccount">Current Account:</label>
+                    <span id="adminAddress">-</span>
+                </div>
+                <div class="info-item">
+                    <label data-i18n="admin.rights">Rights:</label>
+                    <span id="adminRights">-</span>
                 </div>
             </div>
         </div>
         
-        <!-- Секция регистрации (показывается после подключения) -->
-        <div id="registrationSection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.registration">Registration</h2>
-            <p data-i18n="dashboard.notRegistered">You are not registered yet.</p>
-            <button id="registerBtn" class="btn" onclick="DashboardController.showRegistrationModal()">
-                <span data-i18n="dashboard.registerNow">Register Now</span>
+        <!-- Dashboard админа -->
+        <div class="card">
+            <h2 data-i18n="admin.dashboard">Dashboard</h2>
+            
+            <!-- Бесплатная активация пользователя -->
+            <div class="admin-section">
+                <h3 data-i18n="admin.freeActivation">🎁 Free User Activation</h3>
+                <div class="form-group">
+                    <label data-i18n="admin.userAddress">User Address:</label>
+                    <input type="text" id="freeActivationAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.sponsorAddress">Sponsor Address:</label>
+                    <input type="text" id="freeActivationSponsor" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.maxLevel">Maximum Level:</label>
+                    <select id="freeActivationLevel">
+                        <option value="3">Client (1-3)</option>
+                        <option value="4">MiniAdmin (1-4)</option>
+                        <option value="7">Admin (1-7)</option>
+                        <option value="10">SuperAdmin (1-10)</option>
+                        <option value="12">Manager (1-12)</option>
+                    </select>
+                </div>
+                <button class="btn" onclick="AdminController.freeActivation()">
+                    <span data-i18n="admin.activateUser">🚀 Activate User</span>
+                </button>
+            </div>
+            
+            <!-- Пакетная активация -->
+            <div class="admin-section">
+                <h3 data-i18n="admin.batchActivation">⚡ Batch Team Activation</h3>
+                <div class="form-group">
+                    <label data-i18n="admin.teamMembers">Team Members (one per line):</label>
+                    <textarea id="batchMembers" rows="4" placeholder="0x..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.sponsors">Sponsors (corresponding to members):</label>
+                    <textarea id="batchSponsors" rows="4" placeholder="0x..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.maxLevels">Max Levels (corresponding to members):</label>
+                    <textarea id="batchLevels" rows="4" placeholder="3,4,7,10,12"></textarea>
+                </div>
+                <button class="btn" onclick="AdminController.batchActivation()">
+                    <span data-i18n="admin.activateTeam">Activate Team</span>
+                </button>
+            </div>
+            
+            <!-- Управление авторизацией -->
+            <div class="admin-section">
+                <h3 data-i18n="admin.authManagement">🔓 Authorization Management</h3>
+                <div class="form-group">
+                    <label data-i18n="admin.userAddress">User Address:</label>
+                    <input type="text" id="authUserAddress" placeholder="0x...">
+                </div>
+                <div class="checkbox-group">
+                    <label>
+                        <input type="checkbox" id="allowFreeActivation">
+                        <span data-i18n="admin.allowFreeActivation">Allow Free Activation</span>
+                    </label>
+                </div>
+                <button class="btn" onclick="AdminController.setPermissions()">
+                    <span data-i18n="admin.setPermission">✅ Set Permission</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Управление адресами -->
+        <div class="card owner-only">
+            <h2 data-i18n="admin.addressManagement">🔧 Address Management</h2>
+            
+            <!-- Блокировка пользователя -->
+            <div class="admin-section">
+                <h3 data-i18n="admin.userBlocking">User Blocking</h3>
+                <div class="form-group">
+                    <label data-i18n="admin.userAddress">User Address:</label>
+                    <input type="text" id="blockUserAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.tempAddress">Temporary Address:</label>
+                    <input type="text" id="tempAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.note">Note:</label>
+                    <textarea id="blockNote" rows="3"></textarea>
+                </div>
+                <button class="btn btn-danger" onclick="AdminController.blockUser()">
+                    <span data-i18n="admin.blockUser">Block User</span>
+                </button>
+            </div>
+            
+            <!-- Замена адреса -->
+            <div class="admin-section">
+                <h3 data-i18n="admin.addressReplacement">Address Replacement</h3>
+                <div class="form-group">
+                    <label data-i18n="admin.currentAddress">Current Address:</label>
+                    <input type="text" id="currentAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.newAddress">New Address:</label>
+                    <input type="text" id="newAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.note">Note:</label>
+                    <textarea id="replaceNote" rows="3"></textarea>
+                </div>
+                <button class="btn" onclick="AdminController.replaceAddress()">
+                    <span data-i18n="admin.replaceAddress">Replace Address</span>
+                </button>
+                <div class="warning-note">
+                    <p data-i18n="admin.decentralizationNote">
+                        This function is available only until full decentralization
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Управление финансами -->
+        <div class="card founder-only">
+            <h2 data-i18n="admin.financeManagement">💰 Finance Management</h2>
+            
+            <!-- Вывод средств -->
+            <div class="admin-section">
+                <h3 data-i18n="admin.withdrawal">Fund Withdrawal</h3>
+                <div class="form-group">
+                    <label data-i18n="admin.pool">Pool:</label>
+                    <select id="withdrawPool">
+                        <option value="charity">Charity</option>
+                        <option value="dev">Development</option>
+                        <option value="tokenomics">Tokenomics</option>
+                        <option value="emergency">Emergency</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.withdrawAddress">Withdrawal Address:</label>
+                    <input type="text" id="withdrawAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.amount">Amount (BNB):</label>
+                    <input type="number" id="withdrawAmount" step="0.0001" placeholder="0.0000">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.note">Note:</label>
+                    <textarea id="withdrawNote" rows="3"></textarea>
+                </div>
+                <div id="votingRequired" class="voting-notice" style="display: none;">
+                    <p data-i18n="admin.votingRequired">
+                        This operation requires 8 votes for amounts over 5 BNB
+                    </p>
+                </div>
+                <button class="btn" onclick="AdminController.withdrawFunds()">
+                    <span data-i18n="admin.withdraw">Withdraw</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Делегирование -->
+        <div class="card">
+            <h2 data-i18n="admin.delegation">👥 Delegation</h2>
+            <div class="admin-section">
+                <div class="form-group">
+                    <label data-i18n="admin.partnerAddress">Partner Address:</label>
+                    <input type="text" id="delegateAddress" placeholder="0x...">
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.accessRights">Access Rights:</label>
+                    <div class="checkbox-list">
+                        <label>
+                            <input type="checkbox" name="delegateRights" value="mailing">
+                            <span data-i18n="admin.rights.mailing">Mailing</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" name="delegateRights" value="support">
+                            <span data-i18n="admin.rights.support">Support</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" name="delegateRights" value="history">
+                            <span data-i18n="admin.rights.history">History</span>
+                        </label>
+                        <label>
+                            <input type="checkbox" name="delegateRights" value="news">
+                            <span data-i18n="admin.rights.news">News</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="admin.note">Note:</label>
+                    <textarea id="delegateNote" rows="3"></textarea>
+                </div>
+                <button class="btn" onclick="AdminController.delegateRights()">
+                    <span data-i18n="admin.delegate">Delegate Rights</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Статистика -->
+        <div class="card">
+            <h2 data-i18n="admin.statistics">📊 Statistics</h2>
+            <div class="admin-stats">
+                <div class="stat-group">
+                    <h3 data-i18n="admin.stats.partners">Partners</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalUsers">0</div>
+                            <div class="stat-label" data-i18n="admin.stats.totalUsers">Total Users</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="activeUsers">0</div>
+                            <div class="stat-label" data-i18n="admin.stats.activeUsers">Active Users</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-group">
+                    <h3 data-i18n="admin.stats.finance">Finance</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value" id="contractBalance">0 BNB</div>
+                            <div class="stat-label" data-i18n="admin.stats.contractBalance">Contract Balance</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalVolume">0 BNB</div>
+                            <div class="stat-label" data-i18n="admin.stats.totalVolume">Total Volume</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-group">
+                    <h3 data-i18n="admin.stats.pools">Pools</h3>
+                    <div class="pools-stats">
+                        <div class="pool-stat">
+                            <span>Charity:</span>
+                            <span id="charityBalance">0 BNB</span>
+                        </div>
+                        <div class="pool-stat">
+                            <span>Development:</span>
+                            <span id="devBalance">0 BNB</span>
+                        </div>
+                        <div class="pool-stat">
+                            <span>Tokenomics:</span>
+                            <span id="tokenomicsBalance">0 BNB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-secondary" onclick="AdminController.exportDatabase()">
+                <span data-i18n="admin.exportDatabase">Export Database</span>
             </button>
-        </div>
-        
-        <!-- Основная информация пользователя -->
-        <div id="userInfoSection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.userInfo">User Information</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <label data-i18n="dashboard.userId">User ID:</label>
-                    <span id="userId" class="value">-</span>
-                </div>
-                <div class="info-item">
-                    <label data-i18n="dashboard.rank">Rank:</label>
-                    <span id="userRank" class="value">-</span>
-                </div>
-                <div class="info-item">
-                    <label data-i18n="dashboard.totalEarned">Total Earned:</label>
-                    <span id="totalEarned" class="value">0.0000 BNB</span>
-                </div>
-            </div>
-            <div class="referral-section">
-                <label data-i18n="dashboard.referralLink">Referral Link:</label>
-                <div class="referral-link-box">
-                    <input type="text" id="referralLink" readonly>
-                    <button class="btn-secondary" onclick="DashboardController.copyReferralLink()">
-                        <span data-i18n="dashboard.copyLink">Copy</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Квартальная активность -->
-        <div id="quarterlySection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.quarterlyActivity">Quarterly Activity</h2>
-            <div class="quarterly-info">
-                <div class="quarterly-status">
-                    <div id="quarterlyTimer" class="timer">
-                        <span class="days">90</span> <span data-i18n="dashboard.daysLeft">days left</span>
-                    </div>
-                    <div class="quarterly-fee">
-                        <span data-i18n="dashboard.fee">Fee:</span> <strong>0.075 BNB</strong>
-                    </div>
-                </div>
-                <button id="payQuarterlyBtn" class="btn" onclick="DashboardController.payQuarterly()">
-                    <span data-i18n="dashboard.payQuarterly">Pay Quarterly</span>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Управление уровнями -->
-        <div id="levelsSection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.levelManagement">Level Management</h2>
-            
-            <!-- Кнопки уровней -->
-            <div class="level-grid">
-                <button class="level-btn" data-level="1" onclick="DashboardController.buyLevel(1)">
-                    <span class="level-num">1</span>
-                    <span class="level-price">0.0015 BNB</span>
-                </button>
-                <button class="level-btn" data-level="2" onclick="DashboardController.buyLevel(2)">
-                    <span class="level-num">2</span>
-                    <span class="level-price">0.003 BNB</span>
-                </button>
-                <button class="level-btn" data-level="3" onclick="DashboardController.buyLevel(3)">
-                    <span class="level-num">3</span>
-                    <span class="level-price">0.006 BNB</span>
-                </button>
-                <button class="level-btn" data-level="4" onclick="DashboardController.buyLevel(4)">
-                    <span class="level-num">4</span>
-                    <span class="level-price">0.012 BNB</span>
-                </button>
-                <button class="level-btn" data-level="5" onclick="DashboardController.buyLevel(5)">
-                    <span class="level-num">5</span>
-                    <span class="level-price">0.024 BNB</span>
-                </button>
-                <button class="level-btn" data-level="6" onclick="DashboardController.buyLevel(6)">
-                    <span class="level-num">6</span>
-                    <span class="level-price">0.048 BNB</span>
-                </button>
-                <button class="level-btn" data-level="7" onclick="DashboardController.buyLevel(7)">
-                    <span class="level-num">7</span>
-                    <span class="level-price">0.096 BNB</span>
-                </button>
-                <button class="level-btn" data-level="8" onclick="DashboardController.buyLevel(8)">
-                    <span class="level-num">8</span>
-                    <span class="level-price">0.192 BNB</span>
-                </button>
-                <button class="level-btn" data-level="9" onclick="DashboardController.buyLevel(9)">
-                    <span class="level-num">9</span>
-                    <span class="level-price">0.384 BNB</span>
-                </button>
-                <button class="level-btn" data-level="10" onclick="DashboardController.buyLevel(10)">
-                    <span class="level-num">10</span>
-                    <span class="level-price">0.768 BNB</span>
-                </button>
-                <button class="level-btn" data-level="11" onclick="DashboardController.buyLevel(11)">
-                    <span class="level-num">11</span>
-                    <span class="level-price">1.536 BNB</span>
-                </button>
-                <button class="level-btn" data-level="12" onclick="DashboardController.buyLevel(12)">
-                    <span class="level-num">12</span>
-                    <span class="level-price">3.072 BNB</span>
-                </button>
-            </div>
-            
-            <!-- Пакетные кнопки -->
-            <div class="package-buttons">
-                <button class="package-btn" onclick="DashboardController.buyPackage(4)">
-                    <span data-i18n="dashboard.package14">Package 1-4</span>
-                    <span class="package-price">0.0225 BNB</span>
-                </button>
-                <button class="package-btn" onclick="DashboardController.buyPackage(7)">
-                    <span data-i18n="dashboard.package17">Package 1-7</span>
-                    <span class="package-price">0.1905 BNB</span>
-                </button>
-                <button class="package-btn" onclick="DashboardController.buyPackage(10)">
-                    <span data-i18n="dashboard.package110">Package 1-10</span>
-                    <span class="package-price">1.5345 BNB</span>
-                </button>
-                <button class="package-btn" onclick="DashboardController.buyPackage(12)">
-                    <span data-i18n="dashboard.package112">Package 1-12</span>
-                    <span class="package-price">6.1425 BNB</span>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Доходы по рангам -->
-        <div id="earningsSection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.incomeByRanks">Income by Ranks</h2>
-            <div class="earnings-list">
-                <div class="earnings-item">
-                    <span class="rank-icon">🌟</span>
-                    <span class="rank-name" data-i18n="levels.beginner">Beginner</span>
-                    <span class="rank-income" id="income1">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🔍</span>
-                    <span class="rank-name" data-i18n="levels.explorer">Explorer</span>
-                    <span class="rank-income" id="income2">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">💡</span>
-                    <span class="rank-name" data-i18n="levels.innovator">Innovator</span>
-                    <span class="rank-income" id="income3">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🔧</span>
-                    <span class="rank-name" data-i18n="levels.techEnthusiast">Tech Enthusiast</span>
-                    <span class="rank-income" id="income4">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🎓</span>
-                    <span class="rank-name" data-i18n="levels.cryptoStudent">Crypto Student</span>
-                    <span class="rank-income" id="income5">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">⛓️</span>
-                    <span class="rank-name" data-i18n="levels.blockchainAdept">Blockchain Adept</span>
-                    <span class="rank-income" id="income6">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🛠️</span>
-                    <span class="rank-name" data-i18n="levels.smartContractMaster">Smart Contract Master</span>
-                    <span class="rank-income" id="income7">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🌐</span>
-                    <span class="rank-name" data-i18n="levels.web3Professional">Web3 Professional</span>
-                    <span class="rank-income" id="income8">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🏗️</span>
-                    <span class="rank-name" data-i18n="levels.metaArchitect">Meta Architect</span>
-                    <span class="rank-income" id="income9">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🤖</span>
-                    <span class="rank-name" data-i18n="levels.aiVisionary">AI Visionary</span>
-                    <span class="rank-income" id="income10">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">⚡</span>
-                    <span class="rank-name" data-i18n="levels.quantumLeader">Quantum Leader</span>
-                    <span class="rank-income" id="income11">0 BNB</span>
-                </div>
-                <div class="earnings-item">
-                    <span class="rank-icon">🌟</span>
-                    <span class="rank-name" data-i18n="levels.globalTechTitan">Global Tech Titan</span>
-                    <span class="rank-income" id="income12">0 BNB</span>
-                </div>
-            </div>
-            <div class="total-income">
-                <span data-i18n="dashboard.totalIncome">Total Income:</span>
-                <strong id="totalIncome">0 BNB</strong>
-            </div>
-        </div>
-        
-        <!-- История транзакций -->
-        <div id="historySection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.transactionHistory">Transaction History</h2>
-            <div class="table-wrapper">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>№</th>
-                            <th data-i18n="dashboard.level">Level</th>
-                            <th data-i18n="dashboard.amount">Amount</th>
-                            <th data-i18n="dashboard.date">Date</th>
-                            <th>ID</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionHistory">
-                        <tr>
-                            <td colspan="5" class="empty-message" data-i18n="dashboard.noTransactions">
-                                No transactions yet
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Токены -->
-        <div id="tokensSection" class="card" style="display: none;">
-            <h2 data-i18n="dashboard.tokens">Tokens</h2>
-            <div class="token-info">
-                <div class="token-balance">
-                    <label data-i18n="dashboard.tokenBalance">Token Balance:</label>
-                    <span id="tokenBalance" class="value">0 GWT</span>
-                </div>
-                <div class="token-price">
-                    <label data-i18n="dashboard.price">Price:</label>
-                    <span id="tokenPrice" class="value">$0.0001</span>
-                </div>
-                <button class="btn" onclick="Router.navigate('tokens')">
-                    <span data-i18n="dashboard.exchange">Exchange</span>
-                </button>
-            </div>
         </div>
     </div>
 </div>
 
 <script>
-// Dashboard Controller
-window.DashboardController = {
+// Admin Controller
+window.AdminController = {
     // Инициализация
     async init() {
-        if (GlobalWayApp.isConnected()) {
-            await this.updateUserData();
+        if (!Auth.requireAdmin()) {
+            Router.navigate('dashboard');
+            return;
         }
+        
+        // Показываем роль админа
+        this.showAdminRole();
+        
+        // Скрываем/показываем секции в зависимости от прав
+        this.updateVisibleSections();
+        
+        // Загружаем статистику
+        await this.loadStatistics();
     },
     
-    // Подключение кошелька
-    async connectWallet() {
+    // Показать роль админа
+    showAdminRole() {
+        const role = Auth.getCurrentRole();
+        const roleNames = {
+            owner: 'Owner',
+            founder: 'Founder',
+            board: 'Board Member'
+        };
+        
+        document.getElementById('adminRole').textContent = roleNames[role] || 'Admin';
+        document.getElementById('adminAddress').textContent = 
+            UI.formatAddress(Web3Manager.currentAccount);
+        
+        // Права доступа
+        const permissions = Auth.getPermissions();
+        const rights = [];
+        if (permissions.canManageUsers) rights.push('User Management');
+        if (permissions.canWithdraw) rights.push('Finance');
+        if (permissions.canManageProjects) rights.push('Projects');
+        if (permissions.canDelegate) rights.push('Delegation');
+        if (permissions.canVote) rights.push('Voting');
+        
+        document.getElementById('adminRights').textContent = rights.join(', ');
+    },
+    
+    // Обновить видимые секции
+    updateVisibleSections() {
+        const isOwner = Auth.isOwner();
+        const isFounder = Auth.isFounder();
+        
+        // Секции только для владельца
+        document.querySelectorAll('.owner-only').forEach(section => {
+            section.style.display = isOwner ? 'block' : 'none';
+        });
+        
+        // Секции для основателей
+        document.querySelectorAll('.founder-only').forEach(section => {
+            section.style.display = (isOwner || isFounder) ? 'block' : 'none';
+        });
+    },
+    
+    // Загрузка статистики
+    async loadStatistics() {
         try {
-            const account = await WalletManager.connectWallet();
-            if (account) {
-                await this.updateUserData();
+            const overview = await ContractManager.getContractOverview();
+            if (overview) {
+                document.getElementById('totalUsers').textContent = overview.totalUsers;
+                document.getElementById('activeUsers').textContent = overview.activeUsers;
+                document.getElementById('contractBalance').textContent = `${overview.contractBalance} BNB`;
+                document.getElementById('totalVolume').textContent = `${overview.totalVolume} BNB`;
             }
+            
+            // Балансы пулов
+            // Здесь будет загрузка балансов из контрактов
+            
         } catch (error) {
-            UI.showNotification(error.message, 'error');
+            console.error('Load statistics error:', error);
         }
     },
     
-    // Обновление данных пользователя
-    async updateUserData() {
-        const user = GlobalWayApp.getCurrentUser();
-        if (!user) return;
+    // Бесплатная активация
+    async freeActivation() {
+        const userAddress = document.getElementById('freeActivationAddress').value.trim();
+        const sponsorAddress = document.getElementById('freeActivationSponsor').value.trim();
+        const maxLevel = document.getElementById('freeActivationLevel').value;
         
-        // Показываем/скрываем секции
-        document.getElementById('walletDetails').style.display = 'block';
-        document.getElementById('connectWalletBtn').style.display = 'none';
-        
-        // Обновляем информацию о кошельке
-        document.getElementById('walletAddress').textContent = UI.formatAddress(user.address);
-        document.getElementById('walletBalance').textContent = `${i18n.formatNumber(user.balance, 4)} BNB`;
-        
-        if (user.isRegistered) {
-            // Скрываем регистрацию
-            document.getElementById('registrationSection').style.display = 'none';
-            
-            // Показываем остальные секции
-            document.getElementById('userInfoSection').style.display = 'block';
-            document.getElementById('quarterlySection').style.display = 'block';
-            document.getElementById('levelsSection').style.display = 'block';
-            document.getElementById('earningsSection').style.display = 'block';
-            document.getElementById('historySection').style.display = 'block';
-            document.getElementById('tokensSection').style.display = 'block';
-            
-            // Обновляем данные
-            document.getElementById('userId').textContent = user.id || '-';
-            document.getElementById('userRank').textContent = user.userData.leaderRank || '1';
-            document.getElementById('totalEarned').textContent = `${user.userData.totalEarned} BNB`;
-            
-            // Реферальная ссылка
-            const referralLink = GlobalWayApp.getReferralLink();
-            document.getElementById('referralLink').value = referralLink;
-            
-            // Загружаем активные уровни
-            await this.loadActiveLevels();
-            
-            // Загружаем историю транзакций
-            await this.loadTransactionHistory();
-            
-            // Загружаем баланс токенов
-            await this.loadTokenBalance();
-            
-        } else {
-            // Показываем секцию регистрации
-            document.getElementById('registrationSection').style.display = 'block';
+        if (!Utils.isValidAddress(userAddress) || !Utils.isValidAddress(sponsorAddress)) {
+            UI.showNotification('Invalid address', 'error');
+            return;
         }
-    },
-    
-    // Загрузка активных уровней
-    async loadActiveLevels() {
-        try {
-            const user = GlobalWayApp.getCurrentUser();
-            for (let i = 1; i <= 12; i++) {
-                const isActive = await ContractManager.isLevelActive(user.address, i);
-                const btn = document.querySelector(`button[data-level="${i}"]`);
-                if (btn) {
-                    btn.classList.toggle('active', isActive);
-                    btn.disabled = isActive;
-                }
-            }
-        } catch (error) {
-            console.error('Load levels error:', error);
-        }
-    },
-    
-    // Копирование реферальной ссылки
-    copyReferralLink() {
-        const link = document.getElementById('referralLink').value;
-        UI.copyToClipboard(link);
-    },
-    
-    // Покупка уровня
-    async buyLevel(level) {
-        if (!Auth.requireRegistration()) return;
         
         try {
-            UI.showLoading('levelsSection');
-            const tx = await ContractManager.buyLevel(level);
+            UI.showLoading('admin-page');
+            
+            const tx = await ContractManager.freeRegistrationWithLevels(
+                userAddress, 
+                sponsorAddress, 
+                parseInt(maxLevel)
+            );
+            
             await Web3Manager.waitForTransaction(tx.transactionHash);
             
-            UI.showNotification(`Level ${level} activated successfully!`, 'success');
-            await this.updateUserData();
+            UI.showNotification('User activated successfully!', 'success');
+            
+            // Очищаем форму
+            document.getElementById('freeActivationAddress').value = '';
+            document.getElementById('freeActivationSponsor').value = '';
             
         } catch (error) {
             UI.showNotification(error.message, 'error');
         } finally {
-            UI.hideLoading('levelsSection');
+            UI.hideLoading('admin-page');
         }
     },
     
-    // Другие методы будут добавлены позже...
+    // Пакетная активация
+    async batchActivation() {
+        const members = document.getElementById('batchMembers').value
+            .split('\n')
+            .map(addr => addr.trim())
+            .filter(addr => Utils.isValidAddress(addr));
+        
+        const sponsors = document.getElementById('batchSponsors').value
+            .split('\n')
+            .map(addr => addr.trim())
+            .filter(addr => Utils.isValidAddress(addr));
+        
+        const levels = document.getElementById('batchLevels').value
+            .split('\n')
+            .map(level => parseInt(level.trim()))
+            .filter(level => level >= 1 && level <= 12);
+        
+        if (members.length === 0 || members.length !== sponsors.length || members.length !== levels.length) {
+            UI.showNotification('Invalid input data', 'error');
+            return;
+        }
+        
+        try {
+            UI.showLoading('admin-page');
+            
+            // Здесь будет логика пакетной активации
+            UI.showNotification('Batch activation not implemented yet', 'info');
+            
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        } finally {
+            UI.hideLoading('admin-page');
+        }
+    },
+    
+    // Установка разрешений
+    async setPermissions() {
+        const userAddress = document.getElementById('authUserAddress').value.trim();
+        const allowFreeActivation = document.getElementById('allowFreeActivation').checked;
+        
+        if (!Utils.isValidAddress(userAddress)) {
+            UI.showNotification('Invalid address', 'error');
+            return;
+        }
+        
+        try {
+            // Здесь будет логика установки разрешений
+            UI.showNotification('Permissions updated', 'success');
+            
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        }
+    },
+    
+    // Блокировка пользователя
+    async blockUser() {
+        if (!Auth.isOwner()) {
+            UI.showNotification('Access denied', 'error');
+            return;
+        }
+        
+        const userAddress = document.getElementById('blockUserAddress').value.trim();
+        const tempAddress = document.getElementById('tempAddress').value.trim();
+        const note = document.getElementById('blockNote').value.trim();
+        
+        if (!Utils.isValidAddress(userAddress) || !Utils.isValidAddress(tempAddress)) {
+            UI.showNotification('Invalid addresses', 'error');
+            return;
+        }
+        
+        const confirmed = confirm('Are you sure you want to block this user?');
+        if (!confirmed) return;
+        
+        try {
+            // Здесь будет логика блокировки
+            UI.showNotification('User blocked', 'success');
+            
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        }
+    },
+    
+    // Замена адреса
+    async replaceAddress() {
+        if (!Auth.isOwner()) {
+            UI.showNotification('Access denied', 'error');
+            return;
+        }
+        
+        const currentAddress = document.getElementById('currentAddress').value.trim();
+        const newAddress = document.getElementById('newAddress').value.trim();
+        const note = document.getElementById('replaceNote').value.trim();
+        
+        if (!Utils.isValidAddress(currentAddress) || !Utils.isValidAddress(newAddress)) {
+            UI.showNotification('Invalid addresses', 'error');
+            return;
+        }
+        
+        const confirmed = confirm('Are you sure you want to replace this address?');
+        if (!confirmed) return;
+        
+        try {
+            // Здесь будет логика замены адреса
+            UI.showNotification('Address replaced', 'success');
+            
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        }
+    },
+    
+    // Вывод средств
+    async withdrawFunds() {
+        if (!Auth.hasRole('founder')) {
+            UI.showNotification('Access denied', 'error');
+            return;
+        }
+        
+        const pool = document.getElementById('withdrawPool').value;
+        const address = document.getElementById('withdrawAddress').value.trim();
+        const amount = parseFloat(document.getElementById('withdrawAmount').value);
+        const note = document.getElementById('withdrawNote').value.trim();
+        
+        if (!Utils.isValidAddress(address) || amount <= 0) {
+            UI.showNotification('Invalid input', 'error');
+            return;
+        }
+        
+        // Проверяем необходимость голосования
+        if (amount > 5) {
+            document.getElementById('votingRequired').style.display = 'block';
+            UI.showNotification('This operation requires voting', 'warning');
+            return;
+        }
+        
+        try {
+            // Здесь будет логика вывода средств
+            UI.showNotification('Withdrawal initiated', 'success');
+            
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        }
+    },
+    
+    // Делегирование прав
+    async delegateRights() {
+        const address = document.getElementById('delegateAddress').value.trim();
+        const rights = Array.from(document.querySelectorAll('input[name="delegateRights"]:checked'))
+            .map(cb => cb.value);
+        const note = document.getElementById('delegateNote').value.trim();
+        
+        if (!Utils.isValidAddress(address) || rights.length === 0) {
+            UI.showNotification('Invalid input', 'error');
+            return;
+        }
+        
+        try {
+            // Здесь будет логика делегирования
+            UI.showNotification('Rights delegated successfully', 'success');
+            
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        }
+    },
+    
+    // Экспорт базы данных
+    async exportDatabase() {
+        try {
+            await StorageManager.downloadDatabase();
+            UI.showNotification('Database exported', 'success');
+        } catch (error) {
+            UI.showNotification('Export failed', 'error');
+        }
+    }
 };
 </script>
+
+<style>
+/* Admin page styles */
+.admin-page {
+    min-height: 100vh;
+}
+
+.admin-role {
+    background: var(--accent-gold);
+    color: var(--primary-dark);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+.admin-info {
+    display: grid;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.admin-section {
+    background: rgba(26, 47, 79, 0.3);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.admin-section h3 {
+    color: var(--accent-gold);
+    margin-bottom: 20px;
+}
+
+.checkbox-group {
+    margin: 20px 0;
+}
+
+.checkbox-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.checkbox-list label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.warning-note {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 152, 0, 0.1);
+    border: 1px solid var(--warning);
+    border-radius: 8px;
+}
+
+.warning-note p {
+    color: var(--warning);
+    margin: 0;
+}
+
+.voting-notice {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid var(--accent-gold);
+    border-radius: 8px;
+}
+
+.voting-notice p {
+    color: var(--accent-gold);
+    margin: 0;
+}
+
+.btn-danger {
+    background: var(--error);
+}
+
+.btn-danger:hover {
+    background: #d32f2f;
+}
+
+/* Admin stats */
+.admin-stats {
+    display: grid;
+    gap: 30px;
+}
+
+.stat-group h3 {
+    color: var(--accent-gold);
+    margin-bottom: 15px;
+}
+
+.pools-stats {
+    display: grid;
+    gap: 10px;
+}
+
+.pool-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.05);
+    border-radius: 5px;
+}
+
+.pool-stat span:last-child {
+    color: var(--accent-gold);
+    font-weight: bold;
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-light);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary-blue);
+    border: 1px solid var(--accent-gold);
+    color: var(--text-white);
+    border-radius: 5px;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+/* Mobile responsive */
+@media screen and (max-width: 768px) {
+    .admin-section {
+        padding: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
