@@ -1,1415 +1,904 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GlobalWay Projects - Ecosystem projects and development roadmap">
-    <title>Projects - GlobalWay</title>
-    
-    <!-- Стили -->
-    <link rel="stylesheet" href="/css/variables.css">
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/animations.css">
-    <link rel="stylesheet" href="/css/responsive.css">
-    
-    <!-- Web3 и GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-</head>
-<body class="page-projects">
-    <!-- Фон -->
-    <div class="earth-background">
-        <img src="/assets/images/background.jpg" alt="Earth background" class="background-image">
-        <div class="stars-overlay"></div>
-    </div>
-
-    <!-- Навигация -->
-    <nav class="navigation">
-        <a href="/" class="nav-item" data-nav="index">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-text" data-i18n="common.home">Home</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="dashboard">
-            <span class="nav-icon">📊</span>
-            <span class="nav-text" data-i18n="navigation.dashboard">Dashboard</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="partners">
-            <span class="nav-icon">👥</span>
-            <span class="nav-text" data-i18n="navigation.partners">Partners</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="matrix">
-            <span class="nav-icon">🔗</span>
-            <span class="nav-text" data-i18n="navigation.matrix">Matrix</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="tokens">
-            <span class="nav-icon">🪙</span>
-            <span class="nav-text" data-i18n="navigation.tokens">Tokens</span>
-        </a>
-        <a href="#" class="nav-item active" data-nav="projects">
-            <span class="nav-icon">🚀</span>
-            <span class="nav-text" data-i18n="navigation.projects">Projects</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="settings">
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-text" data-i18n="navigation.settings">Settings</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="admin" id="adminNavItem" style="display: none;">
-            <span class="nav-icon">👑</span>
-            <span class="nav-text" data-i18n="navigation.admin">Admin</span>
-        </a>
-    </nav>
-
-    <!-- Переключатель языков -->
-    <div class="language-selector">
-        <button class="lang-btn active" data-lang="en">EN</button>
-        <button class="lang-btn" data-lang="ru">RU</button>
-        <button class="lang-btn" data-lang="uk">UK</button>
-    </div>
-
-    <!-- Основной контент -->
-    <main class="projects-container">
+<!-- Projects Component -->
+<div class="projects-page">
+    <div class="container">
         <!-- Заголовок -->
-        <header class="page-header">
-            <h1 class="page-title" data-i18n="projects.title">🚀 Projects</h1>
-            <p class="page-description">Explore the GlobalWay ecosystem and upcoming project launches</p>
-        </header>
-
+        <div class="page-header">
+            <h1 data-i18n="projects.title">Our Projects</h1>
+        </div>
+        
+        <!-- Основные проекты -->
+        <div class="projects-grid">
+            <!-- CardGift -->
+            <div class="project-card" data-project="cardgift">
+                <div class="project-header">
+                    <div class="project-icon">🎁</div>
+                    <h3>CardGift</h3>
+                    <span class="project-prefix">CG</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.cardgift.description">
+                        Digital greeting cards and gift service platform
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.defi">DeFi</span>
+                    <span class="tag" data-i18n="projects.tags.gifts">Gifts</span>
+                    <span class="tag" data-i18n="projects.tags.social">Social</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('cardgift')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('cardgift')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> Feb 1, 2025
+                </div>
+            </div>
+            
+            <!-- GlobalTub -->
+            <div class="project-card" data-project="globaltub">
+                <div class="project-header">
+                    <div class="project-icon">📺</div>
+                    <h3>GlobalTub</h3>
+                    <span class="project-prefix">GT</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.globaltub.description">
+                        Decentralized video sharing and education platform
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.video">Video</span>
+                    <span class="tag" data-i18n="projects.tags.education">Education</span>
+                    <span class="tag" data-i18n="projects.tags.content">Content</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('globaltub')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('globaltub')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> Mar 1, 2025
+                </div>
+            </div>
+            
+            <!-- GlobalMarket -->
+            <div class="project-card" data-project="globalmarket">
+                <div class="project-header">
+                    <div class="project-icon">🛒</div>
+                    <h3>GlobalMarket</h3>
+                    <span class="project-prefix">GM</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.globalmarket.description">
+                        Decentralized marketplace for goods and services
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.marketplace">Marketplace</span>
+                    <span class="tag" data-i18n="projects.tags.p2p">P2P</span>
+                    <span class="tag" data-i18n="projects.tags.trading">Trading</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('globalmarket')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('globalmarket')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> Apr 1, 2025
+                </div>
+            </div>
+            
+            <!-- GlobalGame -->
+            <div class="project-card" data-project="globalgame">
+                <div class="project-header">
+                    <div class="project-icon">🎮</div>
+                    <h3>GlobalGame</h3>
+                    <span class="project-prefix">GG</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.globalgame.description">
+                        Gaming platform with play-to-earn mechanics
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.gaming">Gaming</span>
+                    <span class="tag" data-i18n="projects.tags.p2e">Play2Earn</span>
+                    <span class="tag" data-i18n="projects.tags.nft">NFT</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('globalgame')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('globalgame')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> Jun 1, 2025
+                </div>
+            </div>
+            
+            <!-- GlobalEdu -->
+            <div class="project-card" data-project="globaledu">
+                <div class="project-header">
+                    <div class="project-icon">🎓</div>
+                    <h3>GlobalEdu</h3>
+                    <span class="project-prefix">GE</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.globaledu.description">
+                        Educational platform with certification system
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.education">Education</span>
+                    <span class="tag" data-i18n="projects.tags.certification">Certification</span>
+                    <span class="tag" data-i18n="projects.tags.learning">Learning</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('globaledu')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('globaledu')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> Sep 1, 2025
+                </div>
+            </div>
+            
+            <!-- GlobalBank -->
+            <div class="project-card" data-project="globalbank">
+                <div class="project-header">
+                    <div class="project-icon">🏦</div>
+                    <h3>GlobalBank</h3>
+                    <span class="project-prefix">GB</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.globalbank.description">
+                        DeFi banking services: lending, yield farming, crypto banking
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.defi">DeFi</span>
+                    <span class="tag" data-i18n="projects.tags.lending">Lending</span>
+                    <span class="tag" data-i18n="projects.tags.yieldfarming">Yield Farming</span>
+                    <span class="tag" data-i18n="projects.tags.cryptobanking">Crypto Banking</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('globalbank')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('globalbank')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> Dec 1, 2025
+                </div>
+            </div>
+            
+            <!-- GlobalAI -->
+            <div class="project-card" data-project="globalai">
+                <div class="project-header">
+                    <div class="project-icon">🤖</div>
+                    <h3>GlobalAI</h3>
+                    <span class="project-prefix">GA</span>
+                </div>
+                <div class="project-description">
+                    <p data-i18n="projects.globalai.description">
+                        AI-powered services and automation tools
+                    </p>
+                </div>
+                <div class="project-tags">
+                    <span class="tag" data-i18n="projects.tags.ai">AI</span>
+                    <span class="tag" data-i18n="projects.tags.automation">Automation</span>
+                    <span class="tag" data-i18n="projects.tags.tools">Tools</span>
+                </div>
+                <div class="project-actions">
+                    <button class="btn-secondary" onclick="ProjectsController.showDetails('globalai')">
+                        <span data-i18n="projects.details">Details</span>
+                    </button>
+                    <button class="btn" onclick="ProjectsController.openProject('globalai')" disabled>
+                        <span data-i18n="projects.openProject">Open Project</span>
+                    </button>
+                </div>
+                <div class="project-status coming-soon">
+                    <span data-i18n="projects.launchDate">Launch:</span> 2026
+                </div>
+            </div>
+        </div>
+        
+        <!-- Предложить проект -->
+        <div class="card">
+            <h2 data-i18n="projects.proposeProject">Propose a Project</h2>
+            <div class="propose-section">
+                <p data-i18n="projects.proposeDescription">
+                    Have an innovative idea? Submit your project proposal for review.
+                </p>
+                <button class="btn" onclick="ProjectsController.showProposeForm()">
+                    <span data-i18n="projects.submitProposal">Submit Proposal</span>
+                </button>
+            </div>
+        </div>
+        
         <!-- Статистика проектов -->
-        <section class="projects-stats-section">
+        <div class="card">
+            <h2 data-i18n="projects.projectStatistics">Project Statistics</h2>
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-value" id="totalProjects">8</div>
-                    <div class="stat-label" data-i18n="projects.totalProjects">Total Projects</div>
+                    <div class="stat-label" data-i18n="projects.stats.total">Total Projects</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="activeProjects">1</div>
-                    <div class="stat-label" data-i18n="projects.activeProjects">Active Projects</div>
+                    <div class="stat-value" id="activeProjects">0</div>
+                    <div class="stat-label" data-i18n="projects.stats.active">Active Projects</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="inDevelopment">3</div>
-                    <div class="stat-label" data-i18n="projects.inDevelopment">In Development</div>
+                    <div class="stat-value" id="developmentProjects">8</div>
+                    <div class="stat-label" data-i18n="projects.stats.development">In Development</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="comingSoon">4</div>
-                    <div class="stat-label" data-i18n="projects.comingSoon">Coming Soon</div>
+                    <div class="stat-value" id="reviewProjects">0</div>
+                    <div class="stat-label" data-i18n="projects.stats.review">Under Review</div>
                 </div>
             </div>
-        </section>
-
-        <!-- Фильтры проектов -->
-        <section class="projects-filters-section">
-            <div class="filters-container">
-                <div class="filter-tabs horizontal-scroll" id="projectFilters">
-                    <button class="filter-btn active" data-filter="all">All Projects</button>
-                    <button class="filter-btn" data-filter="active">Active</button>
-                    <button class="filter-btn" data-filter="development">In Development</button>
-                    <button class="filter-btn" data-filter="coming">Coming Soon</button>
-                    <button class="filter-btn" data-filter="proposed">Proposed</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Сетка проектов -->
-        <section class="projects-grid-section">
-            <div class="projects-grid" id="projectsGrid">
-                <!-- Проекты генерируются через JavaScript -->
-            </div>
-        </section>
-
+        </div>
+        
         <!-- Дорожная карта -->
-        <section class="roadmap-section">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="projects.roadmap">Development Roadmap</h2>
+        <div class="card">
+            <h2 data-i18n="projects.roadmap">Roadmap</h2>
+            <div class="roadmap-timeline">
+                <div class="timeline-item">
+                    <div class="timeline-date">Q1 2025</div>
+                    <div class="timeline-content">
+                        <h4 data-i18n="projects.roadmap.q1.title">Platform Launch</h4>
+                        <ul>
+                            <li data-i18n="projects.roadmap.q1.item1">GlobalWay platform launch</li>
+                            <li data-i18n="projects.roadmap.q1.item2">CardGift & GlobalTub release</li>
+                        </ul>
+                    </div>
                 </div>
-                <div class="card-content">
-                    <div class="roadmap-timeline">
-                        <div class="timeline-item completed">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q1 2025</div>
-                                <div class="timeline-title">Platform Launch</div>
-                                <div class="timeline-description">GlobalWay platform and token launch</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item active">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q2 2025</div>
-                                <div class="timeline-title">First Projects</div>
-                                <div class="timeline-description">CardGift and GlobalTub launch</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q3 2025</div>
-                                <div class="timeline-title">Expansion</div>
-                                <div class="timeline-description">GlobalMarket and GlobalGame</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q4 2025</div>
-                                <div class="timeline-title">Education & Finance</div>
-                                <div class="timeline-description">GlobalEdu and GlobalBank</div>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-dot"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">2026</div>
-                                <div class="timeline-title">Securities Market</div>
-                                <div class="timeline-description">GWC token enters securities market</div>
-                            </div>
-                        </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">Q2 2025</div>
+                    <div class="timeline-content">
+                        <h4 data-i18n="projects.roadmap.q2.title">Expansion</h4>
+                        <ul>
+                            <li data-i18n="projects.roadmap.q2.item1">GlobalMarket launch</li>
+                            <li data-i18n="projects.roadmap.q2.item2">Mobile app release</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">Q3 2025</div>
+                    <div class="timeline-content">
+                        <h4 data-i18n="projects.roadmap.q3.title">Gaming & Education</h4>
+                        <ul>
+                            <li data-i18n="projects.roadmap.q3.item1">GlobalGame beta</li>
+                            <li data-i18n="projects.roadmap.q3.item2">GlobalEdu launch</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">Q4 2025</div>
+                    <div class="timeline-content">
+                        <h4 data-i18n="projects.roadmap.q4.title">DeFi Integration</h4>
+                        <ul>
+                            <li data-i18n="projects.roadmap.q4.item1">GlobalBank launch</li>
+                            <li data-i18n="projects.roadmap.q4.item2">Token listing</li>
+                        </ul>
                     </div>
                 </div>
             </div>
-        </section>
+        </div>
+    </div>
+</div>
 
-        <!-- Предложить проект -->
-        <section class="propose-project-section">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="projects.proposal">Propose Project</h2>
+<!-- Модальное окно деталей проекта -->
+<div id="projectDetailsModal" class="modal">
+    <div class="modal-content large-modal">
+        <div class="modal-header">
+            <h2 id="projectDetailsTitle">Project Details</h2>
+            <button class="modal-close" onclick="UI.closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="projectDetailsContent">
+            <!-- Содержимое загружается динамически -->
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно предложения проекта -->
+<div id="proposeProjectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 data-i18n="projects.proposeProject">Propose a Project</h2>
+            <button class="modal-close" onclick="UI.closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <form id="proposeProjectForm" onsubmit="ProjectsController.submitProposal(event)">
+                <div class="form-group">
+                    <label data-i18n="projects.form.author">Author</label>
+                    <input type="text" name="author" required>
                 </div>
-                <div class="card-content">
-                    <p data-i18n="projects.proposalDescription">Have an innovative project idea? Submit your proposal for review by the GlobalWay community.</p>
-                    <button class="btn-primary" id="proposeProjectBtn">
-                        💡 <span data-i18n="projects.submit">Submit Proposal</span>
+                <div class="form-group">
+                    <label data-i18n="projects.form.contact">Contact</label>
+                    <input type="text" name="contact" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="projects.form.sphere">Sphere of Activity</label>
+                    <input type="text" name="sphere" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="projects.form.projectName">Project Name</label>
+                    <input type="text" name="projectName" required>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="projects.form.description">Project Description</label>
+                    <textarea name="description" rows="5" required></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="UI.closeModal()">
+                        <span data-i18n="buttons.cancel">Cancel</span>
+                    </button>
+                    <button type="submit" class="btn">
+                        <span data-i18n="buttons.submit">Submit</span>
                     </button>
                 </div>
-            </div>
-        </section>
-
-        <!-- Программа разработчика -->
-        <section class="developer-program-section">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="projects.developerProgram">Developer Program</h2>
-                </div>
-                <div class="card-content">
-                    <div class="program-features">
-                        <div class="feature-item">
-                            <div class="feature-icon">💰</div>
-                            <div class="feature-title" data-i18n="projects.rewards">Developer Rewards</div>
-                            <div class="feature-description">Earn tokens and revenue sharing for successful projects</div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">🛠️</div>
-                            <div class="feature-title" data-i18n="projects.tools">Development Tools</div>
-                            <div class="feature-description">Access to APIs, SDKs, and development resources</div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">👥</div>
-                            <div class="feature-title" data-i18n="projects.support">Community Support</div>
-                            <div class="feature-description">Connect with other developers and get mentorship</div>
-                        </div>
-                        <div class="feature-item">
-                            <div class="feature-icon">📚</div>
-                            <div class="feature-title" data-i18n="projects.documentation">Documentation</div>
-                            <div class="feature-description">Comprehensive guides and technical documentation</div>
-                        </div>
-                    </div>
-                    <div class="program-actions">
-                        <button class="btn-primary" id="joinProgramBtn">
-                            🚀 <span data-i18n="projects.joinProgram">Join Program</span>
-                        </button>
-                        <button class="btn-secondary" id="viewDocsBtn">
-                            📖 <span data-i18n="projects.viewDocs">View Documentation</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Система голосований (только для учредителей) -->
-        <section class="voting-section" id="votingSection" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="projects.voting">Project Voting</h2>
-                </div>
-                <div class="card-content">
-                    <div class="voting-list" id="votingList">
-                        <!-- Генерируется через JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Новости проектов -->
-        <section class="project-news-section">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="projects.news">Project News</h2>
-                </div>
-                <div class="card-content">
-                    <div class="news-list" id="projectNewsList">
-                        <!-- Генерируется через JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Модальные окна -->
-
-    <!-- Детали проекта -->
-    <div class="modal-overlay" id="projectDetailsModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeProjectDetailsModal">&times;</button>
-            <h2 class="modal-title" id="projectModalTitle">Project Details</h2>
-            <div class="modal-text">
-                <div class="project-details" id="projectDetails">
-                    <!-- Заполняется через JavaScript -->
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-secondary" id="closeProjectBtn" data-i18n="common.close">Close</button>
-                    <button class="btn-primary" id="openProjectBtn" style="display: none;">
-                        🚀 <span data-i18n="common.open">Open Project</span>
-                    </button>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- Предложение проекта -->
-    <div class="modal-overlay" id="proposeProjectModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeProposeProjectModal">&times;</button>
-            <h2 class="modal-title" data-i18n="projects.proposal">Propose Project</h2>
-            <div class="modal-text">
-                <form class="propose-project-form" id="proposeProjectForm">
-                    <div class="form-group">
-                        <label for="projectAuthor" data-i18n="projects.author">Author:</label>
-                        <input type="text" id="projectAuthor" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="projectContact" data-i18n="projects.contact">Contact:</label>
-                        <input type="email" id="projectContact" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="projectCategory" data-i18n="projects.category">Category:</label>
-                        <select id="projectCategory" class="form-input" required>
-                            <option value="">Select category...</option>
-                            <option value="fintech">FinTech</option>
-                            <option value="social">Social</option>
-                            <option value="education">Education</option>
-                            <option value="gaming">Gaming</option>
-                            <option value="marketplace">Marketplace</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="projectIdea" data-i18n="projects.idea">Project Idea:</label>
-                        <input type="text" id="projectIdea" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="projectDescription" data-i18n="projects.description">Description:</label>
-                        <textarea id="projectDescription" class="form-input" rows="5" required></textarea>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn-secondary" id="cancelProposalBtn" data-i18n="common.cancel">Cancel</button>
-                        <button type="submit" class="btn-primary" data-i18n="projects.submit">Submit Proposal</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Загрузочный оверлей -->
-    <div class="modal-overlay" id="loadingOverlay" style="display: none;">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p id="loadingText" data-i18n="common.loading">Loading...</p>
-        </div>
-    </div>
-
-    <!-- Область уведомлений -->
-    <div class="notifications-container" id="notificationsContainer"></div>
-
-    <!-- Скрипты -->
-    <script src="/js/i18n.js"></script>
-    <script src="/js/web3-manager.js"></script>
-    <script src="/js/contract-manager.js"></script>
-    <script src="/js/app.js"></script>
+<script>
+// Projects Controller
+window.ProjectsController = {
+    projectsData: {
+        cardgift: {
+            title: 'CardGift',
+            icon: '🎁',
+            prefix: 'CG',
+            description: 'Digital greeting cards and gift service platform',
+            features: [
+                'Create personalized digital cards',
+                'Send crypto gifts',
+                'NFT greeting cards',
+                'Social sharing integration'
+            ],
+            launch: 'February 1, 2025',
+            website: 'https://cardgift.global',
+            contract: null
+        },
+        globaltub: {
+            title: 'GlobalTub',
+            icon: '📺',
+            prefix: 'GT',
+            description: 'Decentralized video sharing and education platform',
+            features: [
+                'Upload and monetize videos',
+                'Educational content marketplace',
+                'Live streaming capabilities',
+                'Creator rewards in GWT'
+            ],
+            launch: 'March 1, 2025',
+            website: 'https://globaltub.com',
+            contract: null
+        },
+        globalmarket: {
+            title: 'GlobalMarket',
+            icon: '🛒',
+            prefix: 'GM',
+            description: 'Decentralized marketplace for goods and services',
+            features: [
+                'P2P trading platform',
+                'Escrow services',
+                'Multi-currency support',
+                'Reputation system'
+            ],
+            launch: 'April 1, 2025',
+            website: null,
+            contract: null
+        },
+        globalgame: {
+            title: 'GlobalGame',
+            icon: '🎮',
+            prefix: 'GG',
+            description: 'Gaming platform with play-to-earn mechanics',
+            features: [
+                'Multiple game genres',
+                'NFT game assets',
+                'Tournament system',
+                'Play-to-earn rewards'
+            ],
+            launch: 'June 1, 2025',
+            website: null,
+            contract: null
+        },
+        globaledu: {
+            title: 'GlobalEdu',
+            icon: '🎓',
+            prefix: 'GE',
+            description: 'Educational platform with certification system',
+            features: [
+                'Online courses',
+                'Blockchain certificates',
+                'Mentor matching',
+                'Skill verification'
+            ],
+            launch: 'September 1, 2025',
+            website: null,
+            contract: null
+        },
+        globalbank: {
+            title: 'GlobalBank',
+            icon: '🏦',
+            prefix: 'GB',
+            description: 'DeFi banking services',
+            features: [
+                'Crypto lending',
+                'Yield farming',
+                'Staking pools',
+                'DeFi insurance'
+            ],
+            launch: 'December 1, 2025',
+            website: null,
+            contract: null
+        },
+        globalai: {
+            title: 'GlobalAI',
+            icon: '🤖',
+            prefix: 'GA',
+            description: 'AI-powered services and automation tools',
+            features: [
+                'AI assistants',
+                'Automated trading bots',
+                'Content generation',
+                'Data analytics'
+            ],
+            launch: '2026',
+            website: null,
+            contract: null
+        }
+    },
     
-    <script>
-        // Данные проектов экосистемы
-        const projectsData = [
-            {
-                id: 'globalway',
-                name: 'GlobalWay',
-                icon: '🌐',
-                status: 'active',
-                category: 'platform',
-                description: 'Decentralized ecosystem platform with matrix marketing',
-                fullDescription: 'GlobalWay is the foundational platform that connects all ecosystem projects through a unified marketing program and decentralized processes.',
-                launchDate: '2025-01-15',
-                features: ['Matrix Marketing', 'Token Economics', 'Multi-project Integration'],
-                website: '#',
-                contractAddress: '0x64De05a0c818a925711EA0874FD972Bdc2edb2aA'
-            },
-            {
-                id: 'cardgift',
-                name: 'CardGift',
-                icon: '🎁',
-                status: 'development',
-                category: 'social',
-                description: 'Digital greeting cards and gift platform',
-                fullDescription: 'Create and send personalized digital greeting cards with integrated gift options and social features.',
-                launchDate: '2025-04-01',
-                features: ['Digital Cards', 'Gift Integration', 'Social Sharing'],
-                website: '#',
-                contractAddress: null
-            },
-            {
-                id: 'globaltub',
-                name: 'GlobalTub',
-                icon: '📺',
-                status: 'development',
-                category: 'media',
-                description: 'Decentralized video sharing platform',
-                fullDescription: 'A blockchain-based video platform where creators earn tokens for content and engagement.',
-                launchDate: '2025-05-15',
-                features: ['Video Sharing', 'Creator Rewards', 'Decentralized Storage'],
-                website: '#',
-                contractAddress: null
-            },
-            {
-                id: 'globalmarket',
-                name: 'GlobalMarket',
-                icon: '🛒',
-                status: 'coming',
-                category: 'marketplace',
-                description: 'Global decentralized marketplace',
-                fullDescription: 'A peer-to-peer marketplace powered by smart contracts with integrated escrow and reputation systems.',
-                launchDate: '2025-07-01',
-                features: ['P2P Trading', 'Smart Escrow', 'Reputation System'],
-                website: '#',
-                contractAddress: null
-            },
-            {
-                id: 'globalgame',
-                name: 'GlobalGame',
-                icon: '🎮',
-                status: 'coming',
-                category: 'gaming',
-                description: 'Play-to-earn gaming ecosystem',
-                fullDescription: 'A gaming platform where players can earn real rewards through gameplay and tournament participation.',
-                launchDate: '2025-08-15',
-                features: ['Play-to-Earn', 'Tournaments', 'NFT Integration'],
-                website: '#',
-                contractAddress: null
-            },
-            {
-                id: 'globaledu',
-                name: 'GlobalEdu',
-                icon: '🎓',
-                status: 'coming',
-                category: 'education',
-                description: 'Decentralized education platform',
-                fullDescription: 'Learn-to-earn educational platform with verified credentials and skill-based token rewards.',
-                launchDate: '2025-10-01',
-                features: ['Online Courses', 'Verified Certificates', 'Learn-to-Earn'],
-                website: '#',
-                contractAddress: null
-            },
-            {
-                id: 'globalbank',
-                name: 'GlobalBank',
-                icon: '🏦',
-                status: 'coming',
-                category: 'fintech',
-                description: 'DeFi banking services',
-                fullDescription: 'Comprehensive DeFi banking with lending, borrowing, and yield farming opportunities.',
-                launchDate: '2025-12-01',
-                features: ['DeFi Lending', 'Yield Farming', 'Crypto Banking'],
-                website: '#',
-                contractAddress: null
-            },
-            {
-                id: 'globalai',
-                name: 'GlobalAI',
-                icon: '🤖',
-                status: 'coming',
-                category: 'technology',
-                description: 'AI-powered tools and services',
-                fullDescription: 'Artificial intelligence tools integrated with blockchain for automated trading, analysis, and optimization.',
-                launchDate: '2026-03-01',
-                features: ['AI Trading', 'Smart Analytics', 'Automation Tools'],
-                website: '#',
-                contractAddress: null
-            }
-        ];
-
-        // Состояние страницы проектов
-        let projectsState = {
-            currentFilter: 'all',
-            projects: projectsData,
-            news: []
+    // Инициализация
+    async init() {
+        // Загружаем статистику проектов
+        this.loadProjectStatistics();
+    },
+    
+    // Загрузка статистики
+    loadProjectStatistics() {
+        // Здесь будет загрузка реальной статистики
+        // Пока используем статические данные
+    },
+    
+    // Показать детали проекта
+    showDetails(projectId) {
+        const project = this.projectsData[projectId];
+        if (!project) return;
+        
+        const content = `
+            <div class="project-details">
+                <div class="project-header-details">
+                    <div class="project-icon-large">${project.icon}</div>
+                    <div>
+                        <h3>${project.title}</h3>
+                        <p class="project-prefix-large">Prefix: ${project.prefix}</p>
+                    </div>
+                </div>
+                <div class="project-description-full">
+                    <p>${project.description}</p>
+                </div>
+                <div class="project-features">
+                    <h4 data-i18n="projects.features">Key Features</h4>
+                    <ul>
+                        ${project.features.map(feature => `<li>${feature}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="project-info-grid">
+                    <div class="info-item">
+                        <label data-i18n="projects.launchDate">Launch Date:</label>
+                        <span>${project.launch}</span>
+                    </div>
+                    ${project.website ? `
+                        <div class="info-item">
+                            <label data-i18n="projects.website">Website:</label>
+                            <a href="${project.website}" target="_blank">${project.website}</a>
+                        </div>
+                    ` : ''}
+                    ${project.contract ? `
+                        <div class="info-item">
+                            <label data-i18n="projects.contract">Contract:</label>
+                            <span class="address">${project.contract}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('projectDetailsTitle').textContent = project.title;
+        document.getElementById('projectDetailsContent').innerHTML = content;
+        document.getElementById('projectDetailsModal').style.display = 'flex';
+    },
+    
+    // Открыть проект
+    async openProject(projectId) {
+        const project = this.projectsData[projectId];
+        if (!project) return;
+        
+        // Проверяем регистрацию
+        if (!Auth.requireRegistration()) return;
+        
+        // Генерируем ID с префиксом проекта
+        const projectUserId = GlobalWayApp.formatProjectId(project.prefix);
+        
+        // Здесь будет логика перехода на проект
+        UI.showNotification(`Opening ${project.title}...`, 'info');
+        
+        // В будущем будет редирект на URL проекта с параметрами авторизации
+        // window.location.href = `${project.website}?id=${projectUserId}`;
+    },
+    
+    // Показать форму предложения
+    showProposeForm() {
+        if (!Auth.requireRegistration()) return;
+        
+        document.getElementById('proposeProjectModal').style.display = 'flex';
+    },
+    
+    // Отправка предложения
+    async submitProposal(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(event.target);
+        const proposal = {
+            author: formData.get('author'),
+            contact: formData.get('contact'),
+            sphere: formData.get('sphere'),
+            projectName: formData.get('projectName'),
+            description: formData.get('description'),
+            submittedBy: GlobalWayApp.getCurrentUser().address,
+            timestamp: Date.now()
         };
-
-        // Инициализация страницы Projects
-        document.addEventListener('DOMContentLoaded', async () => {
-            await i18n.loadTranslations();
-            await initializeProjectsPage();
-        });
-
-        async function initializeProjectsPage() {
-            console.log('🚀 Initializing Projects page...');
-            
-            try {
-                setupProjectsEventListeners();
-                renderProjectsGrid();
-                generateProjectNews();
-                
-                // Проверяем права доступа для голосований
-                if (app.userState.isConnected && 
-                    ['owner', 'founder', 'director'].includes(app.userState.role)) {
-                    showVotingSection();
-                }
-                
-                console.log('✅ Projects page initialized');
-                
-            } catch (error) {
-                console.error('❌ Projects page initialization failed:', error);
-                app.showNotification('Failed to initialize projects page', 'error');
-            }
-        }
-
-        function setupProjectsEventListeners() {
-            // Фильтры проектов
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const filter = e.target.dataset.filter;
-                    setProjectFilter(filter);
-                });
-            });
-
-            // Предложение проекта
-            document.getElementById('proposeProjectBtn')?.addEventListener('click', () => {
-                app.showModal('proposeProjectModal');
-            });
-
-            // Программа разработчика
-            document.getElementById('joinProgramBtn')?.addEventListener('click', joinDeveloperProgram);
-            document.getElementById('viewDocsBtn')?.addEventListener('click', viewDocumentation);
-
-            // Модальные окна
-            document.getElementById('closeProjectDetailsModal')?.addEventListener('click', () => {
-                app.hideModal('projectDetailsModal');
-            });
-            
-            document.getElementById('closeProjectBtn')?.addEventListener('click', () => {
-                app.hideModal('projectDetailsModal');
-            });
-
-            document.getElementById('closeProposeProjectModal')?.addEventListener('click', () => {
-                app.hideModal('proposeProjectModal');
-            });
-            
-            document.getElementById('cancelProposalBtn')?.addEventListener('click', () => {
-                app.hideModal('proposeProjectModal');
-            });
-
-            // Форма предложения проекта
-            document.getElementById('proposeProjectForm')?.addEventListener('submit', handleProjectProposal);
-
-            // Открытие проекта
-            document.getElementById('openProjectBtn')?.addEventListener('click', openSelectedProject);
-        }
-
-        function setProjectFilter(filter) {
-            projectsState.currentFilter = filter;
-            
-            // Обновляем активную кнопку фильтра
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.filter === filter) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            renderProjectsGrid();
-        }
-
-        function renderProjectsGrid() {
-            const container = document.getElementById('projectsGrid');
-            if (!container) return;
-            
-            const filteredProjects = projectsState.currentFilter === 'all' 
-                ? projectsState.projects 
-                : projectsState.projects.filter(p => p.status === projectsState.currentFilter);
-            
-            container.innerHTML = filteredProjects.map(project => `
-                <div class="project-card ${project.status}" data-project-id="${project.id}">
-                    <div class="project-header">
-                        <div class="project-icon">${project.icon}</div>
-                        <div class="project-status ${project.status}">${getStatusText(project.status)}</div>
-                    </div>
-                    <div class="project-content">
-                        <h3 class="project-name">${project.name}</h3>
-                        <p class="project-description">${project.description}</p>
-                        <div class="project-features">
-                            ${project.features.map(feature => `<span class="feature-tag">${feature}</span>`).join('')}
-                        </div>
-                        <div class="project-launch">
-                            <span class="launch-label">Launch:</span>
-                            <span class="launch-date">${formatLaunchDate(project.launchDate)}</span>
-                        </div>
-                    </div>
-                    <div class="project-actions">
-                        <button class="btn-secondary project-details-btn">
-                            📋 Details
-                        </button>
-                        ${project.status === 'active' ? `
-                            <button class="btn-primary project-open-btn">
-                                🚀 Open
-                            </button>
-                        ` : `
-                            <button class="btn-primary" disabled>
-                                🔒 ${getStatusText(project.status)}
-                            </button>
-                        `}
-                    </div>
-                </div>
-            `).join('');
-            
-            // Добавляем обработчики событий
-            container.querySelectorAll('.project-details-btn').forEach((btn, index) => {
-                btn.addEventListener('click', () => {
-                    showProjectDetails(filteredProjects[index]);
-                });
-            });
-            
-            container.querySelectorAll('.project-open-btn').forEach((btn, index) => {
-                btn.addEventListener('click', () => {
-                    openProject(filteredProjects[index]);
-                });
-            });
-        }
-
-        function getStatusText(status) {
-            const statusMap = {
-                active: 'Active',
-                development: 'In Development',
-                coming: 'Coming Soon',
-                proposed: 'Proposed'
-            };
-            return statusMap[status] || status;
-        }
-
-        function formatLaunchDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function showProjectDetails(project) {
-            const title = document.getElementById('projectModalTitle');
-            const details = document.getElementById('projectDetails');
-            const openBtn = document.getElementById('openProjectBtn');
-            
-            title.textContent = project.name;
-            
-            details.innerHTML = `
-                <div class="project-detail-header">
-                    <div class="project-detail-icon">${project.icon}</div>
-                    <div class="project-detail-info">
-                        <h3>${project.name}</h3>
-                        <span class="project-detail-status ${project.status}">${getStatusText(project.status)}</span>
-                    </div>
-                </div>
-                <div class="project-detail-content">
-                    <div class="detail-section">
-                        <h4>Description</h4>
-                        <p>${project.fullDescription}</p>
-                    </div>
-                    <div class="detail-section">
-                        <h4>Features</h4>
-                        <div class="features-list">
-                            ${project.features.map(feature => `<span class="feature-item">${feature}</span>`).join('')}
-                        </div>
-                    </div>
-                    <div class="detail-section">
-                        <h4>Launch Information</h4>
-                        <div class="launch-info">
-                            <div class="info-item">
-                                <span class="info-label">Category:</span>
-                                <span class="info-value">${project.category}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Launch Date:</span>
-                                <span class="info-value">${formatLaunchDate(project.launchDate)}</span>
-                            </div>
-                            ${project.contractAddress ? `
-                                <div class="info-item">
-                                    <span class="info-label">Contract:</span>
-                                    <span class="info-value contract-address">${project.contractAddress}</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Показываем кнопку открытия для активных проектов
-            if (project.status === 'active') {
-                openBtn.style.display = 'inline-flex';
-                openBtn.onclick = () => openProject(project);
-            } else {
-                openBtn.style.display = 'none';
-            }
-            
-            app.showModal('projectDetailsModal');
-        }
-
-        function openProject(project) {
-            if (project.status !== 'active') {
-                app.showNotification('Project is not yet available', 'warning');
-                return;
-            }
-            
-            // Здесь будет логика открытия проекта
-            // Пока просто показываем уведомление
-            app.showNotification(`Opening ${project.name}...`, 'info');
-            
-            // В реальном приложении здесь будет переход на проект
-            if (project.website && project.website !== '#') {
-                window.open(project.website, '_blank');
-            }
-        }
-
-        function openSelectedProject() {
-            // Логика открытия выбранного проекта из модального окна
-            app.hideModal('projectDetailsModal');
-        }
-
-        function showVotingSection() {
-            const votingSection = document.getElementById('votingSection');
-            if (votingSection) {
-                votingSection.style.display = 'block';
-                generateVotingProposals();
-            }
-        }
-
-        function generateVotingProposals() {
-            const container = document.getElementById('votingList');
-            if (!container) return;
-            
-            // Примеры голосований для демонстрации
-            const proposals = [
-                {
-                    id: 1,
-                    title: 'Accelerate CardGift Development',
-                    description: 'Proposal to allocate additional resources to expedite CardGift launch',
-                    votesFor: 6,
-                    votesAgainst: 2,
-                    abstained: 3,
-                    status: 'active',
-                    deadline: '2025-02-01'
-                },
-                {
-                    id: 2,
-                    title: 'New Project: GlobalHealth',
-                    description: 'Add healthcare management platform to ecosystem',
-                    votesFor: 4,
-                    votesAgainst: 1,
-                    abstained: 6,
-                    status: 'active',
-                    deadline: '2025-02-15'
-                }
-            ];
-            
-            container.innerHTML = proposals.map(proposal => `
-                <div class="voting-item">
-                    <div class="voting-header">
-                        <h4 class="voting-title">${proposal.title}</h4>
-                        <span class="voting-status ${proposal.status}">${proposal.status}</span>
-                    </div>
-                    <p class="voting-description">${proposal.description}</p>
-                    <div class="voting-results">
-                        <div class="vote-option for">
-                            <span class="vote-label">For:</span>
-                            <span class="vote-count">${proposal.votesFor}</span>
-                        </div>
-                        <div class="vote-option against">
-                            <span class="vote-label">Against:</span>
-                            <span class="vote-count">${proposal.votesAgainst}</span>
-                        </div>
-                        <div class="vote-option abstain">
-                            <span class="vote-label">Abstain:</span>
-                            <span class="vote-count">${proposal.abstained}</span>
-                        </div>
-                    </div>
-                    <div class="voting-actions">
-                        <button class="vote-btn for">Vote For</button>
-                        <button class="vote-btn against">Vote Against</button>
-                        <button class="vote-btn abstain">Abstain</button>
-                    </div>
-                    <div class="voting-deadline">
-                        Deadline: ${formatLaunchDate(proposal.deadline)}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function generateProjectNews() {
-            const container = document.getElementById('projectNewsList');
-            if (!container) return;
-            
-            const news = [
-                {
-                    title: 'GlobalWay Platform Successfully Launched',
-                    date: '2025-01-15',
-                    content: 'The GlobalWay platform is now live with full matrix marketing functionality and token integration.',
-                    category: 'launch'
-                },
-                {
-                    title: 'CardGift Development Progress Update',
-                    date: '2025-01-10',
-                    content: 'CardGift development is 75% complete. Beta testing to begin in February 2025.',
-                    category: 'development'
-                },
-                {
-                    title: 'GlobalTub Technical Architecture Finalized',
-                    date: '2025-01-05',
-                    content: 'Technical specifications for the decentralized video platform have been completed.',
-                    category: 'development'
-                },
-                {
-                    title: 'Developer Program Applications Open',
-                    date: '2025-01-01',
-                    content: 'Applications are now open for the GlobalWay Developer Program with enhanced rewards.',
-                    category: 'announcement'
-                }
-            ];
-            
-            container.innerHTML = news.map(item => `
-                <div class="news-item">
-                    <div class="news-header">
-                        <h4 class="news-title">${item.title}</h4>
-                        <span class="news-category ${item.category}">${item.category}</span>
-                    </div>
-                    <p class="news-content">${item.content}</p>
-                    <div class="news-date">${formatLaunchDate(item.date)}</div>
-                </div>
-            `).join('');
-        }
-
-        function joinDeveloperProgram() {
-            if (!app.userState.isConnected) {
-                app.showNotification('Please connect your wallet first', 'warning');
-                return;
-            }
-            
-            app.showNotification('Developer program application submitted!', 'success');
-        }
-
-        function viewDocumentation() {
-            const docsUrl = 'https://docs.globalway.club';
-            window.open(docsUrl, '_blank');
-        }
-
-        function handleProjectProposal(event) {
-            event.preventDefault();
-            
-            const formData = new FormData(event.target);
-            const proposal = {
-                author: formData.get('projectAuthor'),
-                contact: formData.get('projectContact'),
-                category: formData.get('projectCategory'),
-                idea: formData.get('projectIdea'),
-                description: formData.get('projectDescription'),
-                submittedAt: new Date().toISOString()
-            };
-            
-            // В реальном приложении здесь была бы отправка на сервер
-            console.log('Project proposal submitted:', proposal);
-            
-            app.hideModal('proposeProjectModal');
-            app.showNotification('Project proposal submitted for review!', 'success');
-            
-            // Очищаем форму
-            event.target.reset();
-        }
-
-        // Добавляем функции в глобальное приложение
-        if (typeof app !== 'undefined') {
-            app.initializeProjects = initializeProjectsPage;
-        }
-    </script>
-
-    <style>
-        /* Специфичные стили для страницы Projects */
-        .projects-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: var(--spacing-lg);
-            padding-bottom: 120px;
-        }
-
-        .projects-stats-section {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .projects-filters-section {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .filters-container {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-md);
-            backdrop-filter: blur(10px);
-        }
-
-        .filter-tabs {
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-
-        .filter-btn {
-            padding: var(--spacing-sm) var(--spacing-lg);
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius-small);
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all var(--transition-medium);
-            white-space: nowrap;
-        }
-
-        .filter-btn:hover {
-            border-color: var(--primary-gold);
-            transform: translateY(-2px);
-        }
-
-        .filter-btn.active {
-            background: var(--gradient-gold);
-            color: var(--text-inverse);
-            border-color: var(--primary-gold);
-        }
-
-        .projects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: var(--spacing-xl);
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .project-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-xl);
-            backdrop-filter: blur(10px);
-            transition: all var(--transition-medium);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .project-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--primary-gold);
-        }
-
-        .project-card.active::before { background: var(--matrix-active); }
-        .project-card.development::before { background: #ff9800; }
-        .project-card.coming::before { background: #2196f3; }
-
-        .project-card:hover {
-            transform: translateY(-8px);
-            box-shadow: var(--shadow-large);
-            border-color: var(--primary-gold);
-        }
-
-        .project-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .project-icon {
-            font-size: 3rem;
-            filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
-        }
-
-        .project-status {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius-small);
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-semibold);
-            text-transform: uppercase;
-        }
-
-        .project-status.active { 
-            background: var(--matrix-active); 
-            color: var(--text-inverse); 
-        }
-        .project-status.development { 
-            background: #ff9800; 
-            color: var(--text-inverse); 
-        }
-        .project-status.coming { 
-            background: #2196f3; 
-            color: var(--text-primary); 
-        }
-
-        .project-name {
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--primary-gold);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .project-description {
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-lg);
-            line-height: 1.6;
-        }
-
-        .project-features {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-xs);
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .feature-tag {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            background: var(--glass-bg-dark);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius-small);
-            font-size: var(--font-size-xs);
-            color: var(--text-primary);
-        }
-
-        .project-launch {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-lg);
-            padding: var(--spacing-sm) 0;
-            border-top: 1px solid var(--glass-border);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .launch-label {
-            color: var(--text-secondary);
-            font-size: var(--font-size-sm);
-        }
-
-        .launch-date {
-            color: var(--primary-gold);
-            font-weight: var(--font-weight-semibold);
-        }
-
-        .project-actions {
-            display: flex;
-            gap: var(--spacing-md);
-        }
-
-        .roadmap-section,
-        .propose-project-section,
-        .developer-program-section,
-        .voting-section,
-        .project-news-section {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .roadmap-timeline {
-            position: relative;
-            padding-left: var(--spacing-xl);
-        }
-
-        .roadmap-timeline::before {
-            content: '';
-            position: absolute;
-            left: 15px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: var(--glass-border);
-        }
-
-        .timeline-item {
-            position: relative;
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .timeline-item.completed .timeline-dot {
-            background: var(--matrix-active);
-        }
-
-        .timeline-item.active .timeline-dot {
-            background: var(--primary-gold);
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-        }
-
-        .timeline-dot {
-            position: absolute;
-            left: -24px;
-            top: 5px;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: var(--glass-border);
-            border: 3px solid var(--background-dark);
-        }
-
-        .timeline-content {
-            padding-left: var(--spacing-md);
-        }
-
-        .timeline-date {
-            color: var(--primary-gold);
-            font-weight: var(--font-weight-semibold);
-            font-size: var(--font-size-sm);
-        }
-
-        .timeline-title {
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-bold);
-            color: var(--text-primary);
-            margin: var(--spacing-xs) 0;
-        }
-
-        .timeline-description {
-            color: var(--text-secondary);
-            font-size: var(--font-size-sm);
-        }
-
-        .program-features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .feature-item {
-            text-align: center;
-            padding: var(--spacing-lg);
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            backdrop-filter: blur(10px);
-        }
-
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .feature-title {
-            font-weight: var(--font-weight-bold);
-            color: var(--primary-gold);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .feature-description {
-            color: var(--text-secondary);
-            font-size: var(--font-size-sm);
-        }
-
-        .program-actions {
-            display: flex;
-            gap: var(--spacing-md);
-            justify-content: center;
-        }
-
-        .voting-item {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-lg);
-            margin-bottom: var(--spacing-lg);
-            backdrop-filter: blur(10px);
-        }
-
-        .voting-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .voting-title {
-            color: var(--primary-gold);
-            margin: 0;
-        }
-
-        .voting-status {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius-small);
-            font-size: var(--font-size-xs);
-            font-weight: var(--font-weight-semibold);
-            text-transform: uppercase;
-        }
-
-        .voting-status.active {
-            background: var(--matrix-active);
-            color: var(--text-inverse);
-        }
-
-        .voting-results {
-            display: flex;
-            gap: var(--spacing-lg);
-            margin: var(--spacing-lg) 0;
-        }
-
-        .vote-option {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-sm);
-        }
-
-        .vote-option.for .vote-count { color: var(--matrix-active); }
-        .vote-option.against .vote-count { color: #f44336; }
-        .vote-option.abstain .vote-count { color: var(--text-muted); }
-
-        .voting-actions {
-            display: flex;
-            gap: var(--spacing-sm);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .vote-btn {
-            padding: var(--spacing-sm) var(--spacing-md);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius-small);
-            cursor: pointer;
-            transition: all var(--transition-medium);
-            font-size: var(--font-size-sm);
-        }
-
-        .vote-btn.for {
-            background: var(--matrix-active);
-            color: var(--text-inverse);
-        }
-
-        .vote-btn.against {
-            background: #f44336;
-            color: var(--text-primary);
-        }
-
-        .vote-btn.abstain {
-            background: var(--glass-bg);
-            color: var(--text-primary);
-        }
-
-        .voting-deadline {
-            color: var(--text-muted);
-            font-size: var(--font-size-sm);
-        }
-
-        .news-item {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius);
-            padding: var(--spacing-lg);
-            margin-bottom: var(--spacing-lg);
-            backdrop-filter: blur(10px);
-        }
-
-        .news-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .news-title {
-            color: var(--primary-gold);
-            margin: 0;
-            flex: 1;
-        }
-
-        .news-category {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius-small);
-            font-size: var(--font-size-xs);
-            font-weight: var(--font-weight-semibold);
-            text-transform: uppercase;
-            margin-left: var(--spacing-md);
-        }
-
-        .news-category.launch { 
-            background: var(--matrix-active); 
-            color: var(--text-inverse); 
-        }
-        .news-category.development { 
-            background: #ff9800; 
-            color: var(--text-inverse); 
-        }
-        .news-category.announcement { 
-            background: #2196f3; 
-            color: var(--text-primary); 
-        }
-
-        .news-content {
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-md);
-            line-height: 1.6;
-        }
-
-        .news-date {
-            color: var(--text-muted);
-            font-size: var(--font-size-sm);
-        }
-
-        .project-details {
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-
-        .project-detail-header {
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
-            padding-bottom: var(--spacing-lg);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .project-detail-icon {
-            font-size: 4rem;
-        }
-
-        .project-detail-info h3 {
-            color: var(--primary-gold);
-            margin: 0 0 var(--spacing-sm) 0;
-        }
-
-        .project-detail-status {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius-small);
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-semibold);
-        }
-
-        .detail-section {
-            margin-bottom: var(--spacing-xl);
-        }
-
-        .detail-section h4 {
-            color: var(--primary-gold);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .features-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-sm);
-        }
-
-        .feature-item {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--border-radius-small);
-            font-size: var(--font-size-sm);
-        }
-
-        .launch-info,
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--spacing-sm) 0;
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        .info-label {
-            color: var(--text-secondary);
-            font-weight: var(--font-weight-medium);
-        }
-
-        .info-value {
-            color: var(--text-primary);
-            font-weight: var(--font-weight-semibold);
-        }
-
-        .contract-address {
-            font-family: monospace;
-            font-size: var(--font-size-sm);
-        }
-
-        .propose-project-form {
-            display: grid;
-            gap: var(--spacing-lg);
-        }
-
-        /* Адаптивность */
-        @media (max-width: 768px) {
-            .projects-container {
-                padding: var(--spacing-md);
-            }
-
-            .filter-tabs {
-                flex-wrap: wrap;
-            }
-
-            .projects-grid {
-                grid-template-columns: 1fr;
-                gap: var(--spacing-lg);
-            }
-
-            .project-actions {
-                flex-direction: column;
-            }
-
-            .program-features {
-                grid-template-columns: 1fr;
-            }
-
-            .program-actions {
-                flex-direction: column;
-            }
-
-            .voting-results {
-                flex-direction: column;
-                gap: var(--spacing-sm);
-            }
-
-            .voting-actions {
-                flex-direction: column;
-            }
-
-            .news-header {
-                flex-direction: column;
-                gap: var(--spacing-sm);
-            }
-
-            .news-category {
-                margin-left: 0;
-                align-self: flex-start;
-            }
-
-            .project-detail-header {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .info-item {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: var(--spacing-xs);
-            }
-        }
-    </style>
-</body>
-</html>
+        
+        // Здесь будет отправка на сервер или в контракт
+        console.log('Project proposal:', proposal);
+        
+        UI.showNotification('Proposal submitted for review!', 'success');
+        UI.closeModal();
+        event.target.reset();
+    }
+};
+</script>
+
+<style>
+/* Projects page styles */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.project-card {
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 15px;
+    padding: 25px;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+}
+
+.project-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.project-icon {
+    font-size: 48px;
+}
+
+.project-header h3 {
+    flex: 1;
+    margin: 0;
+    color: var(--accent-gold);
+}
+
+.project-prefix {
+    background: rgba(255, 215, 0, 0.2);
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-weight: bold;
+    color: var(--accent-gold);
+}
+
+.project-description {
+    flex: 1;
+    margin-bottom: 15px;
+}
+
+.project-description p {
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+.project-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.tag {
+    background: rgba(255, 215, 0, 0.1);
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.project-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.project-actions button {
+    flex: 1;
+}
+
+.project-status {
+    text-align: center;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.project-status.coming-soon {
+    background: rgba(255, 152, 0, 0.2);
+    color: var(--warning);
+}
+
+.project-status.active {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--success);
+}
+
+/* Propose section */
+.propose-section {
+    text-align: center;
+    padding: 30px;
+}
+
+.propose-section p {
+    margin-bottom: 20px;
+    color: var(--text-light);
+}
+
+/* Roadmap timeline */
+.roadmap-timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.roadmap-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent-gold);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+    padding-left: 30px;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -35px;
+    top: 0;
+    width: 15px;
+    height: 15px;
+    background: var(--accent-gold);
+    border-radius: 50%;
+    border: 3px solid var(--primary-dark);
+}
+
+.timeline-date {
+    color: var(--accent-gold);
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.timeline-content {
+    background: rgba(26, 47, 79, 0.5);
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.timeline-content h4 {
+    margin: 0 0 10px 0;
+    color: var(--accent-gold);
+}
+
+.timeline-content ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.timeline-content li {
+    margin-bottom: 5px;
+    color: var(--text-light);
+}
+
+/* Project details modal */
+.large-modal {
+    max-width: 800px;
+}
+
+.project-details {
+    padding: 20px;
+}
+
+.project-header-details {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.project-icon-large {
+    font-size: 72px;
+}
+
+.project-prefix-large {
+    color: var(--text-gray);
+    margin-top: 5px;
+}
+
+.project-description-full {
+    margin-bottom: 30px;
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.project-features {
+    margin-bottom: 30px;
+}
+
+.project-features h4 {
+    color: var(--accent-gold);
+    margin-bottom: 15px;
+}
+
+.project-features ul {
+    list-style: none;
+    padding: 0;
+}
+
+.project-features li {
+    padding: 10px 0 10px 30px;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.project-features li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--accent-gold);
+    font-weight: bold;
+}
+
+.project-info-grid {
+    display: grid;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: rgba(255, 215, 0, 0.05);
+    border-radius: 5px;
+}
+
+.info-item a {
+    color: var(--accent-gold);
+    text-decoration: none;
+}
+
+.info-item a:hover {
+    text-decoration: underline;
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-light);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary-blue);
+    border: 1px solid var(--accent-gold);
+    color: var(--text-white);
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+/* Mobile responsive */
+@media screen and (max-width: 768px) {
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .project-header {
+        flex-wrap: wrap;
+    }
+    
+    .project-icon {
+        font-size: 36px;
+    }
+    
+    .roadmap-timeline {
+        padding-left: 20px;
+    }
+    
+    .timeline-item::before {
+        left: -25px;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .form-actions button {
+        width: 100%;
+    }
+}
+</style>
