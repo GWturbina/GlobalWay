@@ -1,517 +1,259 @@
-/* Адаптивный дизайн для всех устройств */
+/* ========================================
+   GlobalWay - Responsive Styles
+   ======================================== */
 
-/* Большие экраны (Desktop) */
-@media screen and (min-width: 1200px) {
-  .container {
-    max-width: 1140px;
-    margin: 0 auto;
-    padding: 0 var(--spacing-lg);
-  }
-  
-  .navigation {
-    top: 30px;
-    padding: var(--spacing-md) var(--spacing-xl);
-  }
-  
-  .nav-item {
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: var(--font-size-md);
-  }
-  
-  .main-logo .logo {
-    width: 150px;
-  }
-  
-  .main-logo h1 {
-    font-size: var(--font-size-xxl);
-  }
+/* Tablet (768px - 1024px) */
+@media screen and (max-width: 1024px) {
+    .earth-container {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .planet img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .nav-container {
+        gap: 10px;
+    }
+    
+    .nav-item {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
 }
 
-/* Средние экраны (Laptops/Tablets landscape) */
-@media screen and (min-width: 768px) and (max-width: 1199px) {
-  .container {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 var(--spacing-md);
-  }
-  
-  .navigation {
-    top: 25px;
-    width: auto;
-    max-width: 90%;
-  }
-  
-  .planets-container {
-    padding: var(--spacing-lg);
-  }
-  
-  .planet img {
-    width: 70px;
-    height: 70px;
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: var(--spacing-md);
-  }
-  
-  .level-buttons {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  }
+/* Mobile (max-width: 768px) */
+@media screen and (max-width: 768px) {
+    /* Навигация внизу для мобильных */
+    .navigation {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        border-top: 1px solid rgba(255, 215, 0, 0.3);
+        border-bottom: none;
+    }
+    
+    .nav-container {
+        justify-content: space-around;
+        gap: 0;
+        padding: 0 10px;
+    }
+    
+    .nav-item {
+        flex-direction: column;
+        padding: 5px 10px;
+        gap: 4px;
+        min-width: 60px;
+    }
+    
+    .nav-icon {
+        font-size: 20px;
+    }
+    
+    .nav-text {
+        font-size: 10px;
+    }
+    
+    /* Адаптация контента под навигацию внизу */
+    .main-content {
+        padding-top: calc(var(--header-height) + 20px);
+        padding-bottom: 80px;
+    }
+    
+    /* Landing page mobile */
+    .earth-container {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .planet img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .gwt-coin img {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .coin-text {
+        font-size: 16px;
+    }
+    
+    /* Модальные окна на мобильных */
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header h2 {
+        font-size: 20px;
+    }
+    
+    /* Header mobile */
+    .header-content {
+        padding: 0 15px;
+    }
+    
+    .logo img {
+        height: 30px;
+    }
+    
+    /* Карточки и кнопки */
+    .card {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .btn {
+        padding: 8px 20px;
+        font-size: 14px;
+    }
+    
+    /* Таблицы с горизонтальным скроллом */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .table-wrapper::-webkit-scrollbar {
+        display: none;
+    }
+    
+    /* Dashboard элементы */
+    .level-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    
+    .package-buttons {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    /* Статистика */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    /* Партнеры - горизонтальный скролл для уровней */
+    .levels-tabs {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 10px;
+        padding: 10px 0;
+    }
+    
+    .levels-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .level-tab {
+        flex: 0 0 auto;
+        padding: 8px 16px;
+        background: var(--primary-blue);
+        border: 1px solid var(--accent-gold);
+        border-radius: 20px;
+        color: var(--text-light);
+        white-space: nowrap;
+    }
+    
+    /* Матрица mobile */
+    .matrix-view {
+        zoom: 0.8;
+        overflow: auto;
+    }
+    
+    /* Проекты grid */
+    .projects-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
 }
 
-/* Планшеты (Portrait) */
-@media screen and (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
-  .navigation {
-    position: fixed;
-    bottom: 20px;
-    top: auto;
-    left: 20px;
-    right: 20px;
-    width: calc(100% - 40px);
-    transform: none;
-    border-radius: var(--border-radius);
-    justify-content: space-around;
-    padding: var(--spacing-md);
-  }
-  
-  .nav-item {
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-sm);
-    font-size: var(--font-size-xs);
-  }
-  
-  .nav-icon {
-    font-size: var(--font-size-lg);
-  }
-  
-  .main-logo {
-    top: 30px;
-  }
-  
-  .planet img {
-    width: 65px;
-    height: 65px;
-  }
-  
-  .modal-content {
-    width: 85%;
-    margin: var(--spacing-lg);
-  }
-}
-
-/* Мобильные устройства */
-@media screen and (max-width: 767px) {
-  .container {
-    padding: 0 var(--spacing-md);
-  }
-  
-  /* Навигация внизу для мобильных */
-  .navigation {
-    position: fixed;
-    bottom: 20px;
-    top: auto;
-    left: 20px;
-    right: 20px;
-    width: calc(100% - 40px);
-    transform: none;
-    border-radius: var(--border-radius);
-    justify-content: space-around;
-    padding: var(--spacing-sm) var(--spacing-md);
-    box-shadow: var(--shadow-large);
-  }
-  
-  .nav-item {
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-xs);
-    min-width: 0;
-    text-align: center;
-  }
-  
-  .nav-icon {
-    font-size: var(--font-size-md);
-  }
-  
-  .nav-text {
-    display: none; /* Скрываем текст на очень маленьких экранах */
-  }
-  
-  /* Логотип */
-  .main-logo {
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .main-logo .logo {
-    width: 80px;
-  }
-  
-  .main-logo h1 {
-    font-size: var(--font-size-lg);
-    margin-bottom: var(--spacing-sm);
-  }
-  
-  /* Переключатель языков */
-  .language-selector {
-    top: 15px;
-    right: 15px;
-    gap: var(--spacing-xs);
-  }
-  
-  .lang-btn {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: var(--font-size-xs);
-  }
-  
-  /* Планеты */
-  .planets-container {
-    padding: var(--spacing-md);
-    padding-bottom: 120px; /* Место для навигации */
-  }
-  
-  .planet img {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .gwt-coin img {
-    width: 80px;
-    height: 80px;
-  }
-  
-  .planet-label {
-    font-size: var(--font-size-xs);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    top: 70px;
-  }
-  
-  /* Кнопка dApp для мобильных */
-  .mobile-dapp-button {
-    display: block;
-    bottom: 100px; /* Над навигацией */
-  }
-  
-  /* Модальные окна */
-  .modal-content {
-    width: 90%;
-    margin: var(--spacing-md);
-    padding: var(--spacing-lg);
-    max-height: 70vh;
-  }
-  
-  .modal-title {
-    font-size: var(--font-size-lg);
-  }
-  
-  .modal-text {
-    font-size: var(--font-size-sm);
-  }
-  
-  /* Карточки */
-  .card {
-    margin-bottom: var(--spacing-md);
-    padding: var(--spacing-md);
-  }
-  
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--spacing-sm);
-  }
-  
-  .stat-value {
-    font-size: var(--font-size-xl);
-  }
-  
-  /* Таблицы на мобильных */
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  .table {
-    min-width: 600px;
-  }
-  
-  .table th,
-  .table td {
-    padding: var(--spacing-sm);
-    font-size: var(--font-size-xs);
-  }
-  
-  /* Уровни на мобильных */
-  .level-buttons {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-sm);
-  }
-  
-  .level-btn {
-    padding: var(--spacing-sm);
-    font-size: var(--font-size-xs);
-  }
-  
-  /* Матрица на мобильных */
-  .matrix-container {
-    padding: var(--spacing-md);
-    gap: var(--spacing-md);
-  }
-  
-  .matrix-position {
-    width: 45px;
-    height: 45px;
-    font-size: var(--font-size-sm);
-  }
-  
-  .matrix-level {
-    gap: var(--spacing-sm);
-  }
-  
-  /* Формы на мобильных */
-  .form-input {
-    padding: var(--spacing-sm);
-    font-size: var(--font-size-md);
-  }
-  
-  .btn-primary {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    font-size: var(--font-size-sm);
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .btn-secondary {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    font-size: var(--font-size-sm);
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-/* Очень маленькие экраны */
+/* Small mobile (max-width: 480px) */
 @media screen and (max-width: 480px) {
-  .navigation {
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    width: calc(100% - 20px);
-    padding: var(--spacing-xs) var(--spacing-sm);
-  }
-  
-  .nav-item {
-    padding: var(--spacing-xs);
-    gap: 2px;
-  }
-  
-  .nav-icon {
-    font-size: var(--font-size-sm);
-  }
-  
-  .main-logo .logo {
-    width: 60px;
-  }
-  
-  .main-logo h1 {
-    font-size: var(--font-size-md);
-  }
-  
-  .planet img {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .gwt-coin img {
-    width: 70px;
-    height: 70px;
-  }
-  
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .level-buttons {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .matrix-position {
-    width: 40px;
-    height: 40px;
-    font-size: var(--font-size-xs);
-  }
-  
-  .modal-content {
-    padding: var(--spacing-md);
-  }
+    .earth-container {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .planet img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .planet[data-planet="club"] {
+        top: 10%;
+        left: 5%;
+    }
+    
+    .planet[data-planet="mission"] {
+        top: 15%;
+        right: 5%;
+    }
+    
+    .planet[data-planet="goals"] {
+        bottom: 30%;
+        left: 10%;
+    }
+    
+    .planet[data-planet="roadmap"] {
+        bottom: 25%;
+        right: 5%;
+    }
+    
+    .planet[data-planet="projects"] {
+        top: 45%;
+        left: 5%;
+    }
+    
+    /* Кнопки уровней 2x6 на маленьких экранах */
+    .level-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Адаптация шрифтов */
+    body {
+        font-size: 14px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    h2 {
+        font-size: 20px;
+    }
+    
+    h3 {
+        font-size: 18px;
+    }
 }
 
-/* Альбомная ориентация на мобильных */
-@media screen and (max-width: 767px) and (orientation: landscape) {
-  .main-logo {
-    top: 10px;
-  }
-  
-  .main-logo .logo {
-    width: 50px;
-  }
-  
-  .main-logo h1 {
-    font-size: var(--font-size-sm);
-    margin-bottom: var(--spacing-xs);
-  }
-  
-  .planets-container {
-    padding: var(--spacing-sm);
-    padding-bottom: 80px;
-  }
-  
-  .planet img {
-    width: 45px;
-    height: 45px;
-  }
-  
-  .gwt-coin img {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .navigation {
-    bottom: 5px;
-    padding: var(--spacing-xs);
-  }
-  
-  .nav-item {
-    padding: var(--spacing-xs);
-  }
-  
-  .mobile-dapp-button {
-    bottom: 60px;
-  }
-}
-
-/* Горизонтальный скролл без полос на всех устройствах */
-.horizontal-scroll {
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
-}
-
-.horizontal-scroll > * {
-  scroll-snap-align: start;
-  flex-shrink: 0;
-}
-
-/* Адаптивная сетка */
-.responsive-grid {
-  display: grid;
-  gap: var(--spacing-md);
-}
-
-@media screen and (min-width: 768px) {
-  .responsive-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media screen and (min-width: 1024px) {
-  .responsive-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media screen and (min-width: 1200px) {
-  .responsive-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* Адаптивная типографика */
-@media screen and (max-width: 767px) {
-  h1 { font-size: var(--font-size-xl); }
-  h2 { font-size: var(--font-size-lg); }
-  h3 { font-size: var(--font-size-md); }
-  h4 { font-size: var(--font-size-sm); }
-  
-  .card-title {
-    font-size: var(--font-size-md);
-  }
-  
-  .stat-value {
-    font-size: var(--font-size-lg);
-  }
-}
-
-/* Скрытие элементов на разных экранах */
-.desktop-only {
-  display: block;
-}
-
-.tablet-only,
-.mobile-only {
-  display: none;
-}
-
-@media screen and (max-width: 1023px) {
-  .desktop-only {
-    display: none;
-  }
-  
-  .tablet-only {
-    display: block;
-  }
-}
-
-@media screen and (max-width: 767px) {
-  .desktop-only,
-  .tablet-only {
-    display: none;
-  }
-  
-  .mobile-only {
-    display: block;
-  }
-}
-
-/* Улучшенные touch targets для мобильных */
-@media screen and (max-width: 767px) {
-  button,
-  .btn-primary,
-  .btn-secondary,
-  .nav-item,
-  .level-btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  .planet {
-    min-height: 60px;
-    min-width: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-}
-
-/* Оптимизация для iOS Safari */
-@supports (-webkit-touch-callout: none) {
-  .navigation {
-    padding-bottom: calc(var(--spacing-md) + env(safe-area-inset-bottom));
-  }
-  
-  .mobile-dapp-button {
-    bottom: calc(100px + env(safe-area-inset-bottom));
-  }
-  
-  .planets-container {
-    padding-bottom: calc(120px + env(safe-area-inset-bottom));
-  }
-}
-
-/* Высокая плотность пикселей */
-@media screen and (-webkit-min-device-pixel-ratio: 2),
-       screen and (min-resolution: 192dpi) {
-  .logo,
-  .planet img {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-  }
+/* Landscape orientation для мобильных */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    .earth-container {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .gwt-coin-container {
+        bottom: 20px;
+    }
+    
+    .gwt-coin img {
+        width: 60px;
+        height: 60px;
+    }
 }
