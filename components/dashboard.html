@@ -1,662 +1,392 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GlobalWay Dashboard - Manage your account, levels, and earnings">
-    <title>Dashboard - GlobalWay</title>
-    
-    <!-- Стили -->
-    <link rel="stylesheet" href="/css/variables.css">
-    <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/animations.css">
-    <link rel="stylesheet" href="/css/responsive.css">
-    
-    <!-- Web3 и GSAP -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.8.0/web3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-</head>
-<body class="page-dashboard">
-    <!-- Фон -->
-    <div class="earth-background">
-        <img src="/assets/images/background.jpg" alt="Earth background" class="background-image">
-        <div class="stars-overlay"></div>
-    </div>
-
-    <!-- Навигация -->
-    <nav class="navigation">
-        <a href="/" class="nav-item" data-nav="index">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-text" data-i18n="common.home">Home</span>
-        </a>
-        <a href="#" class="nav-item active" data-nav="dashboard">
-            <span class="nav-icon">📊</span>
-            <span class="nav-text" data-i18n="navigation.dashboard">Dashboard</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="partners">
-            <span class="nav-icon">👥</span>
-            <span class="nav-text" data-i18n="navigation.partners">Partners</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="matrix">
-            <span class="nav-icon">🔗</span>
-            <span class="nav-text" data-i18n="navigation.matrix">Matrix</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="tokens">
-            <span class="nav-icon">🪙</span>
-            <span class="nav-text" data-i18n="navigation.tokens">Tokens</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="projects">
-            <span class="nav-icon">🚀</span>
-            <span class="nav-text" data-i18n="navigation.projects">Projects</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="settings">
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-text" data-i18n="navigation.settings">Settings</span>
-        </a>
-        <a href="#" class="nav-item" data-nav="admin" id="adminNavItem" style="display: none;">
-            <span class="nav-icon">👑</span>
-            <span class="nav-text" data-i18n="navigation.admin">Admin</span>
-        </a>
-    </nav>
-
-    <!-- Переключатель языков -->
-    <div class="language-selector">
-        <button class="lang-btn active" data-lang="en">EN</button>
-        <button class="lang-btn" data-lang="ru">RU</button>
-        <button class="lang-btn" data-lang="uk">UK</button>
-    </div>
-
-    <!-- Основной контент -->
-    <main class="dashboard-container">
+<!-- Dashboard Component -->
+<div class="dashboard-page">
+    <div class="container">
         <!-- Заголовок -->
-        <header class="dashboard-header">
-            <div class="header-content">
-                <h1 class="page-title" data-i18n="dashboard.title">Dashboard</h1>
-                <div class="wallet-status" id="walletStatus">
-                    <div class="wallet-disconnected" id="walletDisconnected">
-                        <p data-i18n="dashboard.connectWallet">Connect your SafePal wallet to get started</p>
-                        <button class="btn-primary" id="connectWalletBtn">
-                            <span data-i18n="wallet.connect">Connect Wallet</span>
-                        </button>
+        <div class="page-header">
+            <h1 data-i18n="dashboard.title">Dashboard</h1>
+        </div>
+        
+        <!-- Секция подключения кошелька -->
+        <div id="walletSection" class="card">
+            <h2 data-i18n="dashboard.walletConnection">Wallet Connection</h2>
+            <div id="walletInfo" class="wallet-info">
+                <button id="connectWalletBtn" class="btn connect-wallet-btn" onclick="DashboardController.connectWallet()">
+                    <span data-i18n="dashboard.connectWallet">Connect Wallet</span>
+                </button>
+                <div id="walletDetails" style="display: none;">
+                    <div class="wallet-detail">
+                        <label data-i18n="dashboard.walletAddress">Wallet Address:</label>
+                        <span id="walletAddress"></span>
                     </div>
-                    <div class="wallet-connected" id="walletConnected" style="display: none;">
-                        <div class="wallet-info">
-                            <div class="wallet-address">
-                                <span class="label" data-i18n="wallet.address">Address:</span>
-                                <span class="value" id="userAddress">0x...</span>
-                                <button class="copy-btn" id="copyAddressBtn" data-i18n="common.copy">📋</button>
-                            </div>
-                            <div class="wallet-balance">
-                                <span class="label" data-i18n="wallet.balance">Balance:</span>
-                                <span class="value" id="userBalance">0.0000 BNB</span>
-                            </div>
-                        </div>
-                        <button class="btn-secondary" id="disconnectWalletBtn">
-                            <span data-i18n="wallet.disconnect">Disconnect</span>
-                        </button>
+                    <div class="wallet-detail">
+                        <label data-i18n="dashboard.balance">Balance:</label>
+                        <span id="walletBalance">0.0000 BNB</span>
                     </div>
                 </div>
             </div>
-        </header>
-
-        <!-- Статистика пользователя -->
-        <section class="user-stats-section" id="userStatsSection" style="display: none;">
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value" id="userId">-------</div>
-                    <div class="stat-label" data-i18n="user.id">ID</div>
+        </div>
+        
+        <!-- Секция регистрации (показывается после подключения) -->
+        <div id="registrationSection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.registration">Registration</h2>
+            <p data-i18n="dashboard.notRegistered">You are not registered yet.</p>
+            <button id="registerBtn" class="btn" onclick="DashboardController.showRegistrationModal()">
+                <span data-i18n="dashboard.registerNow">Register Now</span>
+            </button>
+        </div>
+        
+        <!-- Основная информация пользователя -->
+        <div id="userInfoSection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.userInfo">User Information</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label data-i18n="dashboard.userId">User ID:</label>
+                    <span id="userId" class="value">-</span>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="userRank">0</div>
-                    <div class="stat-label" data-i18n="user.rank">Rank</div>
+                <div class="info-item">
+                    <label data-i18n="dashboard.rank">Rank:</label>
+                    <span id="userRank" class="value">-</span>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="totalEarned">0.0000 BNB</div>
-                    <div class="stat-label" data-i18n="user.totalEarned">Total Earned</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="activeUntil">--</div>
-                    <div class="stat-label" data-i18n="quarterly.nextPayment">Next Payment</div>
+                <div class="info-item">
+                    <label data-i18n="dashboard.totalEarned">Total Earned:</label>
+                    <span id="totalEarned" class="value">0.0000 BNB</span>
                 </div>
             </div>
-            
-            <!-- Реферальная ссылка -->
             <div class="referral-section">
-                <label for="referralLink" data-i18n="user.referralLink">Referral Link:</label>
-                <div class="referral-input-group">
-                    <input type="text" id="referralLink" readonly class="form-input" placeholder="https://globalway.club/ref">
-                    <button class="btn-secondary" id="copyReferralBtn" data-i18n="common.copy">📋</button>
-                    <button class="btn-secondary" id="shareReferralBtn" data-i18n="common.share">📤</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Управление уровнями -->
-        <section class="level-management-section" id="levelManagementSection" style="display: none;">
-            <h2 data-i18n="levels.title">Levels</h2>
-            
-            <!-- Кнопки массовой покупки -->
-            <div class="bulk-purchase-section">
-                <h3 data-i18n="levels.bulkPurchase">Bulk Purchase</h3>
-                <div class="bulk-buttons">
-                    <button class="btn-primary bulk-btn" data-max-level="4" id="bulkBtn4">
-                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "4"}'>Buy Levels 1-4</span>
-                        <small class="bulk-price" id="bulkPrice4">0.0000 BNB</small>
-                    </button>
-                    <button class="btn-primary bulk-btn" data-max-level="7" id="bulkBtn7">
-                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "7"}'>Buy Levels 1-7</span>
-                        <small class="bulk-price" id="bulkPrice7">0.0000 BNB</small>
-                    </button>
-                    <button class="btn-primary bulk-btn" data-max-level="10" id="bulkBtn10">
-                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "10"}'>Buy Levels 1-10</span>
-                        <small class="bulk-price" id="bulkPrice10">0.0000 BNB</small>
-                    </button>
-                    <button class="btn-primary bulk-btn" data-max-level="12" id="bulkBtn12">
-                        <span data-i18n="levels.buyBulk" data-i18n-params='{"level": "12"}'>Buy Levels 1-12</span>
-                        <small class="bulk-price" id="bulkPrice12">0.0000 BNB</small>
+                <label data-i18n="dashboard.referralLink">Referral Link:</label>
+                <div class="referral-link-box">
+                    <input type="text" id="referralLink" readonly>
+                    <button class="btn-secondary" onclick="DashboardController.copyReferralLink()">
+                        <span data-i18n="dashboard.copyLink">Copy</span>
                     </button>
                 </div>
             </div>
-
-            <!-- Индивидуальные уровни -->
-            <div class="individual-levels-section">
-                <h3 data-i18n="levels.selectLevels">Select levels to purchase</h3>
-                <div class="level-buttons" id="levelButtons">
-                    <!-- Уровни генерируются через JavaScript -->
-                </div>
-            </div>
-        </section>
-
+        </div>
+        
         <!-- Квартальная активность -->
-        <section class="quarterly-section" id="quarterlySection" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="quarterly.title">Quarterly Activity</h2>
-                    <div class="quarterly-status" id="quarterlyStatus">
-                        <span class="status-indicator active" id="quarterlyIndicator"></span>
-                        <span class="status-text" id="quarterlyStatusText" data-i18n="user.active">Active</span>
+        <div id="quarterlySection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.quarterlyActivity">Quarterly Activity</h2>
+            <div class="quarterly-info">
+                <div class="quarterly-status">
+                    <div id="quarterlyTimer" class="timer">
+                        <span class="days">90</span> <span data-i18n="dashboard.daysLeft">days left</span>
+                    </div>
+                    <div class="quarterly-fee">
+                        <span data-i18n="dashboard.fee">Fee:</span> <strong>0.075 BNB</strong>
                     </div>
                 </div>
-                <div class="card-content">
-                    <div class="quarterly-info">
-                        <div class="quarterly-item">
-                            <span class="label" data-i18n="quarterly.fee">Activity Fee:</span>
-                            <span class="value">0.075 BNB</span>
-                        </div>
-                        <div class="quarterly-item">
-                            <span class="label" data-i18n="quarterly.daysLeft">Days Left:</span>
-                            <span class="value" id="daysLeft">--</span>
-                        </div>
-                    </div>
-                    <p class="quarterly-description" data-i18n="quarterly.description">
-                        Pay quarterly activity fee to maintain access to all features
-                    </p>
-                    <button class="btn-primary" id="payQuarterlyBtn">
-                        💰 <span data-i18n="quarterly.payNow">Pay Now</span>
-                    </button>
-                    
-                    <!-- Информация о распределении -->
-                    <div class="distribution-info">
-                        <h4 data-i18n="quarterly.distribution">Fee Distribution:</h4>
-                        <ul>
-                            <li>60% (0.045 BNB) - <span data-i18n="quarterly.marketing">Marketing</span></li>
-                            <li>30% (0.0225 BNB) - <span data-i18n="quarterly.charity">Charity Package</span></li>
-                            <li>10% - <span data-i18n="quarterly.development">Development Pool</span></li>
-                        </ul>
-                    </div>
-                </div>
+                <button id="payQuarterlyBtn" class="btn" onclick="DashboardController.payQuarterly()">
+                    <span data-i18n="dashboard.payQuarterly">Pay Quarterly</span>
+                </button>
             </div>
-        </section>
-
+        </div>
+        
+        <!-- Управление уровнями -->
+        <div id="levelsSection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.levelManagement">Level Management</h2>
+            
+            <!-- Кнопки уровней -->
+            <div class="level-grid">
+                <button class="level-btn" data-level="1" onclick="DashboardController.buyLevel(1)">
+                    <span class="level-num">1</span>
+                    <span class="level-price">0.0015 BNB</span>
+                </button>
+                <button class="level-btn" data-level="2" onclick="DashboardController.buyLevel(2)">
+                    <span class="level-num">2</span>
+                    <span class="level-price">0.003 BNB</span>
+                </button>
+                <button class="level-btn" data-level="3" onclick="DashboardController.buyLevel(3)">
+                    <span class="level-num">3</span>
+                    <span class="level-price">0.006 BNB</span>
+                </button>
+                <button class="level-btn" data-level="4" onclick="DashboardController.buyLevel(4)">
+                    <span class="level-num">4</span>
+                    <span class="level-price">0.012 BNB</span>
+                </button>
+                <button class="level-btn" data-level="5" onclick="DashboardController.buyLevel(5)">
+                    <span class="level-num">5</span>
+                    <span class="level-price">0.024 BNB</span>
+                </button>
+                <button class="level-btn" data-level="6" onclick="DashboardController.buyLevel(6)">
+                    <span class="level-num">6</span>
+                    <span class="level-price">0.048 BNB</span>
+                </button>
+                <button class="level-btn" data-level="7" onclick="DashboardController.buyLevel(7)">
+                    <span class="level-num">7</span>
+                    <span class="level-price">0.096 BNB</span>
+                </button>
+                <button class="level-btn" data-level="8" onclick="DashboardController.buyLevel(8)">
+                    <span class="level-num">8</span>
+                    <span class="level-price">0.192 BNB</span>
+                </button>
+                <button class="level-btn" data-level="9" onclick="DashboardController.buyLevel(9)">
+                    <span class="level-num">9</span>
+                    <span class="level-price">0.384 BNB</span>
+                </button>
+                <button class="level-btn" data-level="10" onclick="DashboardController.buyLevel(10)">
+                    <span class="level-num">10</span>
+                    <span class="level-price">0.768 BNB</span>
+                </button>
+                <button class="level-btn" data-level="11" onclick="DashboardController.buyLevel(11)">
+                    <span class="level-num">11</span>
+                    <span class="level-price">1.536 BNB</span>
+                </button>
+                <button class="level-btn" data-level="12" onclick="DashboardController.buyLevel(12)">
+                    <span class="level-num">12</span>
+                    <span class="level-price">3.072 BNB</span>
+                </button>
+            </div>
+            
+            <!-- Пакетные кнопки -->
+            <div class="package-buttons">
+                <button class="package-btn" onclick="DashboardController.buyPackage(4)">
+                    <span data-i18n="dashboard.package14">Package 1-4</span>
+                    <span class="package-price">0.0225 BNB</span>
+                </button>
+                <button class="package-btn" onclick="DashboardController.buyPackage(7)">
+                    <span data-i18n="dashboard.package17">Package 1-7</span>
+                    <span class="package-price">0.1905 BNB</span>
+                </button>
+                <button class="package-btn" onclick="DashboardController.buyPackage(10)">
+                    <span data-i18n="dashboard.package110">Package 1-10</span>
+                    <span class="package-price">1.5345 BNB</span>
+                </button>
+                <button class="package-btn" onclick="DashboardController.buyPackage(12)">
+                    <span data-i18n="dashboard.package112">Package 1-12</span>
+                    <span class="package-price">6.1425 BNB</span>
+                </button>
+            </div>
+        </div>
+        
         <!-- Доходы по рангам -->
-        <section class="rank-earnings-section" id="rankEarningsSection" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="earnings.title">💎 Rank Earnings</h2>
+        <div id="earningsSection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.incomeByRanks">Income by Ranks</h2>
+            <div class="earnings-list">
+                <div class="earnings-item">
+                    <span class="rank-icon">🌟</span>
+                    <span class="rank-name" data-i18n="levels.beginner">Beginner</span>
+                    <span class="rank-income" id="income1">0 BNB</span>
                 </div>
-                <div class="card-content">
-                    <div class="rank-earnings-grid" id="rankEarningsGrid">
-                        <!-- Генерируется через JavaScript -->
-                    </div>
-                    <div class="total-earnings">
-                        <div class="total-label" data-i18n="earnings.total">💰 Total Earnings:</div>
-                        <div class="total-value" id="totalEarningsValue">0.0000 BNB</div>
-                    </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🔍</span>
+                    <span class="rank-name" data-i18n="levels.explorer">Explorer</span>
+                    <span class="rank-income" id="income2">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">💡</span>
+                    <span class="rank-name" data-i18n="levels.innovator">Innovator</span>
+                    <span class="rank-income" id="income3">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🔧</span>
+                    <span class="rank-name" data-i18n="levels.techEnthusiast">Tech Enthusiast</span>
+                    <span class="rank-income" id="income4">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🎓</span>
+                    <span class="rank-name" data-i18n="levels.cryptoStudent">Crypto Student</span>
+                    <span class="rank-income" id="income5">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">⛓️</span>
+                    <span class="rank-name" data-i18n="levels.blockchainAdept">Blockchain Adept</span>
+                    <span class="rank-income" id="income6">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🛠️</span>
+                    <span class="rank-name" data-i18n="levels.smartContractMaster">Smart Contract Master</span>
+                    <span class="rank-income" id="income7">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🌐</span>
+                    <span class="rank-name" data-i18n="levels.web3Professional">Web3 Professional</span>
+                    <span class="rank-income" id="income8">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🏗️</span>
+                    <span class="rank-name" data-i18n="levels.metaArchitect">Meta Architect</span>
+                    <span class="rank-income" id="income9">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🤖</span>
+                    <span class="rank-name" data-i18n="levels.aiVisionary">AI Visionary</span>
+                    <span class="rank-income" id="income10">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">⚡</span>
+                    <span class="rank-name" data-i18n="levels.quantumLeader">Quantum Leader</span>
+                    <span class="rank-income" id="income11">0 BNB</span>
+                </div>
+                <div class="earnings-item">
+                    <span class="rank-icon">🌟</span>
+                    <span class="rank-name" data-i18n="levels.globalTechTitan">Global Tech Titan</span>
+                    <span class="rank-income" id="income12">0 BNB</span>
                 </div>
             </div>
-        </section>
-
+            <div class="total-income">
+                <span data-i18n="dashboard.totalIncome">Total Income:</span>
+                <strong id="totalIncome">0 BNB</strong>
+            </div>
+        </div>
+        
         <!-- История транзакций -->
-        <section class="transactions-section" id="transactionsSection" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="transactions.title">Transaction History</h2>
-                    <button class="btn-secondary" id="refreshTransactionsBtn">
-                        🔄 <span data-i18n="common.refresh">Refresh</span>
-                    </button>
-                </div>
-                <div class="card-content">
-                    <div class="table-container">
-                        <table class="table" id="transactionsTable">
-                            <thead>
-                                <tr>
-                                    <th data-i18n="transactions.type">Type</th>
-                                    <th data-i18n="levels.level">Level</th>
-                                    <th data-i18n="transactions.amount">Amount</th>
-                                    <th data-i18n="transactions.date">Date</th>
-                                    <th data-i18n="transactions.hash">Hash</th>
-                                </tr>
-                            </thead>
-                            <tbody id="transactionsTableBody">
-                                <tr>
-                                    <td colspan="5" class="text-center">
-                                        <span data-i18n="common.loading">Loading...</span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <div id="historySection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.transactionHistory">Transaction History</h2>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th data-i18n="dashboard.level">Level</th>
+                            <th data-i18n="dashboard.amount">Amount</th>
+                            <th data-i18n="dashboard.date">Date</th>
+                            <th>ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionHistory">
+                        <tr>
+                            <td colspan="5" class="empty-message" data-i18n="dashboard.noTransactions">
+                                No transactions yet
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </section>
-
-        <!-- Информация о токенах -->
-        <section class="token-info-section" id="tokenInfoSection" style="display: none;">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title" data-i18n="tokens.title">🪙 Token Information</h2>
-                    <button class="btn-secondary" data-nav="tokens">
-                        <span data-i18n="tokens.trading">Go to Trading</span> →
-                    </button>
+        </div>
+        
+        <!-- Токены -->
+        <div id="tokensSection" class="card" style="display: none;">
+            <h2 data-i18n="dashboard.tokens">Tokens</h2>
+            <div class="token-info">
+                <div class="token-balance">
+                    <label data-i18n="dashboard.tokenBalance">Token Balance:</label>
+                    <span id="tokenBalance" class="value">0 GWT</span>
                 </div>
-                <div class="card-content">
-                    <div class="token-stats">
-                        <div class="token-stat">
-                            <div class="token-stat-value" id="tokenBalance">0 GWT</div>
-                            <div class="token-stat-label" data-i18n="tokens.balance">Token Balance</div>
-                        </div>
-                        <div class="token-stat">
-                            <div class="token-stat-value" id="tokenPrice">$0.00</div>
-                            <div class="token-stat-label" data-i18n="tokens.price">Current Price</div>
-                        </div>
-                        <div class="token-stat">
-                            <div class="token-stat-value" id="tokenValue">$0.00</div>
-                            <div class="token-stat-label" data-i18n="tokens.totalValue">Total Value</div>
-                        </div>
-                    </div>
+                <div class="token-price">
+                    <label data-i18n="dashboard.price">Price:</label>
+                    <span id="tokenPrice" class="value">$0.0001</span>
                 </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Модальные окна -->
-
-    <!-- Модальное окно регистрации -->
-    <div class="modal-overlay" id="registrationModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeRegistrationModal">&times;</button>
-            <h2 class="modal-title" data-i18n="dashboard.activateAccount">Activate Account</h2>
-            <div class="modal-text">
-                <p data-i18n="user.notRegistered">You are not registered yet. Please enter your sponsor's address to register.</p>
-                <div class="form-group">
-                    <label for="sponsorAddress" data-i18n="admin.sponsorAddress">Sponsor Address:</label>
-                    <input type="text" id="sponsorAddress" class="form-input" placeholder="0x..." required>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-secondary" id="cancelRegistrationBtn" data-i18n="common.cancel">Cancel</button>
-                    <button class="btn-primary" id="registerUserBtn" data-i18n="admin.activateUser">Register</button>
-                </div>
+                <button class="btn" onclick="Router.navigate('tokens')">
+                    <span data-i18n="dashboard.exchange">Exchange</span>
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Модальное окно активации уровней -->
-    <div class="modal-overlay" id="levelActivationModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeLevelActivationModal">&times;</button>
-            <h2 class="modal-title" data-i18n="levels.activate">Activate Levels</h2>
-            <div class="modal-text">
-                <p>Select which levels you want to activate to start earning.</p>
-                <div class="activation-level-grid" id="activationLevelGrid">
-                    <!-- Генерируется через JavaScript -->
-                </div>
-                <div class="activation-total">
-                    <span data-i18n="levels.totalCost">Total Cost:</span>
-                    <span id="activationTotalCost">0.0000 BNB</span>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-secondary" id="cancelActivationBtn" data-i18n="common.cancel">Cancel</button>
-                    <button class="btn-primary" id="confirmActivationBtn" data-i18n="levels.confirmPurchase">Confirm Purchase</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Загрузочный оверлей -->
-    <div class="modal-overlay" id="loadingOverlay" style="display: none;">
-        <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <p id="loadingText" data-i18n="common.loading">Loading...</p>
-        </div>
-    </div>
-
-    <!-- Область уведомлений -->
-    <div class="notifications-container" id="notificationsContainer"></div>
-
-    <!-- Скрипты -->
-    <script src="/js/i18n.js"></script>
-    <script src="/js/web3-manager.js"></script>
-    <script src="/js/contract-manager.js"></script>
-    <script src="/js/app.js"></script>
+<script>
+// Dashboard Controller
+window.DashboardController = {
+    // Инициализация
+    async init() {
+        if (GlobalWayApp.isConnected()) {
+            await this.updateUserData();
+        }
+    },
     
-    <script>
-        // Специфичная для Dashboard инициализация
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Ожидаем загрузки переводов
-            await i18n.loadTranslations();
+    // Подключение кошелька
+    async connectWallet() {
+        try {
+            const account = await WalletManager.connectWallet();
+            if (account) {
+                await this.updateUserData();
+            }
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        }
+    },
+    
+    // Обновление данных пользователя
+    async updateUserData() {
+        const user = GlobalWayApp.getCurrentUser();
+        if (!user) return;
+        
+        // Показываем/скрываем секции
+        document.getElementById('walletDetails').style.display = 'block';
+        document.getElementById('connectWalletBtn').style.display = 'none';
+        
+        // Обновляем информацию о кошельке
+        document.getElementById('walletAddress').textContent = UI.formatAddress(user.address);
+        document.getElementById('walletBalance').textContent = `${i18n.formatNumber(user.balance, 4)} BNB`;
+        
+        if (user.isRegistered) {
+            // Скрываем регистрацию
+            document.getElementById('registrationSection').style.display = 'none';
             
-            // Инициализируем Dashboard
-            await initializeDashboard();
-        });
-
-        async function initializeDashboard() {
-            console.log('🏠 Initializing Dashboard...');
+            // Показываем остальные секции
+            document.getElementById('userInfoSection').style.display = 'block';
+            document.getElementById('quarterlySection').style.display = 'block';
+            document.getElementById('levelsSection').style.display = 'block';
+            document.getElementById('earningsSection').style.display = 'block';
+            document.getElementById('historySection').style.display = 'block';
+            document.getElementById('tokensSection').style.display = 'block';
             
-            try {
-                // Настраиваем обработчики событий
-                setupDashboardEventListeners();
-                
-                // Обновляем интерфейс
-                updateDashboardUI();
-                
-                // Если кошелек подключен, загружаем данные
-                if (app.userState.isConnected) {
-                    await loadDashboardData();
+            // Обновляем данные
+            document.getElementById('userId').textContent = user.id || '-';
+            document.getElementById('userRank').textContent = user.userData.leaderRank || '1';
+            document.getElementById('totalEarned').textContent = `${user.userData.totalEarned} BNB`;
+            
+            // Реферальная ссылка
+            const referralLink = GlobalWayApp.getReferralLink();
+            document.getElementById('referralLink').value = referralLink;
+            
+            // Загружаем активные уровни
+            await this.loadActiveLevels();
+            
+            // Загружаем историю транзакций
+            await this.loadTransactionHistory();
+            
+            // Загружаем баланс токенов
+            await this.loadTokenBalance();
+            
+        } else {
+            // Показываем секцию регистрации
+            document.getElementById('registrationSection').style.display = 'block';
+        }
+    },
+    
+    // Загрузка активных уровней
+    async loadActiveLevels() {
+        try {
+            const user = GlobalWayApp.getCurrentUser();
+            for (let i = 1; i <= 12; i++) {
+                const isActive = await ContractManager.isLevelActive(user.address, i);
+                const btn = document.querySelector(`button[data-level="${i}"]`);
+                if (btn) {
+                    btn.classList.toggle('active', isActive);
+                    btn.disabled = isActive;
                 }
-                
-                console.log('✅ Dashboard initialized');
-                
-            } catch (error) {
-                console.error('❌ Dashboard initialization failed:', error);
-                app.showNotification('Failed to initialize dashboard', 'error');
             }
+        } catch (error) {
+            console.error('Load levels error:', error);
         }
-
-        function setupDashboardEventListeners() {
-            // Кнопки подключения кошелька
-            document.getElementById('connectWalletBtn')?.addEventListener('click', () => {
-                app.connectWallet();
-            });
+    },
+    
+    // Копирование реферальной ссылки
+    copyReferralLink() {
+        const link = document.getElementById('referralLink').value;
+        UI.copyToClipboard(link);
+    },
+    
+    // Покупка уровня
+    async buyLevel(level) {
+        if (!Auth.requireRegistration()) return;
+        
+        try {
+            UI.showLoading('levelsSection');
+            const tx = await ContractManager.buyLevel(level);
+            await Web3Manager.waitForTransaction(tx.transactionHash);
             
-            document.getElementById('disconnectWalletBtn')?.addEventListener('click', () => {
-                app.disconnectWallet();
-            });
-
-            // Копирование адреса и реферальной ссылки
-            document.getElementById('copyAddressBtn')?.addEventListener('click', copyAddress);
-            document.getElementById('copyReferralBtn')?.addEventListener('click', copyReferralLink);
-            document.getElementById('shareReferralBtn')?.addEventListener('click', shareReferralLink);
-
-            // Управление уровнями
-            document.querySelectorAll('.bulk-btn').forEach(btn => {
-                btn.addEventListener('click', handleBulkPurchase);
-            });
-
-            // Квартальная активность
-            document.getElementById('payQuarterlyBtn')?.addEventListener('click', payQuarterlyActivity);
-
-            // Модальные окна
-            document.getElementById('closeRegistrationModal')?.addEventListener('click', () => {
-                app.hideModal('registrationModal');
-            });
+            UI.showNotification(`Level ${level} activated successfully!`, 'success');
+            await this.updateUserData();
             
-            document.getElementById('registerUserBtn')?.addEventListener('click', handleUserRegistration);
-
-            // Закрытие модальных окон при клике вне них
-            document.querySelectorAll('.modal-overlay').forEach(modal => {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.classList.remove('active');
-                    }
-                });
-            });
+        } catch (error) {
+            UI.showNotification(error.message, 'error');
+        } finally {
+            UI.hideLoading('levelsSection');
         }
-
-        function updateDashboardUI() {
-            const isConnected = app.userState.isConnected;
-            
-            // Показываем/скрываем секции
-            document.getElementById('walletDisconnected').style.display = isConnected ? 'none' : 'block';
-            document.getElementById('walletConnected').style.display = isConnected ? 'block' : 'none';
-            
-            const sections = [
-                'userStatsSection',
-                'levelManagementSection', 
-                'quarterlySection',
-                'rankEarningsSection',
-                'transactionsSection',
-                'tokenInfoSection'
-            ];
-            
-            sections.forEach(sectionId => {
-                const section = document.getElementById(sectionId);
-                if (section) {
-                    section.style.display = isConnected ? 'block' : 'none';
-                }
-            });
-
-            if (isConnected) {
-                updateUserInfo();
-                updateLevelButtons();
-                updateRankEarnings();
-            }
-        }
-
-        async function loadDashboardData() {
-            try {
-                app.setLoading(true);
-                
-                // Загружаем данные пользователя
-                await app.loadUserData();
-                
-                // Обновляем интерфейс с новыми данными
-                updateDashboardUI();
-                
-            } catch (error) {
-                console.error('Failed to load dashboard data:', error);
-                app.showNotification('Failed to load data', 'error');
-            } finally {
-                app.setLoading(false);
-            }
-        }
-
-        function updateUserInfo() {
-            if (!app.userState.address) return;
-            
-            // Обновляем адрес и баланс
-            const addressElement = document.getElementById('userAddress');
-            if (addressElement) {
-                addressElement.textContent = web3Manager.formatAddress(app.userState.address);
-            }
-            
-            const balanceElement = document.getElementById('userBalance');
-            if (balanceElement) {
-                balanceElement.textContent = `${app.userState.balance.toFixed(4)} BNB`;
-            }
-
-            // Обновляем пользовательскую статистику
-            if (app.userState.userData) {
-                const userData = app.userState.userData;
-                
-                document.getElementById('totalEarned').textContent = 
-                    `${(userData.earnings?.totalEarned || 0).toFixed(4)} BNB`;
-            }
-        }
-
-        function updateLevelButtons() {
-            const container = document.getElementById('levelButtons');
-            if (!container) return;
-            
-            container.innerHTML = '';
-            
-            // Создаем кнопки для каждого уровня
-            for (let level = 1; level <= 12; level++) {
-                const price = contractManager.levelPrices[level];
-                const reward = contractManager.levelRewards[level];
-                
-                const button = document.createElement('button');
-                button.className = 'level-btn';
-                button.dataset.level = level;
-                
-                button.innerHTML = `
-                    <div class="level-number">${level}</div>
-                    <div class="level-price">${price} BNB</div>
-                    <div class="level-reward">${reward} GWT</div>
-                `;
-                
-                button.addEventListener('click', () => purchaseLevel(level));
-                container.appendChild(button);
-            }
-        }
-
-        function updateRankEarnings() {
-            const container = document.getElementById('rankEarningsGrid');
-            if (!container) return;
-            
-            const ranks = [
-                'Новичок', 'Исследователь', 'Инноватор', 'Техно-энтузиаст',
-                'Крипто-ученик', 'Блокчейн-адепт', 'Мастер смарт-контрактов',
-                'Web3 Профессионал', 'Мета-архитектор', 'AI-визионер',
-                'Квантовый лидер', 'Глобальный тех-титан'
-            ];
-            
-            container.innerHTML = '';
-            
-            ranks.forEach((rank, index) => {
-                const rankItem = document.createElement('div');
-                rankItem.className = 'rank-earning-item';
-                rankItem.innerHTML = `
-                    <span class="rank-icon">${getRankIcon(index + 1)}</span>
-                    <span class="rank-name">${rank}</span>
-                    <span class="rank-earnings">0 BNB</span>
-                `;
-                container.appendChild(rankItem);
-            });
-        }
-
-        function getRankIcon(level) {
-            const icons = ['🌟', '🔍', '💡', '🔧', '🎓', '⛓️', '🛠️', '🌐', '🏗️', '🤖', '⚡', '🌟'];
-            return icons[level - 1] || '⭐';
-        }
-
-        async function handleBulkPurchase(event) {
-            const maxLevel = parseInt(event.currentTarget.dataset.maxLevel);
-            
-            try {
-                app.setLoading(true);
-                app.showNotification(`Purchasing levels 1-${maxLevel}...`, 'info');
-                
-                const result = await contractManager.buyLevelsBulk(maxLevel, app.userState.address);
-                
-                app.showNotification('Levels purchased successfully!', 'success');
-                await loadDashboardData();
-                
-            } catch (error) {
-                console.error('Bulk purchase failed:', error);
-                app.showNotification(error.message, 'error');
-            } finally {
-                app.setLoading(false);
-            }
-        }
-
-        async function purchaseLevel(level) {
-            try {
-                app.setLoading(true);
-                app.showNotification(`Purchasing level ${level}...`, 'info');
-                
-                const result = await contractManager.buyLevel(level, app.userState.address);
-                
-                app.showNotification(`Level ${level} purchased successfully!`, 'success');
-                await loadDashboardData();
-                
-            } catch (error) {
-                console.error('Level purchase failed:', error);
-                app.showNotification(error.message, 'error');
-            } finally {
-                app.setLoading(false);
-            }
-        }
-
-        async function payQuarterlyActivity() {
-            try {
-                app.setLoading(true);
-                app.showNotification('Processing quarterly payment...', 'info');
-                
-                const result = await contractManager.payQuarterlyActivity(app.userState.address);
-                
-                app.showNotification('Quarterly activity paid successfully!', 'success');
-                await loadDashboardData();
-                
-            } catch (error) {
-                console.error('Quarterly payment failed:', error);
-                app.showNotification(error.message, 'error');
-            } finally {
-                app.setLoading(false);
-            }
-        }
-
-        async function handleUserRegistration() {
-            const sponsorAddress = document.getElementById('sponsorAddress').value.trim();
-            
-            if (!sponsorAddress) {
-                app.showNotification('Please enter sponsor address', 'warning');
-                return;
-            }
-            
-            if (!web3Manager.isValidAddress(sponsorAddress)) {
-                app.showNotification('Invalid sponsor address', 'error');
-                return;
-            }
-            
-            try {
-                await app.registerUser(sponsorAddress);
-            } catch (error) {
-                console.error('Registration failed:', error);
-            }
-        }
-
-        function copyAddress() {
-            const address = app.userState.address;
-            navigator.clipboard.writeText(address).then(() => {
-                app.showNotification('Address copied!', 'success');
-            });
-        }
-
-        function copyReferralLink() {
-            const referralLink = document.getElementById('referralLink').value;
-            navigator.clipboard.writeText(referralLink).then(() => {
-                app.showNotification('Referral link copied!', 'success');
-            });
-        }
-
-        function shareReferralLink() {
-            const referralLink = document.getElementById('referralLink').value;
-            
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Join GlobalWay',
-                    text: 'Join me on GlobalWay - decentralized ecosystem for financial independence',
-                    url: referralLink
-                });
-            } else {
-                copyReferralLink();
-            }
-        }
-
-        // Добавляем функции в глобальное приложение
-        if (typeof app !== 'undefined') {
-            app.initializeDashboard = initializeDashboard;
-        }
-    </script>
-</body>
-</html>
+    },
+    
+    // Другие методы будут добавлены позже...
+};
+</script>
