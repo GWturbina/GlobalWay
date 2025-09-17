@@ -1,551 +1,197 @@
-/* Профессиональные анимации для GlobalWay */
+/* ========================================
+   GlobalWay - Animations
+   ======================================== */
 
-/* Анимация мерцания звезд */
-@keyframes twinkle {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+/* Keyframes */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
-.stars-overlay {
-  animation: twinkle 4s ease-in-out infinite;
+@keyframes slideIn {
+    from {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
 }
 
-/* Анимации планет - контролируемое движение в пределах экрана */
-@keyframes float-planet-1 {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% { 
-    transform: translate(30px, -20px) rotate(45deg);
-  }
-  50% { 
-    transform: translate(-20px, 25px) rotate(90deg);
-  }
-  75% { 
-    transform: translate(-25px, -15px) rotate(135deg);
-  }
+@keyframes earthAppear {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
 }
 
-@keyframes float-planet-2 {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg);
-  }
-  33% { 
-    transform: translate(-25px, 20px) rotate(60deg);
-  }
-  66% { 
-    transform: translate(20px, -15px) rotate(120deg);
-  }
+@keyframes earthRotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-@keyframes float-planet-3 {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg);
-  }
-  20% { 
-    transform: translate(25px, 15px) rotate(36deg);
-  }
-  40% { 
-    transform: translate(-15px, 25px) rotate(72deg);
-  }
-  60% { 
-    transform: translate(-25px, -15px) rotate(108deg);
-  }
-  80% { 
-    transform: translate(15px, -25px) rotate(144deg);
-  }
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+    }
+    25% {
+        transform: translateY(-20px) translateX(10px);
+    }
+    50% {
+        transform: translateY(10px) translateX(-15px);
+    }
+    75% {
+        transform: translateY(-15px) translateX(5px);
+    }
 }
 
-@keyframes float-planet-4 {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg);
-  }
-  50% { 
-    transform: translate(35px, 30px) rotate(180deg);
-  }
+@keyframes coinPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+    }
 }
 
-@keyframes float-planet-5 {
-  0%, 100% { 
-    transform: translate(0, 0) rotate(0deg);
-  }
-  16.66% { 
-    transform: translate(15px, -30px) rotate(30deg);
-  }
-  33.33% { 
-    transform: translate(-20px, -15px) rotate(60deg);
-  }
-  50% { 
-    transform: translate(-30px, 15px) rotate(90deg);
-  }
-  66.66% { 
-    transform: translate(-15px, 30px) rotate(120deg);
-  }
-  83.33% { 
-    transform: translate(20px, 15px) rotate(150deg);
-  }
+@keyframes levelUnlock {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
-/* Пульсация GWT токена */
-@keyframes pulse {
-  0%, 100% { 
-    transform: scale(1);
-    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
-  }
-  50% { 
-    transform: scale(1.05);
-    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
-  }
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
 }
 
-@keyframes pulse-fast {
-  0%, 100% { 
-    transform: scale(1.05);
-    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
-  }
-  50% { 
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.7));
-  }
+@keyframes matrixFlow {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
 }
 
-/* Анимации появления элементов */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Анимация для загрузки */
+.loading {
+    position: relative;
+    display: inline-block;
 }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes fadeInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-/* Анимация масштабирования */
-@keyframes zoomIn {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes zoomOut {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-}
-
-/* Анимация загрузки */
-@keyframes loading {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes loadingDots {
-  0%, 20% {
-    color: var(--primary-gold);
-    transform: scale(1);
-  }
-  40% {
-    color: var(--text-muted);
-    transform: scale(1.2);
-  }
-  60%, 100% {
-    color: var(--primary-gold);
-    transform: scale(1);
-  }
-}
-
-/* Анимация подключения кошелька */
-@keyframes walletConnect {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Анимация успешных действий */
-@keyframes success {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7);
-  }
-  70% {
-    transform: scale(1.02);
-    box-shadow: 0 0 0 8px rgba(0, 255, 136, 0);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0);
-  }
-}
-
-/* Анимация ошибок */
-@keyframes error {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-3px);
-  }
-  75% {
-    transform: translateX(3px);
-  }
-}
-
-/* Анимация уведомлений */
-@keyframes notification {
-  0% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  10%, 90% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
-
-/* Анимация матрицы */
-@keyframes matrixHighlight {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(255, 215, 0, 0.1);
-  }
-}
-
-/* Анимация уровней */
-@keyframes levelActivate {
-  0% {
-    transform: scale(1);
-    background: var(--glass-bg);
-  }
-  50% {
-    transform: scale(1.02);
-    background: var(--primary-gold);
-  }
-  100% {
-    transform: scale(1);
-    background: var(--gradient-gold);
-  }
-}
-
-/* Анимация счетчиков */
-@keyframes countUp {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* Применение анимаций к классам */
-.animate-fade-in-up {
-  animation: fadeInUp 0.5s ease-out;
-}
-
-.animate-fade-in-down {
-  animation: fadeInDown 0.5s ease-out;
-}
-
-.animate-fade-in-left {
-  animation: fadeInLeft 0.5s ease-out;
-}
-
-.animate-fade-in-right {
-  animation: fadeInRight 0.5s ease-out;
-}
-
-.animate-zoom-in {
-  animation: zoomIn 0.4s ease-out;
-}
-
-.animate-loading {
-  animation: loading 1s linear infinite;
-}
-
-.animate-success {
-  animation: success 0.5s ease-out;
-}
-
-.animate-error {
-  animation: error 0.4s ease-in-out;
-}
-
-.animate-pulse {
-  animation: pulse 2s ease-in-out infinite;
-}
-
-/* Анимации планет с контролируемыми границами */
-.animate-float-1 {
-  animation: float-planet-1 10s ease-in-out infinite;
-}
-
-.animate-float-2 {
-  animation: float-planet-2 8s ease-in-out infinite;
-}
-
-.animate-float-3 {
-  animation: float-planet-3 12s ease-in-out infinite;
-}
-
-.animate-float-4 {
-  animation: float-planet-4 6s ease-in-out infinite;
-}
-
-.animate-float-5 {
-  animation: float-planet-5 14s ease-in-out infinite;
-}
-
-/* Задержки анимации */
-.animate-delay-100 { animation-delay: 0.1s; }
-.animate-delay-200 { animation-delay: 0.2s; }
-.animate-delay-300 { animation-delay: 0.3s; }
-.animate-delay-400 { animation-delay: 0.4s; }
-.animate-delay-500 { animation-delay: 0.5s; }
-
-/* Плавные переходы для hover эффектов */
-.transition-all {
-  transition: all var(--transition-medium);
-}
-
-.transition-transform {
-  transition: transform var(--transition-medium);
-}
-
-.transition-colors {
-  transition: background-color var(--transition-medium), color var(--transition-medium), border-color var(--transition-medium);
-}
-
-/* Эффекты наведения */
-.hover-scale:hover {
-  transform: scale(1.02);
-}
-
-.hover-lift:hover {
-  transform: translateY(-2px);
-}
-
-.hover-glow:hover {
-  box-shadow: var(--shadow-glow);
-}
-
-.hover-rotate:hover {
-  transform: rotate(2deg);
-}
-
-/* Анимация появления страниц */
-.page-enter {
-  animation: fadeInUp 0.6s ease-out;
-}
-
-.page-exit {
-  animation: fadeInDown 0.3s ease-in reverse;
-}
-
-/* Специальные эффекты для админки */
-.admin-highlight {
-  position: relative;
-  overflow: hidden;
-}
-
-.admin-highlight::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.1), transparent);
-  animation: adminSweep 2s ease-in-out infinite;
-}
-
-@keyframes adminSweep {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-/* Анимация статистик */
-.stat-counter {
-  animation: countUp 0.6s ease-out;
-}
-
-/* Глобальные настройки анимаций */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Анимация подключения Web3 */
-.web3-connecting {
-  background: linear-gradient(45deg, var(--primary-gold), var(--primary-blue), var(--primary-gold));
-  background-size: 300% 300%;
-  animation: walletConnect 2s ease infinite;
-}
-
-/* Контролируемое размещение планет */
-.planet-club {
-  top: 20%;
-  left: 15%;
-}
-
-.planet-goals {
-  top: 30%;
-  right: 20%;
-}
-
-.planet-mission {
-  top: 60%;
-  left: 10%;
-}
-
-.planet-projects {
-  top: 70%;
-  right: 15%;
-}
-
-.planet-roadmap {
-  top: 15%;
-  right: 35%;
-}
-
-/* Респонсивные позиции планет */
-@media (max-width: 768px) {
-  .planet-club {
-    top: 25%;
-    left: 10%;
-  }
-  
-  .planet-goals {
-    top: 25%;
-    right: 10%;
-  }
-  
-  .planet-mission {
-    top: 35%;
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .planet-projects {
-    top: 55%;
-    left: 15%;
-  }
-  
-  .planet-roadmap {
-    top: 55%;
-    right: 15%;
-  }
-  
-  /* Меньшие движения на мобильных */
-  @keyframes float-planet-1 {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(15px, -10px) rotate(45deg); }
-  }
-  
-  @keyframes float-planet-2 {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-15px, 10px) rotate(60deg); }
-  }
-  
-  @keyframes float-planet-3 {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(10px, 15px) rotate(36deg); }
-  }
-  
-  @keyframes float-planet-4 {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(20px, 15px) rotate(90deg); }
-  }
-  
-  @keyframes float-planet-5 {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    50% { transform: translate(-10px, 20px) rotate(72deg); }
-  }
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--accent-gold);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Плавное появление элементов */
+.fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.slide-up {
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Эффект свечения для активных элементов */
+.glow {
+    animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                    0 0 30px rgba(255, 215, 0, 0.6);
+    }
+}
+
+/* Анимация для матрицы */
+.matrix-cell {
+    transition: all 0.3s ease;
+}
+
+.matrix-cell.active {
+    animation: levelUnlock 0.6s ease-out;
+}
+
+/* Пульсация для уведомлений */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
 }
