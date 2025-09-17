@@ -3,151 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GlobalWay - Decentralized Marketing Platform">
-    <title>GlobalWay - Global Club Network</title>
-    
-    <!-- Favicon -->
+    <meta name="description" content="GlobalWay - Decentralized Global Platform">
+    <title>GlobalWay</title>
     <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="assets/icons/icon-16x16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32x32.png">
-    
-    <!-- CSS -->
     <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/animations.css">
-    
-    <!-- PWA -->
+    <link rel="stylesheet" href="css/responsive.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#001a33">
 </head>
 <body>
-    <!-- Загрузочный экран -->
-    <div class="loader" id="loader">
-        <div class="loader-content">
-            <img src="assets/icons/logo-192x192.png" alt="GlobalWay" class="loader-logo">
-            <div class="loader-text">Loading GlobalWay...</div>
-        </div>
-    </div>
-
-    <!-- Фоновое изображение -->
-    <div class="main-background"></div>
-    
-    <!-- Контейнер для планет -->
-    <div class="planets-container" id="planetsContainer">
-        <!-- Планета Клуб -->
-        <div class="planet planet-club" data-planet="club">
-            <img src="assets/planets/planet-club.png" alt="GlobalWay Club">
-        </div>
-        
-        <!-- Планета Цели -->
-        <div class="planet planet-goals" data-planet="goals">
-            <img src="assets/planets/planet-goals.png" alt="Club Goals">
-        </div>
-        
-        <!-- Планета Миссия -->
-        <div class="planet planet-mission" data-planet="mission">
-            <img src="assets/planets/planet-mission.png" alt="Our Mission">
-        </div>
-        
-        <!-- Планета Проекты -->
-        <div class="planet planet-projects" data-planet="projects">
-            <img src="assets/planets/planet-projects.png" alt="Our Projects">
-        </div>
-        
-        <!-- Планета Дорожная карта -->
-        <div class="planet planet-roadmap" data-planet="roadmap">
-            <img src="assets/planets/planet-roadmap.png" alt="Roadmap">
-        </div>
-    </div>
-    
-    <!-- Вход в Dapp -->
-    <div class="dapp-entrance" id="dappEntrance">
-        <img src="assets/planets/gwt-coin.png" alt="GWT Token">
-        <div class="dapp-entrance-text" data-i18n="main.open_dapp">Open Dapp</div>
-    </div>
-    
-    <!-- Модальное окно для планет -->
-    <div class="modal" id="planetModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="modal-title" id="modalTitle"></h2>
-                <span class="modal-close">&times;</span>
+    <div id="app">
+        <!-- Главный экран с планетами -->
+        <div id="landing-container" class="landing-container">
+            <!-- Фон космоса -->
+            <div class="space-background"></div>
+            
+            <!-- Планета Земля -->
+            <div class="earth-container">
+                <div class="earth"></div>
             </div>
-            <div class="modal-body" id="modalBody"></div>
+            
+            <!-- Плавающие планеты -->
+            <div class="planets-container">
+                <div class="planet" data-planet="club">
+                    <img src="assets/planets/planet-club.png" alt="GlobalWay Club">
+                </div>
+                <div class="planet" data-planet="mission">
+                    <img src="assets/planets/planet-mission.png" alt="Our Mission">
+                </div>
+                <div class="planet" data-planet="goals">
+                    <img src="assets/planets/planet-goals.png" alt="Club Goals">
+                </div>
+                <div class="planet" data-planet="roadmap">
+                    <img src="assets/planets/planet-roadmap.png" alt="Roadmap">
+                </div>
+                <div class="planet" data-planet="projects">
+                    <img src="assets/planets/planet-projects.png" alt="Our Projects">
+                </div>
+            </div>
+            
+            <!-- GWT монета для входа в Dapp -->
+            <div class="gwt-coin-container">
+                <div class="gwt-coin" id="enterDapp">
+                    <img src="assets/planets/gwt-coin.png" alt="Enter Dapp">
+                    <span class="coin-text" data-i18n="enterDapp">Enter Dapp</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Модальное окно для информации о планетах -->
+        <div id="planetModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle"></h2>
+                </div>
+                <div class="modal-body">
+                    <p id="modalText"></p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard (скрыт по умолчанию) -->
+        <div id="dashboard-container" class="dashboard-container" style="display: none;">
+            <!-- Шапка -->
+            <header class="header">
+                <div class="header-content">
+                    <div class="logo">
+                        <img src="assets/images/logo.png" alt="GlobalWay">
+                    </div>
+                    <div class="header-actions">
+                        <div class="language-selector">
+                            <select id="languageSelect">
+                                <option value="en">EN</option>
+                                <option value="ru">RU</option>
+                                <option value="uk">UK</option>
+                            </select>
+                        </div>
+                        <div class="notifications" id="notificationIcon" style="display: none;">
+                            <div class="notification-badge">0</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Навигация -->
+            <nav class="navigation" id="mainNav">
+                <div class="nav-container">
+                    <button class="nav-item active" data-page="dashboard">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text" data-i18n="nav.dashboard">Dashboard</span>
+                    </button>
+                    <button class="nav-item" data-page="partners">
+                        <span class="nav-icon">👥</span>
+                        <span class="nav-text" data-i18n="nav.partners">Partners</span>
+                    </button>
+                    <button class="nav-item" data-page="matrix">
+                        <span class="nav-icon">🔗</span>
+                        <span class="nav-text" data-i18n="nav.matrix">Matrix</span>
+                    </button>
+                    <button class="nav-item" data-page="tokens">
+                        <span class="nav-icon">💰</span>
+                        <span class="nav-text" data-i18n="nav.tokens">Tokens</span>
+                    </button>
+                    <button class="nav-item" data-page="projects">
+                        <span class="nav-icon">🚀</span>
+                        <span class="nav-text" data-i18n="nav.projects">Projects</span>
+                    </button>
+                    <button class="nav-item admin-only" data-page="admin" style="display: none;">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text" data-i18n="nav.admin">Admin</span>
+                    </button>
+                </div>
+            </nav>
+            
+            <!-- Контент страниц -->
+            <main class="main-content" id="mainContent">
+                <!-- Контент будет загружаться динамически -->
+            </main>
         </div>
     </div>
     
-    <!-- Выбор языка -->
-    <div class="language-selector">
-        <select id="languageSelect">
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
-            <option value="uk">Українська</option>
-        </select>
-    </div>
-    
-    <!-- JavaScript -->
+    <!-- Скрипты -->
     <script src="js/i18n.js"></script>
-    <script src="js/app.js"></script>
     <script src="js/web3.js"></script>
+    <script src="js/contracts.js"></script>
+    <script src="js/wallet.js"></script>
+    <script src="js/storage.js"></script>
     <script src="js/ui.js"></script>
-    
-    <script>
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
-            // Скрыть загрузчик
-            setTimeout(() => {
-                document.getElementById('loader').style.display = 'none';
-            }, 1500);
-            
-            // Инициализация планет
-            initializePlanets();
-            
-            // Вход в Dapp
-            document.getElementById('dappEntrance').addEventListener('click', function() {
-                window.location.href = 'components/dashboard.html';
-            });
-        });
-        
-        // Инициализация планет
-        function initializePlanets() {
-            const planets = document.querySelectorAll('.planet');
-            const modal = document.getElementById('planetModal');
-            const modalClose = document.querySelector('.modal-close');
-            
-            planets.forEach(planet => {
-                planet.addEventListener('click', function() {
-                    const planetType = this.dataset.planet;
-                    showPlanetInfo(planetType);
-                });
-            
-            // Закрытие модального окна
-            modalClose.addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-            
-            window.addEventListener('click', function(event) {
-                if (event.target == modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        }
-        
-        // Показ информации о планете
-        function showPlanetInfo(planetType) {
-            const modal = document.getElementById('planetModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-            
-            // Получение текущего языка
-            const currentLang = localStorage.getItem('language') || 'en';
-            const planetData = i18n[currentLang][planetType];
-            
-            modalTitle.textContent = planetData.title;
-            modalBody.textContent = planetData.text;
-            
-            modal.style.display = 'block';
-        }
-    </script>
+    <script src="js/router.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
