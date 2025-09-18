@@ -3,136 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GlobalWay - Decentralized Global Platform">
-    <title>GlobalWay</title>
+    <meta name="description" content="GlobalWay - Децентрализованная глобальная платформа">
+    <title>GlobalWay DApp</title>
+    
+    <!-- Icons -->
     <link rel="icon" type="image/x-icon" href="assets/icons/favicon.ico">
+    <link rel="apple-touch-icon" sizes="192x192" href="assets/icons/icon-192x192.png">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/responsive.css">
+    <link rel="stylesheet" href="css/components.css">
+    
+    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#0a0a2e">
 </head>
-<body>
+<body class="cosmic-background">
     <div id="app">
-        <!-- Главный экран с планетами -->
+        <!-- Landing Container -->
         <div id="landing-container" class="landing-container">
-            <!-- Фон космоса -->
-            <div class="space-background"></div>
-            
-            <!-- Планета Земля -->
-            <div class="earth-container">
-                <div class="earth"></div>
+            <!-- Language Switcher -->
+            <div class="language-switcher">
+                <button class="lang-btn active" data-lang="en">EN</button>
+                <button class="lang-btn" data-lang="ru">RU</button>
+                <button class="lang-btn" data-lang="ua">UA</button>
             </div>
             
-            <!-- Плавающие планеты -->
-            <div class="planets-container">
-                <div class="planet" data-planet="club">
-                    <img src="assets/planets/planet-club.png" alt="GlobalWay Club">
-                </div>
-                <div class="planet" data-planet="mission">
-                    <img src="assets/planets/planet-mission.png" alt="Our Mission">
-                </div>
-                <div class="planet" data-planet="goals">
-                    <img src="assets/planets/planet-goals.png" alt="Club Goals">
-                </div>
-                <div class="planet" data-planet="roadmap">
-                    <img src="assets/planets/planet-roadmap.png" alt="Roadmap">
-                </div>
-                <div class="planet" data-planet="projects">
-                    <img src="assets/planets/planet-projects.png" alt="Our Projects">
-                </div>
-            </div>
-            
-            <!-- GWT монета для входа в Dapp -->
-            <div class="gwt-coin-container">
-                <div class="gwt-coin" id="enterDapp">
-                    <img src="assets/planets/gwt-coin.png" alt="Enter Dapp">
-                    <span class="coin-text" data-i18n="enterDapp">Enter Dapp</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Модальное окно для информации о планетах -->
-        <div id="planetModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modalTitle"></h2>
-                </div>
-                <div class="modal-body">
-                    <p id="modalText"></p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Dashboard (скрыт по умолчанию) -->
-        <div id="dashboard-container" class="dashboard-container" style="display: none;">
-            <!-- Шапка -->
-            <header class="header">
-                <div class="header-content">
-                    <div class="logo">
-                        <img src="assets/images/logo.png" alt="GlobalWay">
-                    </div>
-                    <div class="header-actions">
-                        <div class="language-selector">
-                            <select id="languageSelect">
-                                <option value="en">EN</option>
-                                <option value="ru">RU</option>
-                                <option value="uk">UK</option>
-                            </select>
-                        </div>
-                        <div class="notifications" id="notificationIcon" style="display: none;">
-                            <div class="notification-badge">0</div>
-                        </div>
+            <!-- Floating Planets -->
+            <div class="planets-wrapper">
+                <div class="planet-wrapper planet-club">
+                    <div class="planet-image"></div>
+                    <div class="planet-info">
+                        <span data-i18n="club.title">Клуб GlobalWay</span>
                     </div>
                 </div>
-            </header>
-            
-            <!-- Навигация -->
-            <nav class="navigation" id="mainNav">
-                <div class="nav-container">
-                    <button class="nav-item active" data-page="dashboard">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text" data-i18n="nav.dashboard">Dashboard</span>
-                    </button>
-                    <button class="nav-item" data-page="partners">
-                        <span class="nav-icon">👥</span>
-                        <span class="nav-text" data-i18n="nav.partners">Partners</span>
-                    </button>
-                    <button class="nav-item" data-page="matrix">
-                        <span class="nav-icon">🔗</span>
-                        <span class="nav-text" data-i18n="nav.matrix">Matrix</span>
-                    </button>
-                    <button class="nav-item" data-page="tokens">
-                        <span class="nav-icon">💰</span>
-                        <span class="nav-text" data-i18n="nav.tokens">Tokens</span>
-                    </button>
-                    <button class="nav-item" data-page="projects">
-                        <span class="nav-icon">🚀</span>
-                        <span class="nav-text" data-i18n="nav.projects">Projects</span>
-                    </button>
-                    <button class="nav-item admin-only" data-page="admin" style="display: none;">
-                        <span class="nav-icon">⚙️</span>
-                        <span class="nav-text" data-i18n="nav.admin">Admin</span>
-                    </button>
+                
+                <div class="planet-wrapper planet-mission">
+                    <div class="planet-image"></div>
+                    <div class="planet-info">
+                        <span data-i18n="mission.title">Наша Миссия</span>
+                    </div>
                 </div>
-            </nav>
+                
+                <div class="planet-wrapper planet-goals">
+                    <div class="planet-image"></div>
+                    <div class="planet-info">
+                        <span data-i18n="goals.title">Цели Клуба</span>
+                    </div>
+                </div>
+                
+                <div class="planet-wrapper planet-roadmap">
+                    <div class="planet-image"></div>
+                    <div class="planet-info">
+                        <span data-i18n="roadmap.title">Дорожная Карта</span>
+                    </div>
+                </div>
+                
+                <div class="planet-wrapper planet-projects">
+                    <div class="planet-image"></div>
+                    <div class="planet-info">
+                        <span data-i18n="projects.title">Наши Проекты</span>
+                    </div>
+                </div>
+            </div>
             
-            <!-- Контент страниц -->
-            <main class="main-content" id="mainContent">
-                <!-- Контент будет загружаться динамически -->
-            </main>
+            <!-- GWT Coin -->
+            <div class="gwt-coin">
+                <div class="gwt-coin-image"></div>
+                <div class="gwt-coin-label" data-i18n="openDapp">GWT Coin</div>
+            </div>
+            
+            <!-- Enter DApp Button -->
+            <div class="enter-dapp-section">
+                <button id="open-dapp-btn" class="enter-dapp-btn">
+                    <span data-i18n="openDapp">ВХОД В DAPP</span>
+                </button>
+            </div>
         </div>
     </div>
     
-    <!-- Скрипты -->
+    <!-- Scripts -->
     <script src="js/i18n.js"></script>
-    <script src="js/web3.js"></script>
+    <script src="js/id-generator.js"></script>
+    <script src="js/web3-manager.js"></script>
     <script src="js/contracts.js"></script>
-    <script src="js/wallet.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/router.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/utils.js"></script>
+    <script src="js/contract-manager.js"></script>
+    <script src="js/ui-controller.js"></script>
+    <script src="js/landing-controller.js"></script>
+    <script src="js/dashboard-controller.js"></script>
+    <script src="js/partners-controller.js"></script>
+    <script src="js/matrix-controller.js"></script>
+    <script src="js/tokens-controller.js"></script>
+    <script src="js/projects-controller.js"></script>
+    <script src="js/admin-controller.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+        // Initialize Landing Controller
+        document.addEventListener('DOMContentLoaded', () => {
+            window.landingController = new LandingController();
+        });
+    </script>
 </body>
 </html>
