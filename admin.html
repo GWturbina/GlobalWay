@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalWay - Decentralized Club</title>
+    <meta name="description" content="GlobalWay decentralized club platform on opBNB">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#001a33">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Landing Page -->
+        <div id="landing" class="page active">
+            <div class="cosmic-bg">
+                <img src="assets/images/background.jpg" alt="Earth" class="bg-image">
+                
+                <!-- Language Switcher -->
+                <div class="lang-switch">
+                    <select id="langSelect">
+                        <option value="en">EN</option>
+                        <option value="ru">RU</option>
+                        <option value="uk">UK</option>
+                    </select>
+                </div>
+                
+                <!-- Floating Planets -->
+                <div class="planets-container">
+                    <div class="planet" data-planet="club">
+                        <img src="assets/planets/planet-club.png" alt="Club">
+                        <span class="planet-label" data-translate="planets.club">Club GlobalWay</span>
+                    </div>
+                    <div class="planet" data-planet="mission">
+                        <img src="assets/planets/planet-mission.png" alt="Mission">
+                        <span class="planet-label" data-translate="planets.mission">Our Mission</span>
+                    </div>
+                    <div class="planet" data-planet="goals">
+                        <img src="assets/planets/planet-goals.png" alt="Goals">
+                        <span class="planet-label" data-translate="planets.goals">Club Goals</span>
+                    </div>
+                    <div class="planet" data-planet="roadmap">
+                        <img src="assets/planets/planet-roadmap.png" alt="Roadmap">
+                        <span class="planet-label" data-translate="planets.roadmap">Roadmap</span>
+                    </div>
+                    <div class="planet" data-planet="projects">
+                        <img src="assets/planets/planet-projects.png" alt="Projects">
+                        <span class="planet-label" data-translate="planets.projects">Our Projects</span>
+                    </div>
+                </div>
+                
+                <!-- Entry Coin -->
+                <div class="entry-coin" id="openDapp">
+                    <img src="assets/planets/gwt-coin.png" alt="GWT Coin">
+                    <span data-translate="landing.enterDapp">Вход в Daap</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main DApp -->
+        <div id="dapp" class="page">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo">
+                    <img src="assets/icons/logo.png" alt="GlobalWay">
+                    <span>GlobalWay</span>
+                </div>
+                <div class="header-info">
+                        <div class="header-lang-switch">
+                        <select id="langSelectHeader">
+                            <option value="en">EN</option>
+                            <option value="ru">RU</option>
+                            <option value="uk">UK</option>
+                        </select>
+                    </div>
+                    <div id="connectionStatus" class="status-indicator">
+                        <span id="connectBtn" data-translate="wallet.connect">Connect Wallet</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Navigation -->
+            <nav class="main-nav">
+                <button class="nav-btn active" data-page="dashboard">
+                    <span data-translate="nav.dashboard">Dashboard</span>
+                </button>
+                <button class="nav-btn" data-page="partners">
+                    <span data-translate="nav.partners">Partners</span>
+                </button>
+                <button class="nav-btn" data-page="matrix">
+                    <span data-translate="nav.matrix">Matrix</span>
+                </button>
+                <button class="nav-btn" data-page="tokens">
+                    <span data-translate="nav.tokens">Tokens</span>
+                </button>
+                <button class="nav-btn" data-page="projects">
+                    <span data-translate="nav.projects">Projects</span>
+                </button>
+                <button class="nav-btn admin-only" data-page="admin" style="display:none;">
+                    <i class="icon-settings"></i>
+                    <span data-translate="nav.admin">Admin</span>
+                </button>
+            </nav>
+
+            <!-- Content -->
+            <main class="content">
+                <!-- Dashboard -->
+                <div id="dashboard" class="page-content active">
+                    <!-- Personal Cabinet -->
+                    <section class="cabinet-info">
+                        <h2 data-translate="dashboard.cabinet">🌌 Личный кабинет</h2>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label data-translate="dashboard.address">Адрес</label>
+                                <span id="userAddress">0x000...000</span>
+                            </div>
+                            <div class="info-item">
+                                <label data-translate="dashboard.balance">Баланс</label>
+                                <span id="userBalance">0.000 BNB</span>
+                            </div>
+                            <div class="info-item">
+                                <label data-translate="dashboard.userId">ID пользователя</label>
+                                <span id="userId">-</span>
+                            </div>
+                            <div class="info-item">
+                                <label data-translate="dashboard.rank">Ранг</label>
+                                <span id="userRank">-</span>
+                            </div>
+                        </div>
+                        <div class="referral-section">
+                            <label data-translate="dashboard.refLink">Реферальная ссылка</label>
+                            <input type="text" id="refLink" readonly>
+                            <button id="copyRefLink" data-translate="common.copy">Copy</button>
+                        </div>
+                    </section>
+
+                    <!-- Quarterly Activity -->
+                    <section class="quarterly-activity">
+                        <h3 data-translate="dashboard.quarterly">Квартальная активность</h3>
+                        <div class="activity-info">
+                            <div class="activity-item">
+                                <span data-translate="dashboard.quarter">Квартал:</span>
+                                <span id="currentQuarter">1</span>
+                            </div>
+                            <div class="activity-item">
+                                <span data-translate="dashboard.nextPayment">Следующая оплата:</span>
+                                <span id="nextPayment">-</span>
+                            </div>
+                            <div class="activity-item">
+                                <span data-translate="dashboard.cost">Стоимость:</span>
+                                <span id="quarterlyCost">0.075 BNB</span>
+                            </div>
+                        </div>
+                        <button id="payActivityBtn" class="btn-primary" data-translate="dashboard.payActivity">Оплатить активность</button>
+                    </section>
+
+                    <!-- Level Management -->
+                    <section class="level-management">
+                        <h3 data-translate="dashboard.levelMgmt">Управление уровнями</h3>
+                        <div class="levels-grid">
+                            <div class="levels-individual">
+                                <h4 data-translate="dashboard.individual">Индивидуальная покупка</h4>
+                                <div class="levels-row" id="individualLevels">
+                                    <!-- Generated levels 1-12 -->
+                                </div>
+                            </div>
+                            <div class="levels-bulk">
+                                <h4 data-translate="dashboard.bulk">Пакетная покупка</h4>
+                                <div class="bulk-buttons">
+                                    <button class="bulk-btn" data-levels="4">1-4 <span class="price">0.021</span> BNB</button>
+                                    <button class="bulk-btn" data-levels="7">1-7 <span class="price">0.117</span> BNB</button>
+                                    <button class="bulk-btn" data-levels="10">1-10 <span class="price">0.885</span> BNB</button>
+                                    <button class="bulk-btn" data-levels="12">1-12 <span class="price">3.957</span> BNB</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Earnings by Rank -->
+                    <section class="earnings-rank">
+                        <h3 data-translate="dashboard.earnings">💎 Доходы по рангам</h3>
+                        <div class="earnings-list" id="earningsRank">
+                            <!-- Generated earnings -->
+                        </div>
+                    </section>
+
+                    <!-- Transaction History -->
+                    <section class="transaction-history">
+                        <h3 data-translate="dashboard.history">История транзакций</h3>
+                        <div class="history-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th data-translate="common.number">№</th>
+                                        <th data-translate="common.level">Уровень</th>
+                                        <th data-translate="common.amount">Количество</th>
+                                        <th data-translate="common.date">Дата</th>
+                                        <th>ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTable">
+                                    <!-- Generated transactions -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <!-- Tokens Summary -->
+                    <section class="tokens-summary">
+                        <h3 data-translate="dashboard.tokens">Токены</h3>
+                        <div class="token-info">
+                            <span data-translate="tokens.amount">Количество:</span>
+                            <span id="tokenAmount">0 GWT</span>
+                            <span data-translate="tokens.price">Цена:</span>
+                            <span id="tokenPrice">$0.00</span>
+                            <button class="btn-secondary" onclick="showPage('tokens')" data-translate="tokens.manage">Управлять</button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Partners Page -->
+                <div id="partners" class="page-content">
+                </div>
+
+                <!-- Matrix Page -->
+                <div id="matrix" class="page-content">
+                </div>
+
+                <!-- Tokens Page -->
+                <div id="tokens" class="page-content">
+                </div>
+
+                <!-- Projects Page -->
+                <div id="projects" class="page-content">
+                </div>
+
+                <!-- Admin Page -->
+                <div id="admin" class="page-content admin-only" style="display:none;">
+                </div>
+            </main>
+        </div>
+                <!-- Partners Page -->
+                <div id="partners" class="page-content">
+                    <h2 data-translate="partners.title">Partners Structure</h2>
+                    
+                    <div class="level-selector">
+                        <div class="level-buttons" id="partnerLevels">
+                            <!-- Generated 1-12 level buttons -->
+                        </div>
+                    </div>
+
+                    <div class="team-structure">
+                        <h3 data-translate="partners.structure">🔍 Структура команды</h3>
+                        <table class="partners-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="common.number">№</th>
+                                    <th>ID</th>
+                                    <th data-translate="common.address">Адрес</th>
+                                    <th data-translate="partners.sponsorId">ID спонсора</th>
+                                    <th data-translate="common.date">Дата активации</th>
+                                    <th data-translate="common.level">Уровень</th>
+                                    <th data-translate="partners.team">Прямая команда</th>
+                                </tr>
+                            </thead>
+                            <tbody id="partnersTable">
+                                <!-- Generated partner data -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="team-stats">
+                        <h3 data-translate="partners.stats">📊 Статистика команды</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <label data-translate="partners.personal">Лично приглашенных:</label>
+                                <span id="personalInvites">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <label data-translate="partners.active">Активных:</label>
+                                <span id="activePartners">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <label data-translate="partners.total">Общая команда:</label>
+                                <span id="totalTeam">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Matrix Page -->
+                <div id="matrix" class="page-content">
+                    <h2 data-translate="matrix.title">Interactive Matrix</h2>
+                    
+                    <div class="level-selector">
+                        <div class="level-buttons" id="matrixLevels">
+                            <!-- Generated 1-12 level buttons -->
+                        </div>
+                    </div>
+
+                    <div class="matrix-visualization" id="matrixVisualization">
+                        <div class="matrix-tree">
+                            <!-- Generated matrix positions -->
+                        </div>
+                    </div>
+
+                    <div class="matrix-structure">
+                        <h3 data-translate="matrix.structure">Структура матрицы</h3>
+                        <table class="matrix-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="common.number">№</th>
+                                    <th>ID</th>
+                                    <th data-translate="common.address">Адрес</th>
+                                    <th data-translate="partners.sponsorId">ID спонсора</th>
+                                    <th data-translate="common.date">Дата активации</th>
+                                    <th data-translate="common.level">Уровень</th>
+                                    <th data-translate="matrix.position">Позиция</th>
+                                    <th data-translate="common.status">Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matrixTable">
+                                <!-- Generated matrix data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tokens Page -->
+                <div id="tokens" class="page-content">
+                    <h2 data-translate="tokens.title">GWT Tokens</h2>
+                    
+                    <section class="token-balance">
+                        <h3 data-translate="tokens.balance">Баланс токенов</h3>
+                        <div class="balance-info">
+                            <div class="balance-item">
+                                <span data-translate="tokens.total">Общий баланс:</span>
+                                <span id="totalTokens">0 GWT</span>
+                            </div>
+                            <div class="balance-item">
+                                <span data-translate="tokens.value">Общая стоимость:</span>
+                                <span id="totalValue">$0.00</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="token-stats">
+                        <h3 data-translate="tokens.statistics">📈 Статистика токенов</h3>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <label data-translate="tokens.totalSupply">Общий запас:</label>
+                                <span id="totalSupply">1,000,000,000 GWT</span>
+                            </div>
+                            <div class="stat-item">
+                                <label data-translate="tokens.circulation">Оборотный запас:</label>
+                                <span id="circSupply">0 GWT</span>
+                            </div>
+                            <div class="stat-item">
+                                <label data-translate="tokens.burned">Сожжённые:</label>
+                                <span id="burnedTokens">0 GWT</span>
+                            </div>
+                            <div class="stat-item">
+                                <label data-translate="tokens.marketCap">Рыночная капитализация:</label>
+                                <span id="marketCap">$0</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="token-trading">
+                        <h3 data-translate="tokens.trading">💰 Торговля токенами</h3>
+                        <div class="trading-disabled">
+                            <p data-translate="tokens.tradingDisabled">Торговля начинается при достижении цены $0.01</p>
+                            <div class="trading-buttons">
+                                <button class="btn-success" disabled data-translate="tokens.buy">Купить</button>
+                                <button class="btn-danger" disabled data-translate="tokens.sell">Продать</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="token-pools">
+                        <h3 data-translate="tokens.pools">Пулы токенов</h3>
+                        <div class="pools-grid">
+                            <div class="pool-item">
+                                <span data-translate="tokens.tokenomics">Пул токеномики</span>
+                                <span>80% (800M GWT)</span>
+                                <span class="status-soon" data-translate="common.soon">Скоро</span>
+                            </div>
+                            <div class="pool-item">
+                                <span data-translate="tokens.distribution">Пул раздачи</span>
+                                <span>10% (100M GWT)</span>
+                                <span class="status-soon" data-translate="common.soon">Скоро</span>
+                            </div>
+                            <div class="pool-item">
+                                <span data-translate="tokens.team">Командный пул</span>
+                                <span>5% (50M GWT)</span>
+                                <span class="status-locked" data-translate="common.locked">Заблокировано</span>
+                            </div>
+                            <div class="pool-item">
+                                <span data-translate="tokens.reserve">Резервный пул</span>
+                                <span>5% (50M GWT)</span>
+                                <span class="status-soon" data-translate="common.soon">Вскоре</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="token-history">
+                        <h3 data-translate="tokens.history">История токенов</h3>
+                        <table class="token-history-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="common.date">Дата</th>
+                                    <th data-translate="common.type">Тип</th>
+                                    <th data-translate="common.level">Уровень</th>
+                                    <th data-translate="common.amount">Количество</th>
+                                    <th data-translate="common.status">Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tokenHistoryTable">
+                                <!-- Generated token history -->
+                            </tbody>
+                        </table>
+                    </section>
+
+                    <section class="contract-info">
+                        <h3 data-translate="tokens.contractInfo">📄 Информация о контракте</h3>
+                        <div class="contract-details">
+                            <div class="contract-item">
+                                <label data-translate="tokens.contractAddress">Адрес контракта:</label>
+                                <span>0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc</span>
+                            </div>
+                            <div class="contract-item">
+                                <label data-translate="tokens.tokenName">Имя токена:</label>
+                                <span>GlobalWay Token</span>
+                            </div>
+                            <div class="contract-item">
+                                <label data-translate="tokens.symbol">Символ:</label>
+                                <span>GWT</span>
+                            </div>
+                            <div class="contract-item">
+                                <label data-translate="tokens.decimals">Десятичные знаки:</label>
+                                <span>18</span>
+                            </div>
+                            <div class="contract-item">
+                                <label data-translate="tokens.network">Сеть:</label>
+                                <span>opBNB</span>
+                            </div>
+                        </div>
+                        <div class="contract-actions">
+                            <button class="btn-secondary" id="addToWallet" data-translate="tokens.addWallet">Добавить в кошелек</button>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Projects Page -->
+                <div id="projects" class="page-content">
+                    <h2 data-translate="projects.title">Our Projects</h2>
+                    
+                    <div class="projects-grid" id="projectsGrid">
+                        <!-- Generated project cards -->
+                    </div>
+
+                    <section class="project-stats">
+                        <h3 data-translate="projects.statistics">Статистика проектов</h3>
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <span data-translate="projects.total">Всего проектов:</span>
+                                <span id="totalProjects">8</span>
+                            </div>
+                            <div class="stat-item">
+                                <span data-translate="projects.active">Активные:</span>
+                                <span id="activeProjects">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span data-translate="projects.development">В разработке:</span>
+                                <span id="devProjects">8</span>
+                            </div>
+                            <div class="stat-item">
+                                <span data-translate="projects.coming">Вскоре:</span>
+                                <span id="comingProjects">0</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="roadmap">
+                        <h3 data-translate="projects.roadmap">🗓️ Дорожная карта</h3>
+                        <div class="roadmap-timeline">
+                            <div class="timeline-item">
+                                <span class="year">2025</span>
+                                <span class="description" data-translate="roadmap.2025">Запуск платформы и 8 проектов</span>
+                            </div>
+                            <div class="timeline-item">
+                                <span class="year">2026</span>
+                                <span class="description" data-translate="roadmap.2026">Выход GWT на рынок ценных бумаг</span>
+                            </div>
+                            <div class="timeline-item">
+                                <span class="year">2027</span>
+                                <span class="description" data-translate="roadmap.2027">Лидерство среди мировых сообществ</span>
+                            </div>
+                            <div class="timeline-item">
+                                <span class="year">2028</span>
+                                <span class="description" data-translate="roadmap.2028">Строительство эко-поселений</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+    <!-- Modal for Planet Info -->
+    <div id="planetModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modalTitle"></h3>
+            <p id="modalText"></p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/web3.js"></script>
+    <script src="js/contracts.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
