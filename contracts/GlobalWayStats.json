@@ -1,0 +1,836 @@
+{
+  "contractName": "GlobalWayStats",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_globalWayAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        }
+      ],
+      "name": "IdAssigned",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "UserRegistered",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "addressToId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "assignIdByOwner",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "assignIdToExistingUser",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "newMaxId",
+          "type": "uint256"
+        }
+      ],
+      "name": "expandIdLimit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "userId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getAddressByUserId",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getContractOverview",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "totalUsers",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalVolume",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "activeUsers",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "levelDistribution",
+              "type": "uint256[]"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "poolBalances",
+              "type": "uint256[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lastDistribution",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "contractBalance",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct GlobalWayStats.ContractOverview",
+          "name": "overview",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getEarningsBreakdown",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "totalEarned",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "personalBonus",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "referralBonus",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "matrixBonus",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "leaderBonus",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "investmentReturns",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "frozenByLevel",
+              "type": "uint256[]"
+            }
+          ],
+          "internalType": "struct GlobalWayStats.EarningsBreakdown",
+          "name": "earnings",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getInvestmentStats",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalInvested",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "totalReceived",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "remainingReturns",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "roi",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bool",
+          "name": "completed",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getLeadershipInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint8",
+              "name": "currentRank",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "bonusClaimed",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "qualifiedReferrals",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "teamVolume",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nextRankProgress",
+              "type": "uint256"
+            },
+            {
+              "internalType": "string[]",
+              "name": "achievements",
+              "type": "string[]"
+            }
+          ],
+          "internalType": "struct GlobalWayStats.LeadershipInfo",
+          "name": "leadership",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "level",
+          "type": "uint8"
+        }
+      ],
+      "name": "getMatrixStats",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "uint256",
+              "name": "totalPositions",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "userPosition",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address[]",
+              "name": "upline",
+              "type": "address[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "downline",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "matrixEarnings",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct GlobalWayStats.MatrixStats",
+          "name": "stats",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "internalType": "uint8",
+          "name": "packageType",
+          "type": "uint8"
+        }
+      ],
+      "name": "getPackagePrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "totalCost",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getPricesAndRewards",
+      "outputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "prices",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "rewards",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getTechAccountsInfo",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "charityAccount",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "techAccount1",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "techAccount2",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "charityBalance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tech1Balance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tech2Balance",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "charityLastActivity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tech1LastActivity",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tech2LastActivity",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserActivityStatus",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "isActive",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "isInactiveAccount",
+          "type": "bool"
+        },
+        {
+          "internalType": "uint256",
+          "name": "daysSinceLastActivity",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserFullInfo",
+      "outputs": [
+        {
+          "components": [
+            {
+              "internalType": "bool",
+              "name": "isRegistered",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "sponsor",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "registrationTime",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "lastActivity",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "personalInvites",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "totalEarned",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint8",
+              "name": "leaderRank",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bool",
+              "name": "leaderBonusClaimed",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256",
+              "name": "quarterlyCounter",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bool",
+              "name": "walletChanged",
+              "type": "bool"
+            },
+            {
+              "internalType": "address",
+              "name": "charityAccount",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "techAccount1",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "techAccount2",
+              "type": "address"
+            },
+            {
+              "internalType": "bool",
+              "name": "isInactive",
+              "type": "bool"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "activeLevels",
+              "type": "uint256[]"
+            },
+            {
+              "internalType": "uint256[]",
+              "name": "frozenFunds",
+              "type": "uint256[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "referrals",
+              "type": "address[]"
+            },
+            {
+              "internalType": "uint256",
+              "name": "userId",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct GlobalWayStats.UserFullInfo",
+          "name": "info",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "getUserIdByAddress",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "users",
+          "type": "address[]"
+        }
+      ],
+      "name": "getUsersBulkInfo",
+      "outputs": [
+        {
+          "internalType": "bool[]",
+          "name": "registered",
+          "type": "bool[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "totalEarned",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint8[]",
+          "name": "leaderRanks",
+          "type": "uint8[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "personalInvites",
+          "type": "uint256[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "globalWay",
+      "outputs": [
+        {
+          "internalType": "contract IGlobalWay",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "idToAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "maxId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "minId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        }
+      ],
+      "name": "registerUserId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "sponsorId",
+          "type": "uint256"
+        }
+      ],
+      "name": "registerWithSponsorId",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "usedIds",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "networks": {
+    "204": {
+      "address": "0x23380dDDD0b2F8d83898720c28bE407eCDE69d38"
+    }
+  }
+}
