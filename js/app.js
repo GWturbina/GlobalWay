@@ -248,9 +248,12 @@ class GlobalWayApp {
   }
 }
 
-// ИСПРАВЛЕНО: Инициализация с проверкой готовности DOM
+// Инициализация с проверкой готовности DOM
 function initializeApp() {
   const app = new GlobalWayApp();
+  // ИСПРАВЛЕНО: Делаем app доступным глобально для других модулей
+  window.app = app;
+  
   app.init().catch(error => {
     console.error('App initialization failed:', error);
   });
@@ -261,4 +264,9 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
   initializeApp();
+}
+
+// ИСПРАВЛЕНО: Экспортируем класс для использования в других файлах
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = GlobalWayApp;
 }
