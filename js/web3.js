@@ -92,9 +92,9 @@ class Web3Manager {
       console.log('🔗 Connecting to SafePal...');
 
       // ИСПРАВЛЕНО: Обработка мобильного устройства
-      if (this.isMobileDevice() && !this.isInSafePalBrowser()) {
-        this.showMobileInstructions();
-        return;
+      if (this.isMobileDevice()) {
+        console.log('Mobile device detected, checking SafePal DApp browser');
+        // Не блокируем, продолжаем подключение
       }
 
       // Таймаут для подключения
@@ -106,7 +106,15 @@ class Web3Manager {
         setTimeout(() => reject(new Error('Connection timeout')), this.connectionTimeout);
       });
 
-      const accounts = await Promise.race([connectPromise, timeoutPromise]);
+      let accounts;
+      try {
+        accounts = await Promise.race([connectPromise, timeoutPromise]);
+      } catch (error) {
+        if (this.isMobileDevice()) {
+          throw new Error('Please open this page in SafePal DApp browser');
+        }
+        throw error;
+      }
 
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found. Please unlock SafePal wallet.');
@@ -311,15 +319,19 @@ class Web3Manager {
       
       // Пытаемся автоматически переключить сеть через 2 секунды
       setTimeout(async () => {
-        try {
-          await this.switchToOpBNB();
-          if (window.uiManager && window.uiManager.showSuccess) {
-            window.uiManager.showSuccess('Successfully switched to opBNB network');
-          }
-        } catch (error) {
-          console.error('Auto network switch failed:', error);
+      try {
+        await this.switchToOpBNB();
+        if (window.uiManager && window.uiManager.showSuccess) {
+          window.uiManager.showSuccess('Network switched to opBNB');
         }
-      }, 2000);
+        // Перезагружаем пользовательские данные
+        if (window.uiManager && window.uiManager.loadUserData) {
+          await window.uiManager.loadUserData();
+        }
+      } catch (error) {
+        console.error('Auto network switch failed:', error);
+      }
+    }, 1000);
       
     } else {
       console.log('✅ Correct network connected');
