@@ -5,7 +5,7 @@ class Web3Manager {
     this.isConnected = false;
     this.contracts = {};
     this.currentChainId = null;
-    this.connectionTimeout = 10000; // 10 секунд
+    this.connectionTimeout = 15000;
   }
 
   async init() {
@@ -14,32 +14,39 @@ class Web3Manager {
     await this.tryReconnect();
   }
 
-  // ИСПРАВЛЕНО: Простая и четкая логика определения SafePal
+  // ИСПРАВЛЕНО: Корректная логика определения SafePal
   async detectProvider() {
     let attempts = 0;
-    const maxAttempts = 30;
+    const maxAttempts = 50;
     
     while (attempts < maxAttempts) {
       if (typeof window !== 'undefined') {
-        // Проверка SafePal в порядке приоритета
+        // Приоритет 1: SafePal прямой доступ
         if (window.safepal && window.safepal.ethereum) {
           this.provider = window.safepal.ethereum;
           console.log('✅ SafePal detected via window.safepal.ethereum');
           return;
         }
         
-        if (window.ethereum && window.ethereum.isSafePal === true) {
-          this.provider = window.ethereum;
-          console.log('✅ SafePal detected via window.ethereum.isSafePal');
-          return;
-        }
-        
-        if (window.ethereum && window.ethereum.providers) {
-          const safePalProvider = window.ethereum.providers.find(p => p.isSafePal === true);
-          if (safePalProvider) {
-            this.provider = safePalProvider;
-            console.log('✅ SafePal found in providers array');
+        // Приоритет 2: SafePal через window.ethereum
+        if (window.ethereum) {
+          if (window.ethereum.isSafePal === true) {
+            this.provider = window.ethereum;
+            console.log('✅ SafePal detected via window.ethereum.isSafePal');
             return;
+          }
+          
+          // Приоритет 3: SafePal в providers массиве
+          if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
+            const safePalProvider = window.ethereum.providers.find(p => 
+              p.isSafePal === true || 
+              (p.constructor && p.constructor.name === 'SafePalProvider')
+            );
+            if (safePalProvider) {
+              this.provider = safePalProvider;
+              console.log('✅ SafePal found in providers array');
+              return;
+            }
           }
         }
       }
@@ -48,14 +55,14 @@ class Web3Manager {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // ИСПРАВЛЕНО: Проверяем мобильное устройство и предлагаем открыть в SafePal
-    if (this.isMobileDevice()) {
-      console.log('📱 Mobile device detected, SafePal app may be required');
+    // ИСПРАВЛЕНО: Корректная обработка мобильных устройств
+    if (this.isMobileDevice() && !this.isInSafePalBrowser()) {
+      console.log('📱 Mobile device detected, SafePal app required');
       throw new Error('MOBILE_SAFEPAL_REQUIRED');
     }
     
     console.error('❌ SafePal wallet not found!');
-    throw new Error('SafePal wallet required! Please install SafePal wallet extension.');
+    throw new Error('SafePal wallet required! Please install SafePal wallet extension or use SafePal app.');
   }
 
   async setupEventListeners() {
@@ -91,13 +98,13 @@ class Web3Manager {
 
       console.log('🔗 Connecting to SafePal...');
 
-      // ИСПРАВЛЕНО: Обработка мобильного устройства
-      if (this.isMobileDevice()) {
-        console.log('Mobile device detected, checking SafePal DApp browser');
-        // Не блокируем, продолжаем подключение
+      // ИСПРАВЛЕНО: Корректная обработка мобильных устройств
+      if (this.isMobileDevice() && !this.isInSafePalBrowser()) {
+        this.showMobileInstructions();
+        return;
       }
 
-      // Таймаут для подключения
+      // Запрос подключения с таймаутом
       const connectPromise = this.provider.request({
         method: 'eth_requestAccounts'
       });
@@ -106,15 +113,7 @@ class Web3Manager {
         setTimeout(() => reject(new Error('Connection timeout')), this.connectionTimeout);
       });
 
-      let accounts;
-      try {
-        accounts = await Promise.race([connectPromise, timeoutPromise]);
-      } catch (error) {
-        if (this.isMobileDevice()) {
-          throw new Error('Please open this page in SafePal DApp browser');
-        }
-        throw error;
-      }
+      const accounts = await Promise.race([connectPromise, timeoutPromise]);
 
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found. Please unlock SafePal wallet.');
@@ -122,9 +121,10 @@ class Web3Manager {
 
       this.account = accounts[0];
       
-      // ИСПРАВЛЕНО: Проверяем сеть только если не в opBNB
+      // ИСПРАВЛЕНО: Автоматическое переключение на opBNB
       const currentChain = await this.getCurrentNetwork();
       if (currentChain !== CONFIG.CHAIN_ID) {
+        console.log('⚠️ Wrong network detected, switching to opBNB...');
         await this.switchToOpBNB();
       }
       
@@ -157,7 +157,7 @@ class Web3Manager {
     }
   }
 
-  // ИСПРАВЛЕНО: Правильные инструкции для мобильного
+  // ИСПРАВЛЕНО: Улучшенные инструкции для мобильных
   showMobileInstructions() {
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -175,7 +175,7 @@ class Web3Manager {
           <li>Open SafePal app</li>
           <li>Go to "Discover" or "DApps"</li>
           <li>Enter this URL: <strong>${window.location.href}</strong></li>
-          <li>Or scan QR code (if available)</li>
+          <li>Make sure you're on opBNB network</li>
         </ol>
         <button onclick="this.parentElement.parentElement.remove()" 
                 style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 15px;">
@@ -189,6 +189,8 @@ class Web3Manager {
 
   async switchToOpBNB() {
     try {
+      console.log('🔄 Attempting to switch to opBNB...');
+      
       await this.provider.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: CONFIG.CHAIN_ID }]
@@ -305,38 +307,37 @@ class Web3Manager {
     }
   }
 
-  // ИСПРАВЛЕНО: Без автоматической перезагрузки страницы
+  // ИСПРАВЛЕНО: Правильная обработка смены сети
   handleChainChanged(chainId) {
-  console.log('🔄 Chain changed to:', chainId);
-  this.currentChainId = chainId;
-  
-  if (chainId !== CONFIG.CHAIN_ID) {
-    console.warn('⚠️ Wrong network:', chainId, 'Expected:', CONFIG.CHAIN_ID);
+    console.log('🔄 Chain changed to:', chainId);
+    this.currentChainId = chainId;
     
-    if (window.uiManager && window.uiManager.showError) {
-      window.uiManager.showError('Please switch to opBNB network in SafePal');
-    }
-    
-    setTimeout(async () => {
-      try {
-        await this.switchToOpBNB();
-        if (window.uiManager && window.uiManager.showSuccess) {
-          window.uiManager.showSuccess('Network switched to opBNB');
-        }
-        if (window.uiManager && window.uiManager.loadUserData) {
-          await window.uiManager.loadUserData();
-        }
-      } catch (error) {
-        console.error('Auto network switch failed:', error);
+    if (chainId !== CONFIG.CHAIN_ID) {
+      console.warn('⚠️ Wrong network:', chainId, 'Expected:', CONFIG.CHAIN_ID);
+      
+      if (window.uiManager && window.uiManager.showError) {
+        window.uiManager.showError('Please switch to opBNB network in SafePal');
       }
-    }, 1000);
-  } else {
-    console.log('✅ Correct network connected');
-    if (window.uiManager && window.uiManager.loadUserData) {
-      window.uiManager.loadUserData();
+      
+      // Автоматическое переключение через 2 секунды
+      setTimeout(async () => {
+        try {
+          await this.switchToOpBNB();
+          if (window.uiManager && window.uiManager.showSuccess) {
+            window.uiManager.showSuccess('Successfully switched to opBNB network');
+          }
+        } catch (error) {
+          console.error('Auto network switch failed:', error);
+        }
+      }, 2000);
+      
+    } else {
+      console.log('✅ Correct network connected');
+      if (window.uiManager && window.uiManager.loadUserData) {
+        window.uiManager.loadUserData();
+      }
     }
   }
-}
 
   async loadContracts() {
     try {
@@ -395,7 +396,7 @@ class Web3Manager {
     
     if (this.isConnected && this.account) {
       if (connectBtn) {
-        connectBtn.textContent = getTranslation('wallet.connected') || 'Connected';
+        connectBtn.textContent = getTranslation ? getTranslation('wallet.connected') : 'Connected';
         connectBtn.style.color = '#28a745';
         connectBtn.disabled = true;
       }
@@ -414,7 +415,7 @@ class Web3Manager {
       
     } else {
       if (connectBtn) {
-        connectBtn.textContent = getTranslation('wallet.connect') || 'Connect SafePal';
+        connectBtn.textContent = getTranslation ? getTranslation('wallet.connect') : 'Connect SafePal';
         connectBtn.style.color = '#FFD700';
         connectBtn.disabled = false;
         connectBtn.style.pointerEvents = 'auto';
