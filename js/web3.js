@@ -307,24 +307,22 @@ class Web3Manager {
 
   // ИСПРАВЛЕНО: Без автоматической перезагрузки страницы
   handleChainChanged(chainId) {
-    console.log('🔄 Chain changed to:', chainId);
-    this.currentChainId = chainId;
+  console.log('🔄 Chain changed to:', chainId);
+  this.currentChainId = chainId;
+  
+  if (chainId !== CONFIG.CHAIN_ID) {
+    console.warn('⚠️ Wrong network:', chainId, 'Expected:', CONFIG.CHAIN_ID);
     
-    if (chainId !== CONFIG.CHAIN_ID) {
-      console.warn('⚠️ Wrong network:', chainId, 'Expected:', CONFIG.CHAIN_ID);
-      
-      if (window.uiManager && window.uiManager.showError) {
-        window.uiManager.showError('Please switch to opBNB network in SafePal');
-      }
-      
-      // Пытаемся автоматически переключить сеть через 2 секунды
-      setTimeout(async () => {
+    if (window.uiManager && window.uiManager.showError) {
+      window.uiManager.showError('Please switch to opBNB network in SafePal');
+    }
+    
+    setTimeout(async () => {
       try {
         await this.switchToOpBNB();
         if (window.uiManager && window.uiManager.showSuccess) {
           window.uiManager.showSuccess('Network switched to opBNB');
         }
-        // Перезагружаем пользовательские данные
         if (window.uiManager && window.uiManager.loadUserData) {
           await window.uiManager.loadUserData();
         }
@@ -332,14 +330,13 @@ class Web3Manager {
         console.error('Auto network switch failed:', error);
       }
     }, 1000);
-      
-    } else {
-      console.log('✅ Correct network connected');
-      if (window.uiManager && window.uiManager.loadUserData) {
-        window.uiManager.loadUserData();
-      }
+  } else {
+    console.log('✅ Correct network connected');
+    if (window.uiManager && window.uiManager.loadUserData) {
+      window.uiManager.loadUserData();
     }
   }
+}
 
   async loadContracts() {
     try {
