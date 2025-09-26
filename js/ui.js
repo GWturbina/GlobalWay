@@ -1491,6 +1491,8 @@ async validateSponsor(sponsorId, statusElement) {
   tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found for this level</td></tr>';
 }
 
+}
+
 // Добавляем метод обновления статистики партнеров
 updatePartnerStats(partners, userStats) {
   const personalInvitesEl = document.getElementById('personalInvites');
@@ -1509,6 +1511,11 @@ updatePartnerStats(partners, userStats) {
     totalTeamEl.textContent = userStats.referrals ? userStats.referrals.length : 0;
   }
 }
+
+} 
+
+const uiManager = new UIManager();
+window.uiManager = uiManager;
 
   // ИСПРАВЛЕНО: Копирование только реальных ссылок
   async copyReferralLink() {
