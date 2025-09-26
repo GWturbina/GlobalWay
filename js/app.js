@@ -35,7 +35,7 @@ class GlobalWayApp {
     document.getElementById('landing').classList.add('active');
     
     // Check if user came directly to dapp
-    if (window.location.hash === '#dapp') {
+    if (window.location.hash === '#dapp' || localStorage.getItem('walletConnected')) {
       uiManager.showDApp();
     }
   }
