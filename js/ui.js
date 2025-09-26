@@ -212,22 +212,9 @@ class UIManager {
       const isRegistered = await contractManager.isUserRegistered();
       
       // ИСПРАВЛЕНО: Получение ID только от контракта
-        let userId = await contractManager.getUserIdByAddress();
-        console.log('User registered:', isRegistered, 'User ID:', userId); // Для отладки
-        
-        if (userId && userId !== '0') {
-          document.getElementById('userId').textContent = `GW${userId}`;
-          document.getElementById('refLink').value = `${window.location.origin}/ref${userId}`;
-        } else if (isRegistered) {
-          // Если зарегистрирован но нет ID - пытаемся получить
-          try {
-            const assignedId = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
-            console.log('ID assigned:', assignedId);
-            setTimeout(() => this.loadUserData(), 3000); // Перезагружаем через 3 сек
-          } catch (error) {
-            console.error('Failed to assign ID:', error);
-          }
-        }
+      let userId = null;
+      if (isRegistered) {
+        userId = await contractManager.getUserIdByAddress();
       }
       
       // Отображаем ID если есть, иначе показываем что нужна регистрация
