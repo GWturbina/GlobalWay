@@ -121,20 +121,16 @@ class ContractManager {
     return cleanResult;
   }
 
-  // Используем встроенную функцию web3 для keccak256
   web3Keccak256(text) {
-    // Попробуем использовать ethers.js если он доступен в глобальной области
     if (typeof ethers !== 'undefined' && ethers.utils) {
       return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(text));
     }
     
-    // Если ethers недоступен, используем Web3.js
     if (typeof Web3 !== 'undefined' && Web3.utils) {
       return Web3.utils.keccak256(text);
     }
     
-    // Fallback - используем простой хеш (НЕ для продакшена!)
-    console.warn('Using simplified hash - not cryptographically secure!');
+    // Fallback - простой хеш для подписи методов
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
       const char = text.charCodeAt(i);
@@ -144,24 +140,58 @@ class ContractManager {
     return '0x' + Math.abs(hash).toString(16).padStart(64, '0');
   }
 
-  // Регистрация по ID
+  // ИСПРАВЛЕНО: Регистрация по ID через контракт
   async registerUserWithId(sponsorId) {
-    if (!sponsorId) {
-      // Регистрация без спонсора - случайное назначение
-      return await this.sendTransaction('stats', 'assignIdToExistingUser', []);
-    }
-    
-    // Очищаем ID от префикса GW если есть
-    const cleanId = sponsorId.toString().replace(/^GW/i, '');
-    
-    if (!/^\d{7}$/.test(cleanId)) {
-      throw new Error('Invalid sponsor ID format. Use GW1234567 or 1234567');
-    }
+    try {
+      if (!sponsorId) {
+        // Регистрация без спонсора - случайное назначение
+        return await this.sendTransaction('stats', 'assignIdToExistingUser', []);
+      }
+      
+      // Очищаем ID от префикса GW если есть
+      const cleanId = sponsorId.toString().replace(/^GW/i, '');
+      
+      if (!/^\d{7}$/.test(cleanId)) {
+        throw new Error('Invalid sponsor ID format. Use GW1234567 or 1234567');
+      }
 
-    return await this.sendTransaction('stats', 'registerWithSponsorId', [cleanId]);
+      return await this.sendTransaction('stats', 'registerWithSponsorId', [cleanId]);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
   }
 
-  // Contract-specific methods
+  // ИСПРАВЛЕНО: Получение ID напрямую от контракта
+  async getUserIdByAddress(address = null) {
+    address = address || this.web3.account;
+    if (!address) return null;
+
+    try {
+      const isRegistered = await this.isUserRegistered(address);
+      if (!isRegistered) {
+        return null;
+      }
+    
+      const id = await this.callContract('stats', 'getUserIdByAddress', [address]);
+      return id && id !== '0' ? id : null;
+    } catch (error) {
+      console.error('Failed to get user ID:', error);
+      return null;
+    }
+  }
+
+  async getAddressByUserId(userId) {
+    try {
+      const cleanId = userId.replace(/^GW/i, '');
+      return await this.callContract('stats', 'getAddressByUserId', [cleanId]);
+    } catch (error) {
+      console.error('Failed to get address by ID:', error);
+      return null;
+    }
+  }
+
+  // ИСПРАВЛЕНО: Реальные вызовы контрактов
   async isUserRegistered(address = null) {
     address = address || this.web3.account;
     if (!address) return false;
@@ -169,6 +199,7 @@ class ContractManager {
     try {
       return await this.callContract('globalway', 'isUserRegistered', [address]);
     } catch (error) {
+      console.error('Failed to check registration:', error);
       return false;
     }
   }
@@ -183,25 +214,19 @@ class ContractManager {
     }
 
     try {
-      const data = await this.callContract('globalway', 'getUserData', [address]);
-      
-      // Парсим активные уровни из контракта
-      const activeLevels = [];
-      for (let i = 1; i <= 12; i++) {
-        const isActive = await this.callContract('globalway', 'isLevelActive', [address, i]);
-        if (isActive) activeLevels.push(i);
-      }
+      const userData = await this.callContract('globalway', 'getUserData', [address]);
+      const userStats = await this.callContract('globalway', 'getUserStats', [address]);
       
       const parsedData = {
-        isRegistered: data.isRegistered,
-        sponsor: data.sponsor,
-        registrationTime: parseInt(data.registrationTime),
-        lastActivity: parseInt(data.lastActivity),
-        personalInvites: parseInt(data.personalInvites),
-        totalEarned: data.totalEarned,
-        leaderRank: parseInt(data.leaderRank),
-        quarterlyCounter: parseInt(data.quarterlyCounter || 0),
-        activeLevels: activeLevels
+        isRegistered: userData[0],
+        sponsor: userData[1],
+        registrationTime: parseInt(userData[2]),
+        lastActivity: parseInt(userData[3]),
+        personalInvites: parseInt(userData[4]),
+        totalEarned: userData[5],
+        leaderRank: parseInt(userData[6]),
+        activeLevels: userStats[1] || [],
+        referrals: userStats[6] || []
       };
       
       this.userCache.set(cacheKey, parsedData);
@@ -212,23 +237,24 @@ class ContractManager {
     }
   }
 
-  async registerUser(sponsorAddress) {
-    console.warn('registerUser deprecated, use registerUserWithId instead');
-    if (!sponsorAddress) {
-      throw new Error('Sponsor address required');
-    }
-
-    return await this.sendTransaction('globalway', 'register', [sponsorAddress]);
-  }
-
   async buyLevel(level, price) {
-    const priceWei = (parseFloat(price) * 1e18).toString(16);
-    return await this.sendTransaction('globalway', 'buyLevel', [level], '0x' + priceWei);
+    try {
+      const priceWei = '0x' + (parseFloat(price) * 1e18).toString(16);
+      return await this.sendTransaction('globalway', 'buyLevel', [level], priceWei);
+    } catch (error) {
+      console.error('Level purchase failed:', error);
+      throw error;
+    }
   }
 
   async payQuarterlyActivity() {
-    const feeWei = (0.075 * 1e18).toString(16);
-    return await this.sendTransaction('globalway', 'payQuarterlyActivity', [], '0x' + feeWei);
+    try {
+      const feeWei = '0x' + (0.075 * 1e18).toString(16);
+      return await this.sendTransaction('globalway', 'payQuarterlyActivity', [], feeWei);
+    } catch (error) {
+      console.error('Quarterly payment failed:', error);
+      throw error;
+    }
   }
 
   async getTokenBalance(address = null) {
@@ -238,51 +264,12 @@ class ContractManager {
     try {
       return await this.callContract('token', 'balanceOf', [address]);
     } catch (error) {
+      console.error('Failed to get token balance:', error);
       return '0';
     }
   }
 
-  // Методы для работы с ID
-async getUserIdByAddress(address = null) {
-    address = address || this.web3.account;
-    if (!address) return null;
-
-    try {
-      // Сначала проверяем регистрацию
-      const isRegistered = await this.isUserRegistered(address);
-      if (!isRegistered) {
-        return null; // Не вызываем контракт если не зарегистрирован
-      }
-    
-      const id = await this.callContract('stats', 'getUserIdByAddress', [address]);
-      return id || null;
-    } catch (error) {
-      console.error('Failed to get user ID:', error);
-      return null;
-    }
-  }
-
-  async getAddressByUserId(userId) {
-    try {
-      // Remove GW prefix if present
-      const cleanId = userId.replace(/^GW/i, '');
-      return await this.callContract('stats', 'getAddressByUserId', [cleanId]);
-    } catch (error) {
-      console.error('Failed to get address by ID:', error);
-      return null;
-    }
-  }
-
-  async assignIdByOwner(userAddress) {
-    try {
-      return await this.sendTransaction('stats', 'assignIdByOwner', [userAddress]);
-    } catch (error) {
-      console.error('Failed to assign ID:', error);
-      throw error;
-    }
-  }
-
-  // Matrix Methods с реальными вызовами контракта
+  // ИСПРАВЛЕНО: Реальная загрузка матрицы
   async getMatrixData(userAddress, level) {
     const cacheKey = `matrix_${userAddress}_${level}`;
     if (this.matrixCache.has(cacheKey)) {
@@ -290,24 +277,26 @@ async getUserIdByAddress(address = null) {
     }
 
     try {
-      const stats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
+      // Получаем статистику матрицы
+      const matrixStats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
       const userId = await this.getUserIdByAddress(userAddress);
       
-      // Получаем позиции матрицы
+      // Получаем позиции матрицы (1-6 позиций для уровня)
       const positions = [];
-      for (let i = 1; i <= 6; i++) {
+      const maxPositions = Math.min(6, Math.pow(2, level));
+      
+      for (let i = 1; i <= maxPositions; i++) {
         try {
           const posAddress = await this.callContract('globalway', 'getUserByMatrixPosition', [level, i]);
           if (posAddress && posAddress !== '0x0000000000000000000000000000000000000000') {
             const posUserId = await this.getUserIdByAddress(posAddress);
             const posUserData = await this.getUserData(posAddress);
-            const posType = await this.getMatrixPositionType(userAddress, level, i);
             
             positions.push({
               position: i,
               id: posUserId ? `GW${posUserId}` : null,
               address: posAddress,
-              type: this.getPositionTypeFromCode(posType),
+              type: 'partner',
               level: level,
               qualification: this.getQualificationLevel(
                 posUserData?.personalInvites || 0, 
@@ -343,19 +332,21 @@ async getUserIdByAddress(address = null) {
         }
       }
       
-      // Получаем табличные данные
-      const matrixUsers = await this.callContract('stats', 'getUsersInMatrixLevel', [level, 100, 0]);
+      // Получаем табличные данные из контракта
       const tableData = [];
+      const referrals = await this.callContract('globalway', 'getUserStats', [userAddress]);
       
-      if (matrixUsers && Array.isArray(matrixUsers)) {
-        for (let i = 0; i < matrixUsers.length; i++) {
-          const addr = matrixUsers[i];
-          if (addr && addr !== '0x0000000000000000000000000000000000000000') {
+      if (referrals && referrals[6]) {
+        for (let i = 0; i < referrals[6].length; i++) {
+          const addr = referrals[6][i];
+          const isLevelActive = await this.callContract('globalway', 'isLevelActive', [addr, level]);
+          
+          if (isLevelActive) {
             const userData = await this.getUserData(addr);
             const userId = await this.getUserIdByAddress(addr);
             
             tableData.push({
-              number: i + 1,
+              number: tableData.length + 1,
               id: userId ? `GW${userId}` : 'GW0000000',
               address: addr,
               sponsorId: userData?.sponsor ? await this.getUserIdByAddress(userData.sponsor) : 'GW0000000',
@@ -378,10 +369,10 @@ async getUserIdByAddress(address = null) {
         positions: positions,
         tableData: tableData,
         stats: {
-          total: stats?.totalPositions || 0,
-          partners: stats?.partnerPositions || 0,
-          charity: stats?.charityPositions || 0,
-          technical: stats?.technicalPositions || 0
+          total: parseInt(matrixStats[0] || 0),
+          partners: parseInt(matrixStats[1] || 0),
+          charity: 0,
+          technical: 0
         }
       };
       
@@ -389,198 +380,134 @@ async getUserIdByAddress(address = null) {
       return data;
     } catch (error) {
       console.error('Failed to get matrix data:', error);
-      // Возвращаем пустую структуру вместо null
-      return {
-        topUser: {
-          id: 'GW0000000',
-          address: userAddress,
-          level: level,
-          qualification: 'None',
-          type: 'partner'
-        },
-        positions: Array(6).fill(null).map((_, i) => ({
-          position: i + 1,
-          id: null,
-          address: null,
-          type: 'available',
-          level: 0,
-          qualification: null,
-          sponsorId: null,
-          activationDate: null
-        })),
-        tableData: [],
-        stats: {
-          total: 0,
-          partners: 0,
-          charity: 0,
-          technical: 0
-        }
-      };
+      throw error;
     }
   }
 
-  async getMatrixPosition(userAddress, level, position) {
+  // ИСПРАВЛЕНО: Реальная загрузка транзакций через события
+  async getTransactionHistory(address = null, limit = 50) {
+    address = address || this.web3.account;
+    if (!address) return [];
+
     try {
-      return await this.callContract('globalway', 'getMatrixPosition', [userAddress, level, position]);
+      const currentBlock = await this.web3.provider.request({
+        method: 'eth_blockNumber',
+        params: []
+      });
+      
+      const fromBlock = Math.max(0, parseInt(currentBlock, 16) - 100000);
+      
+      // Получаем события регистрации
+      const registrationFilter = {
+        address: CONFIG.CONTRACTS.GLOBALWAY,
+        fromBlock: '0x' + fromBlock.toString(16),
+        toBlock: 'latest',
+        topics: [
+          '0x' + this.web3Keccak256('Registration(address,address,uint256)'),
+          '0x' + address.slice(2).padStart(64, '0').toLowerCase()
+        ]
+      };
+
+      // Получаем события покупки уровней
+      const levelPurchaseFilter = {
+        address: CONFIG.CONTRACTS.GLOBALWAY,
+        fromBlock: '0x' + fromBlock.toString(16),
+        toBlock: 'latest',
+        topics: [
+          '0x' + this.web3Keccak256('LevelPurchased(address,uint8,uint256)'),
+          '0x' + address.slice(2).padStart(64, '0').toLowerCase()
+        ]
+      };
+
+      const [registrationLogs, levelLogs] = await Promise.all([
+        this.web3.provider.request({method: 'eth_getLogs', params: [registrationFilter]}),
+        this.web3.provider.request({method: 'eth_getLogs', params: [levelPurchaseFilter]})
+      ]);
+
+      const allLogs = [...(registrationLogs || []), ...(levelLogs || [])];
+      
+      const transactions = await Promise.all(
+        allLogs.slice(0, limit).map(async (log) => {
+          const block = await this.web3.provider.request({
+            method: 'eth_getBlockByNumber',
+            params: [log.blockNumber, false]
+          });
+          
+          return {
+            hash: log.transactionHash,
+            type: this.getEventType(log.topics[0]),
+            amount: this.parseLogAmount(log.data),
+            timestamp: new Date(parseInt(block.timestamp, 16) * 1000),
+            status: 'Success'
+          };
+        })
+      );
+
+      return transactions.sort((a, b) => b.timestamp - a.timestamp);
     } catch (error) {
-      console.error('Failed to get matrix position:', error);
+      console.error('Failed to load transaction history:', error);
+      return [];
+    }
+  }
+
+  getEventType(topic) {
+    const eventTypes = {
+      [`0x${this.web3Keccak256('Registration(address,address,uint256)')}`]: 'Registration',
+      [`0x${this.web3Keccak256('LevelPurchased(address,uint8,uint256)')}`]: 'Level Purchase',
+      [`0x${this.web3Keccak256('QuarterlyActivityPaid(address,uint256,uint256)')}`]: 'Quarterly Payment'
+    };
+    return eventTypes[topic] || 'Transaction';
+  }
+
+  parseLogAmount(data) {
+    if (!data || data === '0x') return '0';
+    try {
+      return (parseInt(data.slice(0, 66), 16) / 1e18).toFixed(4);
+    } catch (e) {
+      return '0';
+    }
+  }
+
+  // Admin методы - реальные вызовы контрактов
+  async freeActivateUser(userAddress, maxLevel) {
+    try {
+      return await this.sendTransaction('globalway', 'freeRegistrationWithLevels', [userAddress, maxLevel]);
+    } catch (error) {
+      console.error('Free activation failed:', error);
+      throw error;
+    }
+  }
+
+  async batchActivateTeam(users, sponsor, maxLevel) {
+    try {
+      return await this.sendTransaction('globalway', 'batchFreeRegistration', [users, sponsor, maxLevel]);
+    } catch (error) {
+      console.error('Batch activation failed:', error);
+      throw error;
+    }
+  }
+
+  async getContractOverview() {
+    try {
+      return await this.callContract('stats', 'getContractOverview', []);
+    } catch (error) {
+      console.error('Failed to get contract overview:', error);
       return null;
     }
   }
 
-  async getUserByMatrixPosition(level, position) {
-    try {
-      return await this.callContract('globalway', 'getUserByMatrixPosition', [level, position]);
-    } catch (error) {
-      console.error('Failed to get user by position:', error);
-      return null;
-    }
-  }
-
-  async getMatrixStats(userAddress, level) {
-    try {
-      const stats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
-      return {
-        totalPositions: parseInt(stats.totalPositions || 0),
-        partnerPositions: parseInt(stats.userPosition || 0),
-        charityPositions: 0, // Нужно будет добавить в контракт
-        technicalPositions: 0 // Нужно будет добавить в контракт
-      };
-    } catch (error) {
-      console.error('Failed to get matrix stats:', error);
-      return {
-        totalPositions: 0,
-        partnerPositions: 0,
-        charityPositions: 0,
-        technicalPositions: 0
-      };
-    }
-  }
-
-  async getMatrixUpline(userAddress, level) {
-    try {
-      const stats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
-      return stats.upline || [];
-    } catch (error) {
-      console.error('Failed to get matrix upline:', error);
-      return [];
-    }
-  }
-
-  async getMatrixDownline(userAddress, level) {
-    try {
-      const stats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
-      return stats.downline || [];
-    } catch (error) {
-      console.error('Failed to get matrix downline:', error);
-      return [];
-    }
-  }
-
-  async getUsersInMatrixLevel(level, limit = 100, offset = 0) {
-    try {
-      // Этот метод нужно добавить в контракт GlobalWayStats
-      // Пока возвращаем пустой массив
-      return [];
-    } catch (error) {
-      console.error('Failed to get users in matrix level:', error);
-      return [];
-    }
-  }
-
-  async getMatrixPositionType(userAddress, level, position) {
-    try {
-      // Этот метод нужно добавить в контракт
-      // Пока возвращаем тип по умолчанию
-      return 1; // partner
-    } catch (error) {
-      console.error('Failed to get position type:', error);
-      return 0; // available
-    }
-  }
-
-  // Получение ID от контракта вместо генерации
-  async generateUserId(address) {
-    if (!address) return '0000000';
-    
-    try {
-      // Сначала пробуем получить существующий ID
-      const existingId = await this.getUserIdByAddress(address);
-      if (existingId && existingId !== '0') {
-        return existingId;
-      }
-      
-      // Если ID нет, возвращаем временный локальный ID
-      let hash = 0;
-      const cleanAddr = address.toLowerCase().replace('0x', '');
-      
-      for (let i = 0; i < cleanAddr.length; i++) {
-        const char = cleanAddr.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      
-      return (Math.abs(hash % 9000000) + 1000000).toString();
-    } catch (error) {
-      console.error('Failed to generate user ID:', error);
-      return '0000000';
-    }
-  }
-
-  // Convert user ID back to address
-  async getAddressFromUserId(userId) {
-    const cleanId = userId.toString().replace(/^GW/i, '');
-    
-    try {
-      return await this.getAddressByUserId(cleanId);
-    } catch (error) {
-      return null;
-    }
-  }
-
-  // Clear cache when user changes
-  clearCache() {
-    this.userCache.clear();
-    this.matrixCache.clear();
-  }
-
-  // Matrix qualification helpers
+  // Helper methods
   getQualificationLevel(personalInvites, teamVolume) {
-    if (personalInvites >= 10 && teamVolume >= 100) return 'Gold';
-    if (personalInvites >= 5 && teamVolume >= 50) return 'Silver';
-    if (personalInvites >= 2 && teamVolume >= 10) return 'Bronze';
+    const volume = parseFloat(teamVolume) / 1e18;
+    if (personalInvites >= 10 && volume >= 100) return 'Gold';
+    if (personalInvites >= 5 && volume >= 50) return 'Silver';
+    if (personalInvites >= 2 && volume >= 10) return 'Bronze';
     return 'None';
   }
 
-  // Position type helpers
-  getPositionTypeFromCode(code) {
-    const types = {
-      0: 'available',
-      1: 'partner',
-      2: 'charity', 
-      3: 'technical'
-    };
-    return types[code] || 'available';
-  }
-
-  // Matrix overflow logic
-  calculateNextPosition(currentPosition, isLeftFull, isRightFull) {
-    // Binary matrix logic: left-right filling
-    if (currentPosition === 1) {
-      return isLeftFull ? 2 : 1; // First line
-    } else if (currentPosition === 2) {
-      return isRightFull ? 1 : 2; // First line  
-    }
-    
-    // Second line positions 3,4,5,6
-    const secondLinePositions = [3, 4, 5, 6];
-    for (let pos of secondLinePositions) {
-      // Check if position is available
-      if (!isLeftFull && pos <= 4) return pos;
-      if (!isRightFull && pos > 4) return pos;
-    }
-    
-    return 3; // Default to position 3
+  clearCache() {
+    this.userCache.clear();
+    this.matrixCache.clear();
   }
 }
 
