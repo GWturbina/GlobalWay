@@ -96,28 +96,23 @@ class ContractManager {
 
   // ИСПРАВЛЕНО: Правильное кодирование методов
   encodeMethodCall(method, params) {
-    const methodSignature = `${method.name}(${method.inputs.map(i => i.type).join(',')})`;
-    
-    // ИСПРАВЛЕНО: Используем реальный keccak256 если доступен
-    let methodId;
-    if (typeof ethers !== 'undefined' && ethers.utils) {
-      methodId = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(methodSignature)).slice(0, 10);
-    } else {
-      // Fallback для простых случаев
-      methodId = '0x' + this.simpleHash(methodSignature).slice(0, 8);
-    }
-    
-    let encodedParams = '';
-    if (method.inputs.length > 0 && params.length > 0) {
-      for (let i = 0; i < method.inputs.length; i++) {
-        const input = method.inputs[i];
-        const param = params[i];
-        encodedParams += this.encodeParam(input.type, param);
-      }
-    }
-    
-    return methodId + encodedParams;
+  // Используем простое кодирование без ethers
+  const methodName = method.name;
+  const inputs = method.inputs || [];
+  
+  // Простые методы без параметров
+  if (inputs.length === 0) {
+    const signatures = {
+      'getUserIdByAddress': '0xa6f3b6d4',
+      'isUserRegistered': '0x8c64ea4a', 
+      'getUserData': '0x86c1f0f5'
+    };
+    return signatures[methodName] || '0x00000000';
   }
+  
+  // Для методов с параметрами используем базовое кодирование
+  return '0x' + this.simpleHash(methodName).slice(0, 8) + this.encodeParams(inputs, params);
+}
 
   // ИСПРАВЛЕНО: Правильное кодирование параметров
   encodeParam(type, value) {
