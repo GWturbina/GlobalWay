@@ -199,52 +199,89 @@ class UIManager {
   }
 
   async loadUserData() {
-    if (!web3Manager.isConnected || !web3Manager.account) return;
+  if (!web3Manager.isConnected || !web3Manager.account) return;
 
-    try {
-      if (this.hasAdminAccess()) {
-        const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
-        if (adminNavBtn) {
-          adminNavBtn.style.display = 'flex';
-        }
+  try {
+    if (this.hasAdminAccess()) {
+      const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
+      if (adminNavBtn) {
+        adminNavBtn.style.display = 'flex';
       }
-
-      const isRegistered = await contractManager.isUserRegistered();
-      
-      // ИСПРАВЛЕНО: Получение ID только от контракта
-      let userId = null;
-      if (isRegistered) {
-        userId = await contractManager.getUserIdByAddress();
-      }
-      
-      // Отображаем ID если есть, иначе показываем что нужна регистрация
-      if (userId) {
-        document.getElementById('userId').textContent = `GW${userId}`;
-        document.getElementById('refLink').value = `${window.location.origin}/ref${userId}`;
-      } else {
-        document.getElementById('userId').textContent = 'Not registered';
-        document.getElementById('refLink').value = 'Register first to get referral link';
-      }
-      
-      if (isRegistered) {
-        const userData = await contractManager.getUserData();
-        this.updateUserProfile(userData);
-        
-        await this.loadQuarterlyStatus();
-        await this.loadEarningsData();
-        await this.loadTransactionHistory();
-        await this.loadTokenBalance();
-        
-        this.hideConnectionAlert();
-      } else {
-        this.showRegistrationPrompt();
-      }
-      
-    } catch (error) {
-      console.error('Failed to load user data:', error);
-      this.showError('Failed to load user data');
     }
+
+    const isRegistered = await contractManager.isUserRegistered();
+    
+    // ИСПРАВЛЕНО: Получение ID от контракта с отладкой
+    let userId = null;
+    
+    // Всегда пытаемся получить ID, независимо от статуса регистрации
+    try {
+      userId = await contractManager.getUserIdByAddress();
+      console.log('User ID from contract:', userId, 'Registered:', isRegistered);
+    } catch (idError) {
+      console.warn('Failed to get user ID:', idError);
+    }
+    
+    // Отображаем ID если есть
+    if (userId && userId !== '0' && userId !== 0) {
+      document.getElementById('userId').textContent = `GW${userId}`;
+      document.getElementById('refLink').value = `${window.location.origin}/ref${userId}`;
+      console.log('Referral link set:', `${window.location.origin}/ref${userId}`);
+    } else if (isRegistered) {
+      // Если зарегистрирован но нет ID - пытаемся получить ID
+      console.log('User is registered but has no ID, attempting to assign...');
+      document.getElementById('userId').textContent = 'Getting ID...';
+      document.getElementById('refLink').value = 'Generating referral link...';
+      
+      try {
+        const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
+        console.log('ID assignment transaction:', txHash);
+        this.showSuccess('ID assignment in progress. Please wait...');
+        
+        // Проверяем ID через 5 секунд
+        setTimeout(async () => {
+          try {
+            const newUserId = await contractManager.getUserIdByAddress();
+            if (newUserId && newUserId !== '0') {
+              document.getElementById('userId').textContent = `GW${newUserId}`;
+              document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
+              this.showSuccess('Referral link generated!');
+            }
+          } catch (error) {
+            console.error('Failed to get assigned ID:', error);
+          }
+        }, 5000);
+        
+      } catch (assignError) {
+        console.error('Failed to assign ID:', assignError);
+        document.getElementById('userId').textContent = 'ID assignment failed';
+        document.getElementById('refLink').value = 'Contact support for referral link';
+      }
+    } else {
+      // Не зарегистрирован
+      document.getElementById('userId').textContent = 'Not registered';
+      document.getElementById('refLink').value = 'Register first to get referral link';
+    }
+    
+    if (isRegistered) {
+      const userData = await contractManager.getUserData();
+      this.updateUserProfile(userData);
+      
+      await this.loadQuarterlyStatus();
+      await this.loadEarningsData();
+      await this.loadTransactionHistory();
+      await this.loadTokenBalance();
+      
+      this.hideConnectionAlert();
+    } else {
+      this.showRegistrationPrompt();
+    }
+    
+  } catch (error) {
+    console.error('Failed to load user data:', error);
+    this.showError('Failed to load user data');
   }
+}
 
   hasAdminAccess() {
     if (!web3Manager.account) return false;
