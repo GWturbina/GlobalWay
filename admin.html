@@ -1,540 +1,522 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalWay - Decentralized Club</title>
-    <meta name="description" content="GlobalWay decentralized club platform on opBNB">
+<div class="admin-page">
+    <h2 data-translate="admin.title">🔧 Admin Panel</h2>
     
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#001a33">
-    
-    <!-- Icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32x32.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192x192.png">
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="css/variables.css">
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/components.css">
+    <!-- Admin Rights Check -->
+    <section class="admin-rights">
+        <h3>Access Control</h3>
+        <div class="rights-item">
+            <label data-translate="admin.currentAccount">Current Account:</label>
+            <span id="adminCurrentAccount">-</span>
+        </div>
+        <div class="rights-item">
+            <label data-translate="admin.ownerRights">Rights Level:</label>
+            <span id="adminRightsLevel">Checking...</span>
+        </div>
+    </section>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
-    <div id="app">
-        <!-- Landing Page -->
-        <div id="landing" class="page active">
-            <div class="cosmic-bg">
-                <img src="assets/images/background.jpg" alt="Earth" class="bg-image">
-                
-                <!-- Language Switcher -->
-                <div class="lang-switch">
-                    <select id="langSelect">
-                        <option value="en">EN</option>
-                        <option value="ru">RU</option>
-                        <option value="uk">UK</option>
-                    </select>
-                </div>
-                
-                <!-- Floating Planets -->
-                <div class="planets-container">
-                    <div class="planet" data-planet="club">
-                        <img src="assets/planets/planet-club.png" alt="Club">
-                        <span class="planet-label" data-translate="planets.club">Club GlobalWay</span>
-                    </div>
-                    <div class="planet" data-planet="mission">
-                        <img src="assets/planets/planet-mission.png" alt="Mission">
-                        <span class="planet-label" data-translate="planets.mission">Our Mission</span>
-                    </div>
-                    <div class="planet" data-planet="goals">
-                        <img src="assets/planets/planet-goals.png" alt="Goals">
-                        <span class="planet-label" data-translate="planets.goals">Club Goals</span>
-                    </div>
-                    <div class="planet" data-planet="roadmap">
-                        <img src="assets/planets/planet-roadmap.png" alt="Roadmap">
-                        <span class="planet-label" data-translate="planets.roadmap">Roadmap</span>
-                    </div>
-                    <div class="planet" data-planet="projects">
-                        <img src="assets/planets/planet-projects.png" alt="Projects">
-                        <span class="planet-label" data-translate="planets.projects">Our Projects</span>
-                    </div>
-                </div>
-                
-                <!-- Entry Coin -->
-                <div class="entry-coin" id="openDapp">
-                    <img src="assets/planets/gwt-coin.png" alt="GWT Coin">
-                    <span data-translate="landing.enterDapp">Вход в Daap</span>
-                </div>
+    <!-- Admin Statistics -->
+    <section class="admin-stats">
+        <h3 data-translate="admin.stats">📊 Administrator Statistics</h3>
+        <div class="admin-stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalUsers">0</div>
+                <div class="stat-label" data-translate="admin.totalUsers">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminActiveUsers">0</div>
+                <div class="stat-label" data-translate="admin.activeUsers">Active Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminContractBalance">0 BNB</div>
+                <div class="stat-label" data-translate="admin.contractBalance">Contract Balance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalVolume">0 BNB</div>
+                <div class="stat-label" data-translate="admin.totalVolume">Total Volume</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Free Activation -->
+    <section class="free-activation">
+        <h3 data-translate="admin.freeActivation">🎁 Free User Activation</h3>
+        <div class="activation-form">
+            <div class="form-group">
+                <label data-translate="admin.userAddress">User Address:</label>
+                <input type="text" id="activationAddress" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="activationSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="activationLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="freeActivateBtn" class="btn-primary" data-translate="admin.activate">🚀 Activate User</button>
+        </div>
+    </section>
+
+    <!-- Batch Activation -->
+    <section class="batch-activation">
+        <h3 data-translate="admin.batchActivation">⚡ Batch Team Activation</h3>
+        <div class="batch-form">
+            <div class="form-group">
+                <label data-translate="admin.teamMembers">Team Members (one per line):</label>
+                <textarea id="batchMembers" rows="5" placeholder="0x...&#10;0x...&#10;0x..."></textarea>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="batchSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="batchLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="batchActivateBtn" class="btn-primary" data-translate="admin.batchActivate">Batch Activate Team</button>
+        </div>
+    </section>
+
+    <!-- User Management -->
+    <section class="user-management">
+        <h3 data-translate="admin.authManagement">🔐 User Management</h3>
+        
+        <!-- Block User -->
+        <div class="management-section">
+            <h4 data-translate="admin.blockUser">Block User</h4>
+            <div class="management-form">
+                <input type="text" id="blockUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <input type="text" id="tempAddress" placeholder="Temporary Address" data-translate="admin.tempAddress">
+                <textarea id="blockReason" placeholder="Block Reason" data-translate="admin.blockReason"></textarea>
+                <button id="blockUserBtn" class="btn-danger">🚫 Block User</button>
             </div>
         </div>
 
-        <!-- Main DApp -->
-        <div id="dapp" class="page">
-            <!-- Header -->
-            <header class="header">
-                <div class="logo">
-                    <img src="assets/icons/logo.png" alt="GlobalWay">
-                    <span>GlobalWay</span>
-                </div>
-                <div class="header-info">
-                        <div class="header-lang-switch">
-                        <select id="langSelectHeader">
-                            <option value="en">EN</option>
-                            <option value="ru">RU</option>
-                            <option value="uk">UK</option>
-                        </select>
-                    </div>
-                    <div id="connectionStatus" class="status-indicator">
-                        <span id="connectBtn" data-translate="wallet.connect">Connect Wallet</span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Navigation -->
-            <nav class="main-nav">
-                <button class="nav-btn active" data-page="dashboard">
-                    <span data-translate="nav.dashboard">Dashboard</span>
-                </button>
-                <button class="nav-btn" data-page="partners">
-                    <span data-translate="nav.partners">Partners</span>
-                </button>
-                <button class="nav-btn" data-page="matrix">
-                    <span data-translate="nav.matrix">Matrix</span>
-                </button>
-                <button class="nav-btn" data-page="tokens">
-                    <span data-translate="nav.tokens">Tokens</span>
-                </button>
-                <button class="nav-btn" data-page="projects">
-                    <span data-translate="nav.projects">Projects</span>
-                </button>
-                <button class="nav-btn admin-only" data-page="admin" style="display:none;">
-                    <i class="icon-settings"></i>
-                    <span data-translate="nav.admin">Admin</span>
-                </button>
-            </nav>
-
-            <!-- Content -->
-            <main class="content">
-                <!-- Dashboard -->
-                <div id="dashboard" class="page-content active">
-                    <!-- Personal Cabinet -->
-                    <section class="cabinet-info">
-                        <h2 data-translate="dashboard.cabinet">🌌 Личный кабинет</h2>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <label data-translate="dashboard.address">Адрес</label>
-                                <span id="userAddress">0x000...000</span>
-                            </div>
-                            <div class="info-item">
-                                <label data-translate="dashboard.balance">Баланс</label>
-                                <span id="userBalance">0.000 BNB</span>
-                            </div>
-                            <div class="info-item">
-                                <label data-translate="dashboard.userId">ID пользователя</label>
-                                <span id="userId">-</span>
-                            </div>
-                            <div class="info-item">
-                                <label data-translate="dashboard.rank">Ранг</label>
-                                <span id="userRank">-</span>
-                            </div>
-                        </div>
-                        <div class="referral-section">
-                            <label data-translate="dashboard.refLink">Реферальная ссылка</label>
-                            <input type="text" id="refLink" readonly>
-                            <button id="copyRefLink" data-translate="common.copy">Copy</button>
-                        </div>
-                    </section>
-
-                    <!-- Quarterly Activity -->
-                    <section class="quarterly-activity">
-                        <h3 data-translate="dashboard.quarterly">Квартальная активность</h3>
-                        <div class="activity-info">
-                            <div class="activity-item">
-                                <span data-translate="dashboard.quarter">Квартал:</span>
-                                <span id="currentQuarter">1</span>
-                            </div>
-                            <div class="activity-item">
-                                <span data-translate="dashboard.nextPayment">Следующая оплата:</span>
-                                <span id="nextPayment">-</span>
-                            </div>
-                            <div class="activity-item">
-                                <span data-translate="dashboard.cost">Стоимость:</span>
-                                <span id="quarterlyCost">0.075 BNB</span>
-                            </div>
-                        </div>
-                        <button id="payActivityBtn" class="btn-primary" data-translate="dashboard.payActivity">Оплатить активность</button>
-                    </section>
-
-                    <!-- Level Management -->
-                    <section class="level-management">
-                        <h3 data-translate="dashboard.levelMgmt">Управление уровнями</h3>
-                        <div class="levels-grid">
-                            <div class="levels-individual">
-                                <h4 data-translate="dashboard.individual">Индивидуальная покупка</h4>
-                                <div class="levels-row" id="individualLevels">
-                                    <!-- Generated levels 1-12 -->
-                                </div>
-                            </div>
-                            <div class="levels-bulk">
-                                <h4 data-translate="dashboard.bulk">Пакетная покупка</h4>
-                                <div class="bulk-buttons">
-                                    <button class="bulk-btn" data-levels="4">1-4 <span class="price">0.021</span> BNB</button>
-                                    <button class="bulk-btn" data-levels="7">1-7 <span class="price">0.117</span> BNB</button>
-                                    <button class="bulk-btn" data-levels="10">1-10 <span class="price">0.885</span> BNB</button>
-                                    <button class="bulk-btn" data-levels="12">1-12 <span class="price">3.957</span> BNB</button>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Earnings by Rank -->
-                    <section class="earnings-rank">
-                        <h3 data-translate="dashboard.earnings">💎 Доходы по рангам</h3>
-                        <div class="earnings-list" id="earningsRank">
-                            <!-- Generated earnings -->
-                        </div>
-                    </section>
-
-                    <!-- Transaction History -->
-                    <section class="transaction-history">
-                        <h3 data-translate="dashboard.history">История транзакций</h3>
-                        <div class="history-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th data-translate="common.number">№</th>
-                                        <th data-translate="common.level">Уровень</th>
-                                        <th data-translate="common.amount">Количество</th>
-                                        <th data-translate="common.date">Дата</th>
-                                        <th>ID</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="historyTable">
-                                    <!-- Generated transactions -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-
-                    <!-- Tokens Summary -->
-                    <section class="tokens-summary">
-                        <h3 data-translate="dashboard.tokens">Токены</h3>
-                        <div class="token-info">
-                            <span data-translate="tokens.amount">Количество:</span>
-                            <span id="tokenAmount">0 GWT</span>
-                            <span data-translate="tokens.price">Цена:</span>
-                            <span id="tokenPrice">$0.00</span>
-                            <button class="btn-secondary" onclick="showPage('tokens')" data-translate="tokens.manage">Управлять</button>
-                        </div>
-                    </section>
-                </div>
-
-                <!-- Partners Page -->
-                <div id="partners" class="page-content">
-                </div>
-
-                <!-- Matrix Page -->
-                <div id="matrix" class="page-content">
-                </div>
-
-                <!-- Tokens Page -->
-                <div id="tokens" class="page-content">
-                </div>
-
-                <!-- Projects Page -->
-                <div id="projects" class="page-content">
-                </div>
-
-                <!-- Admin Page -->
-                <div id="admin" class="page-content admin-only" style="display:none;">
-                </div>
-            </main>
+        <!-- Replace Address -->
+        <div class="management-section">
+            <h4 data-translate="admin.replaceAddress">Replace User Address</h4>
+            <div class="management-form">
+                <input type="text" id="replaceOldAddress" placeholder="Current Address" data-translate="admin.userAddress">
+                <input type="text" id="replaceNewAddress" placeholder="New Address" data-translate="admin.newAddress">
+                <textarea id="replaceReason" placeholder="Reason for replacement" data-translate="admin.reason"></textarea>
+                <button id="replaceAddressBtn" class="btn-warning">🔄 Replace Address</button>
+            </div>
         </div>
-                <!-- Partners Page -->
-                <div id="partners" class="page-content">
-                    <h2 data-translate="partners.title">Partners Structure</h2>
-                    
-                    <div class="level-selector">
-                        <div class="level-buttons" id="partnerLevels">
-                            <!-- Generated 1-12 level buttons -->
-                        </div>
-                    </div>
 
-                    <div class="team-structure">
-                        <h3 data-translate="partners.structure">🔍 Структура команды</h3>
-                        <table class="partners-table">
-                            <thead>
-                                <tr>
-                                    <th data-translate="common.number">№</th>
-                                    <th>ID</th>
-                                    <th data-translate="common.address">Адрес</th>
-                                    <th data-translate="partners.sponsorId">ID спонсора</th>
-                                    <th data-translate="common.date">Дата активации</th>
-                                    <th data-translate="common.level">Уровень</th>
-                                    <th data-translate="partners.team">Прямая команда</th>
-                                </tr>
-                            </thead>
-                            <tbody id="partnersTable">
-                                <!-- Generated partner data -->
-                            </tbody>
-                        </table>
-                    </div>
+        <!-- Process Inactive -->
+        <div class="management-section">
+            <h4 data-translate="admin.processInactive">Process Inactive User</h4>
+            <div class="management-form">
+                <input type="text" id="inactiveUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <button id="processInactiveBtn" class="btn-warning" data-translate="admin.processInactiveAccount">⚠️ Process Inactive Account</button>
+            </div>
+        </div>
+    </section>
 
-                    <div class="team-stats">
-                        <h3 data-translate="partners.stats">📊 Статистика команды</h3>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <label data-translate="partners.personal">Лично приглашенных:</label>
-                                <span id="personalInvites">0</span>
-                            </div>
-                            <div class="stat-item">
-                                <label data-translate="partners.active">Активных:</label>
-                                <span id="activePartners">0</span>
-                            </div>
-                            <div class="stat-item">
-                                <label data-translate="partners.total">Общая команда:</label>
-                                <span id="totalTeam">0</span>
-                            </div>
-                        </div>
+    <!-- Contract Management -->
+    <section class="contract-management">
+        <h3 data-translate="admin.contractMgmt">🔧 Contract Management</h3>
+        <div class="contract-controls">
+            <div class="control-group">
+                <h4>Contract Status</h4>
+                <div class="status-controls">
+                    <button id="pauseContractBtn" class="btn-danger" data-translate="admin.pause">⏸️ Pause Contract</button>
+                    <button id="unpauseContractBtn" class="btn-success" data-translate="admin.unpause">▶️ Unpause Contract</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>Project Integration</h4>
+                <div class="project-controls">
+                    <input type="text" id="projectContractAddress" placeholder="Project Contract Address" data-translate="admin.projectContract">
+                    <input type="text" id="projectName" placeholder="Project Name" data-translate="admin.projectName">
+                    <div class="project-actions">
+                        <button id="connectProjectBtn" class="btn-success" data-translate="admin.connectProject">🔗 Connect Project</button>
+                        <button id="disconnectProjectBtn" class="btn-danger" data-translate="admin.disconnectProject">❌ Disconnect Project</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
 
-                <!-- Matrix Page -->
-                <div id="matrix" class="page-content">
-                    <h2 data-translate="matrix.title">Interactive Matrix</h2>
-                    
-                    <div class="level-selector">
-                        <div class="level-buttons" id="matrixLevels">
-                            <!-- Generated 1-12 level buttons -->
-                        </div>
-                    </div>
-
-                    <div class="matrix-visualization" id="matrixVisualization">
-                        <div class="matrix-tree">
-                            <!-- Generated matrix positions -->
-                        </div>
-                    </div>
-
-                    <div class="matrix-structure">
-                        <h3 data-translate="matrix.structure">Структура матрицы</h3>
-                        <table class="matrix-table">
-                            <thead>
-                                <tr>
-                                    <th data-translate="common.number">№</th>
-                                    <th>ID</th>
-                                    <th data-translate="common.address">Адрес</th>
-                                    <th data-translate="partners.sponsorId">ID спонсора</th>
-                                    <th data-translate="common.date">Дата активации</th>
-                                    <th data-translate="common.level">Уровень</th>
-                                    <th data-translate="matrix.position">Позиция</th>
-                                    <th data-translate="common.status">Статус</th>
-                                </tr>
-                            </thead>
-                            <tbody id="matrixTable">
-                                <!-- Generated matrix data -->
-                            </tbody>
-                        </table>
-                    </div>
+    <!-- Financial Management -->
+    <section class="financial-management">
+        <h3 data-translate="admin.financial">💰 Financial Management</h3>
+        
+        <!-- Pool Withdrawals -->
+        <div class="financial-section">
+            <h4 data-translate="admin.withdrawal">Withdrawal Management</h4>
+            <div class="withdrawal-form">
+                <select id="withdrawalPool" data-translate="admin.withdrawalPool">
+                    <option value="treasury">Treasury Pool</option>
+                    <option value="ops">Operations Pool</option>
+                    <option value="dev">Development Pool</option>
+                    <option value="charity">Charity Pool</option>
+                    <option value="tokenomics">Tokenomics Pool</option>
+                </select>
+                <input type="text" id="withdrawalAddress" placeholder="Withdrawal Address" data-translate="admin.withdrawalAddress">
+                <input type="number" id="withdrawalAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.withdrawalAmount">
+                <textarea id="withdrawalNote" placeholder="Note/Reason" data-translate="admin.withdrawalNote"></textarea>
+                <div class="voting-info">
+                    <small data-translate="admin.votingRequired">⚠️ Requires 8 votes for amounts over 5 BNB</small>
                 </div>
+                <button id="withdrawalBtn" class="btn-warning" data-translate="admin.withdraw">💸 Withdraw Funds</button>
+            </div>
+        </div>
 
-                <!-- Tokens Page -->
-                <div id="tokens" class="page-content">
-                    <h2 data-translate="tokens.title">GWT Tokens</h2>
-                    
-                    <section class="token-balance">
-                        <h3 data-translate="tokens.balance">Баланс токенов</h3>
-                        <div class="balance-info">
-                            <div class="balance-item">
-                                <span data-translate="tokens.total">Общий баланс:</span>
-                                <span id="totalTokens">0 GWT</span>
-                            </div>
-                            <div class="balance-item">
-                                <span data-translate="tokens.value">Общая стоимость:</span>
-                                <span id="totalValue">$0.00</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="token-stats">
-                        <h3 data-translate="tokens.statistics">📈 Статистика токенов</h3>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <label data-translate="tokens.totalSupply">Общий запас:</label>
-                                <span id="totalSupply">1,000,000,000 GWT</span>
-                            </div>
-                            <div class="stat-item">
-                                <label data-translate="tokens.circulation">Оборотный запас:</label>
-                                <span id="circSupply">0 GWT</span>
-                            </div>
-                            <div class="stat-item">
-                                <label data-translate="tokens.burned">Сожжённые:</label>
-                                <span id="burnedTokens">0 GWT</span>
-                            </div>
-                            <div class="stat-item">
-                                <label data-translate="tokens.marketCap">Рыночная капитализация:</label>
-                                <span id="marketCap">$0</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="token-trading">
-                        <h3 data-translate="tokens.trading">💰 Торговля токенами</h3>
-                        <div class="trading-disabled">
-                            <p data-translate="tokens.tradingDisabled">Торговля начинается при достижении цены $0.01</p>
-                            <div class="trading-buttons">
-                                <button class="btn-success" disabled data-translate="tokens.buy">Купить</button>
-                                <button class="btn-danger" disabled data-translate="tokens.sell">Продать</button>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="token-pools">
-                        <h3 data-translate="tokens.pools">Пулы токенов</h3>
-                        <div class="pools-grid">
-                            <div class="pool-item">
-                                <span data-translate="tokens.tokenomics">Пул токеномики</span>
-                                <span>80% (800M GWT)</span>
-                                <span class="status-soon" data-translate="common.soon">Скоро</span>
-                            </div>
-                            <div class="pool-item">
-                                <span data-translate="tokens.distribution">Пул раздачи</span>
-                                <span>10% (100M GWT)</span>
-                                <span class="status-soon" data-translate="common.soon">Скоро</span>
-                            </div>
-                            <div class="pool-item">
-                                <span data-translate="tokens.team">Командный пул</span>
-                                <span>5% (50M GWT)</span>
-                                <span class="status-locked" data-translate="common.locked">Заблокировано</span>
-                            </div>
-                            <div class="pool-item">
-                                <span data-translate="tokens.reserve">Резервный пул</span>
-                                <span>5% (50M GWT)</span>
-                                <span class="status-soon" data-translate="common.soon">Вскоре</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="token-history">
-                        <h3 data-translate="tokens.history">История токенов</h3>
-                        <table class="token-history-table">
-                            <thead>
-                                <tr>
-                                    <th data-translate="common.date">Дата</th>
-                                    <th data-translate="common.type">Тип</th>
-                                    <th data-translate="common.level">Уровень</th>
-                                    <th data-translate="common.amount">Количество</th>
-                                    <th data-translate="common.status">Статус</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tokenHistoryTable">
-                                <!-- Generated token history -->
-                            </tbody>
-                        </table>
-                    </section>
-
-                    <section class="contract-info">
-                        <h3 data-translate="tokens.contractInfo">📄 Информация о контракте</h3>
-                        <div class="contract-details">
-                            <div class="contract-item">
-                                <label data-translate="tokens.contractAddress">Адрес контракта:</label>
-                                <span>0x5Bf1b9edD3914f546AC02cf35CC285E640Cb68Fc</span>
-                            </div>
-                            <div class="contract-item">
-                                <label data-translate="tokens.tokenName">Имя токена:</label>
-                                <span>GlobalWay Token</span>
-                            </div>
-                            <div class="contract-item">
-                                <label data-translate="tokens.symbol">Символ:</label>
-                                <span>GWT</span>
-                            </div>
-                            <div class="contract-item">
-                                <label data-translate="tokens.decimals">Десятичные знаки:</label>
-                                <span>18</span>
-                            </div>
-                            <div class="contract-item">
-                                <label data-translate="tokens.network">Сеть:</label>
-                                <span>opBNB</span>
-                            </div>
-                        </div>
-                        <div class="contract-actions">
-                            <button class="btn-secondary" id="addToWallet" data-translate="tokens.addWallet">Добавить в кошелек</button>
-                        </div>
-                    </section>
+        <!-- Emergency Withdrawal -->
+        <div class="financial-section emergency">
+            <h4 data-translate="admin.emergencyWithdraw">Emergency Withdrawal</h4>
+            <div class="emergency-form">
+                <input type="text" id="emergencyFromAddress" placeholder="From Address" data-translate="admin.fromAddress">
+                <input type="text" id="emergencyToAddress" placeholder="To Address" data-translate="admin.toAddress">
+                <input type="number" id="emergencyAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.amount">
+                <textarea id="emergencyReason" placeholder="Emergency Reason" data-translate="admin.reason"></textarea>
+                <div class="danger-warning">
+                    <strong>⚠️ DANGER ZONE - Emergency Use Only</strong>
                 </div>
+                <button id="emergencyWithdrawBtn" class="btn-danger" data-translate="admin.emergencyWithdraw">🚨 Emergency Withdraw</button>
+            </div>
+        </div>
+    </section>
 
-                <!-- Projects Page -->
-                <div id="projects" class="page-content">
-                    <h2 data-translate="projects.title">Our Projects</h2>
-                    
-                    <div class="projects-grid" id="projectsGrid">
-                        <!-- Generated project cards -->
-                    </div>
+    <!-- ID Management -->
+    <section class="id-management">
+        <h3>👥 ID Management</h3>
+        
+        <!-- Assign ID -->
+        <div class="management-section">
+            <h4>Assign ID to User</h4>
+            <div class="management-form">
+                <input type="text" id="assignIdUserAddress" placeholder="User Address">
+                <button id="assignIdBtn" class="btn-primary">🆔 Assign ID</button>
+            </div>
+        </div>
 
-                    <section class="project-stats">
-                        <h3 data-translate="projects.statistics">Статистика проектов</h3>
-                        <div class="stats-row">
-                            <div class="stat-item">
-                                <span data-translate="projects.total">Всего проектов:</span>
-                                <span id="totalProjects">8</span>
-                            </div>
-                            <div class="stat-item">
-                                <span data-translate="projects.active">Активные:</span>
-                                <span id="activeProjects">0</span>
-                            </div>
-                            <div class="stat-item">
-                                <span data-translate="projects.development">В разработке:</span>
-                                <span id="devProjects">8</span>
-                            </div>
-                            <div class="stat-item">
-                                <span data-translate="projects.coming">Вскоре:</span>
-                                <span id="comingProjects">0</span>
-                            </div>
-                        </div>
-                    </section>
+        <!-- ID Statistics -->
+        <div class="id-stats">
+            <div class="stat-item">
+                <label>Total IDs Assigned:</label>
+                <span id="totalIdsAssigned">0</span>
+            </div>
+            <div class="stat-item">
+                <label>Available IDs:</label>
+                <span id="availableIds">0</span>
+            </div>
+            <div class="stat-item">
+                <label>ID Range:</label>
+                <span id="idRange">1000000 - 9999999</span>
+            </div>
+        </div>
+    </section>
 
-                    <section class="roadmap">
-                        <h3 data-translate="projects.roadmap">🗓️ Дорожная карта</h3>
-                        <div class="roadmap-timeline">
-                            <div class="timeline-item">
-                                <span class="year">2025</span>
-                                <span class="description" data-translate="roadmap.2025">Запуск платформы и 8 проектов</span>
-                            </div>
-                            <div class="timeline-item">
-                                <span class="year">2026</span>
-                                <span class="description" data-translate="roadmap.2026">Выход GWT на рынок ценных бумаг</span>
-                            </div>
-                            <div class="timeline-item">
-                                <span class="year">2027</span>
-                                <span class="description" data-translate="roadmap.2027">Лидерство среди мировых сообществ</span>
-                            </div>
-                            <div class="timeline-item">
-                                <span class="year">2028</span>
-                                <span class="description" data-translate="roadmap.2028">Строительство эко-поселений</span>
-                            </div>
-                        </div>
-                    </section>
+    <!-- Delegation Management -->
+    <section class="delegation-management">
+        <h3 data-translate="admin.delegation">👥 Delegation Management</h3>
+        <div class="delegation-form">
+            <input type="text" id="delegateAddress" placeholder="Partner Address" data-translate="admin.delegateAddress">
+            <div class="permissions-group">
+                <label data-translate="admin.permissions">Permissions:</label>
+                <div class="permission-checkboxes">
+                    <label><input type="checkbox" value="support"> Support</label>
+                    <label><input type="checkbox" value="news"> News</label>
+                    <label><input type="checkbox" value="history"> History</label>
+                    <label><input type="checkbox" value="mailings"> Mailings</label>
                 </div>
+            </div>
+            <textarea id="delegationNote" placeholder="Delegation Note" data-translate="admin.reason"></textarea>
+            <button id="delegateRightsBtn" class="btn-primary" data-translate="admin.delegateRights">✅ Delegate Rights</button>
+        </div>
+    </section>
 
-    <!-- Modal for Planet Info -->
-    <div id="planetModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3 id="modalTitle"></h3>
-            <p id="modalText"></p>
+    <!-- News Management -->
+    <section class="news-management">
+        <h3 data-translate="admin.news">📰 News Management</h3>
+        <div class="news-form">
+            <input type="text" id="newsTitle" placeholder="News Title" data-translate="admin.newsTitle">
+            <textarea id="newsText" placeholder="News Content" data-translate="admin.newsText"></textarea>
+            <input type="url" id="newsLink" placeholder="Link (optional)" data-translate="admin.newsLink">
+            <input type="file" id="newsPhoto" accept="image/*" data-translate="admin.newsPhoto">
+            <button id="publishNewsBtn" class="btn-primary" data-translate="admin.publishNews">📢 Publish News</button>
+        </div>
+    </section>
+
+    <!-- User Lookup -->
+    <section class="user-lookup">
+        <h3>🔍 User Lookup</h3>
+        <div class="lookup-form">
+            <div class="form-group">
+                <label>Search by Address or ID:</label>
+                <input type="text" id="lookupInput" placeholder="0x... or GW1234567">
+                <button id="lookupBtn" class="btn-secondary">Search</button>
+            </div>
+            <div id="lookupResults" class="lookup-results" style="display: none;">
+                <div class="result-item">
+                    <label>Address:</label>
+                    <span id="resultAddress">-</span>
+                </div>
+                <div class="result-item">
+                    <label>User ID:</label>
+                    <span id="resultUserId">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Registration Status:</label>
+                    <span id="resultRegistered">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Active Levels:</label>
+                    <span id="resultLevels">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Total Earned:</label>
+                    <span id="resultEarned">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Referrals:</label>
+                    <span id="resultReferrals">-</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Voting System -->
+    <section class="voting-system" id="votingSystem" style="display:none;">
+        <h3 data-translate="admin.voting">🗳️ Voting System</h3>
+        <div id="activeVotings" class="voting-list">
+            <!-- Generated active votings -->
+        </div>
+    </section>
+
+    <!-- Danger Zone -->
+    <section class="danger-zone">
+        <h3 data-translate="admin.dangerZone">⚠️ DANGER ZONE</h3>
+        <div class="danger-actions">
+            <button id="transferMultisigBtn" class="btn-danger disabled" data-translate="admin.transferMultisig">
+                🔥 Transfer to Multisig (IRREVERSIBLE!)
+            </button>
+            <p><small>This action cannot be undone and will transfer contract ownership to multisig wallet.</small></p>
+        </div>
+    </section>
+</div>
+
+<!-- Voting Modal -->
+<div id="votingModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="votingTitle">Voting Required</h3>
+        <div class="voting-details">
+            <p id="votingDescription">This action requires voting approval from board members.</p>
+            <div class="voting-status">
+                <div class="votes-for">
+                    <label>Votes For: <span id="votesFor">0</span>/8</label>
+                </div>
+                <div class="votes-against">
+                    <label>Votes Against: <span id="votesAgainst">0</span>/8</label>
+                </div>
+            </div>
+            <div class="voting-actions">
+                <button id="voteForBtn" class="btn-success">✅ Vote For</button>
+                <button id="voteAgainstBtn" class="btn-danger">❌ Vote Against</button>
+                <button id="abstainBtn" class="btn-secondary">⚪ Abstain</button>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/i18n.js"></script>
-    <script src="js/web3.js"></script>
-    <script src="js/contracts.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
-</body>
-</html>
+<script>
+// ИСПРАВЛЕНО: Подключение админ функций к контрактам
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof contractManager === 'undefined') {
+        console.error('Contract manager not loaded');
+        return;
+    }
+
+    // Free User Activation
+    document.getElementById('freeActivateBtn')?.addEventListener('click', async () => {
+        try {
+            const address = document.getElementById('activationAddress').value.trim();
+            const maxLevel = parseInt(document.getElementById('activationLevel').value);
+            
+            if (!address || !maxLevel) {
+                uiManager.showError('Please fill all required fields');
+                return;
+            }
+
+            if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+                uiManager.showError('Invalid address format');
+                return;
+            }
+
+            const txHash = await contractManager.freeActivateUser(address, maxLevel);
+            uiManager.showSuccess(`Free activation initiated. TX: ${txHash}`);
+            
+            // Clear form
+            document.getElementById('activationAddress').value = '';
+            document.getElementById('activationLevel').value = '3';
+            
+        } catch (error) {
+            console.error('Free activation failed:', error);
+            uiManager.showError(`Failed: ${error.message}`);
+        }
+    });
+
+    // Batch Team Activation
+    document.getElementById('batchActivateBtn')?.addEventListener('click', async () => {
+        try {
+            const membersText = document.getElementById('batchMembers').value.trim();
+            const sponsor = document.getElementById('batchSponsor').value.trim();
+            const maxLevel = parseInt(document.getElementById('batchLevel').value);
+            
+            if (!membersText || !sponsor || !maxLevel) {
+                uiManager.showError('Please fill all required fields');
+                return;
+            }
+
+            const members = membersText.split('\n')
+                .map(addr => addr.trim())
+                .filter(addr => addr && /^0x[a-fA-F0-9]{40}$/.test(addr));
+
+            if (members.length === 0) {
+                uiManager.showError('No valid addresses found');
+                return;
+            }
+
+            if (!/^0x[a-fA-F0-9]{40}$/.test(sponsor)) {
+                uiManager.showError('Invalid sponsor address');
+                return;
+            }
+
+            const txHash = await contractManager.batchActivateTeam(members, sponsor, maxLevel);
+            uiManager.showSuccess(`Batch activation initiated for ${members.length} users. TX: ${txHash}`);
+            
+            // Clear form
+            document.getElementById('batchMembers').value = '';
+            document.getElementById('batchSponsor').value = '';
+            document.getElementById('batchLevel').value = '3';
+            
+        } catch (error) {
+            console.error('Batch activation failed:', error);
+            uiManager.showError(`Failed: ${error.message}`);
+        }
+    });
+
+    // Assign ID to User
+    document.getElementById('assignIdBtn')?.addEventListener('click', async () => {
+        try {
+            const address = document.getElementById('assignIdUserAddress').value.trim();
+            
+            if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+                uiManager.showError('Please enter valid address');
+                return;
+            }
+
+            const txHash = await contractManager.sendTransaction('stats', 'assignIdByOwner', [address]);
+            uiManager.showSuccess(`ID assignment initiated. TX: ${txHash}`);
+            
+            document.getElementById('assignIdUserAddress').value = '';
+            
+        } catch (error) {
+            console.error('ID assignment failed:', error);
+            uiManager.showError(`Failed: ${error.message}`);
+        }
+    });
+
+    // User Lookup
+    document.getElementById('lookupBtn')?.addEventListener('click', async () => {
+        try {
+            const input = document.getElementById('lookupInput').value.trim();
+            if (!input) {
+                uiManager.showError('Please enter address or ID');
+                return;
+            }
+
+            let userAddress = null;
+            let userId = null;
+
+            // Check if input is address or ID
+            if (input.startsWith('0x')) {
+                userAddress = input;
+                userId = await contractManager.getUserIdByAddress(userAddress);
+            } else {
+                const cleanId = input.replace(/^GW/i, '');
+                if (!/^\d{7}$/.test(cleanId)) {
+                    uiManager.showError('Invalid ID format');
+                    return;
+                }
+                userId = cleanId;
+                userAddress = await contractManager.getAddressByUserId(cleanId);
+            }
+
+            if (!userAddress || userAddress === '0x0000000000000000000000000000000000000000') {
+                uiManager.showError('User not found');
+                return;
+            }
+
+            // Get user data
+            const userData = await contractManager.getUserData(userAddress);
+            const isRegistered = await contractManager.isUserRegistered(userAddress);
+            
+            // Update results
+            document.getElementById('resultAddress').textContent = userAddress;
+            document.getElementById('resultUserId').textContent = userId ? `GW${userId}` : 'Not assigned';
+            document.getElementById('resultRegistered').textContent = isRegistered ? 'Yes' : 'No';
+            
+            if (userData) {
+                document.getElementById('resultLevels').textContent = userData.activeLevels?.join(', ') || 'None';
+                document.getElementById('resultEarned').textContent = `${(parseInt(userData.totalEarned) / 1e18).toFixed(4)} BNB`;
+                document.getElementById('resultReferrals').textContent = userData.personalInvites || '0';
+            }
+            
+            document.getElementById('lookupResults').style.display = 'block';
+            
+        } catch (error) {
+            console.error('Lookup failed:', error);
+            uiManager.showError(`Lookup failed: ${error.message}`);
+        }
+    });
+
+    // Load admin statistics
+    loadAdminStats();
+
+    async function loadAdminStats() {
+        try {
+            const overview = await contractManager.getContractOverview();
+            if (overview) {
+                document.getElementById('adminTotalUsers').textContent = overview.totalUsers || '0';
+                document.getElementById('adminActiveUsers').textContent = overview.activeUsers || '0';
+                document.getElementById('adminContractBalance').textContent = `${(parseInt(overview.contractBalance) / 1e18).toFixed(4)} BNB`;
+                document.getElementById('adminTotalVolume').textContent = `${(parseInt(overview.totalVolume) / 1e18).toFixed(4)} BNB`;
+            }
+
+            // Load ID stats
+            const totalIds = await contractManager.callContract('stats', 'maxId', []);
+            const minId = await contractManager.callContract('stats', 'minId', []);
+            
+            if (totalIds && minId) {
+                const range = parseInt(totalIds) - parseInt(minId);
+                document.getElementById('totalIdsAssigned').textContent = range.toString();
+                document.getElementById('availableIds').textContent = (10000000 - range).toString();
+                document.getElementById('idRange').textContent = `${minId} - ${totalIds}`;
+            }
+            
+        } catch (error) {
+            console.error('Failed to load admin stats:', error);
+        }
+    }
+
+    // Refresh stats every 30 seconds
+    setInterval(loadAdminStats, 30000);
+});
+</script>
