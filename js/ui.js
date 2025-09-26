@@ -14,7 +14,6 @@ class UIManager {
       'Квантовый лидер', 'Глобальный тех-титан'
     ];
     this.levelRewards = [0, 5, 5, 10, 15, 35, 75, 150, 300, 600, 1200, 2400, 4500];
-    this.userIdDatabase = new Map();
     this.notifications = [];
     this.matrixManager = new MatrixManager();
     this.adminLoaded = false;
@@ -212,14 +211,20 @@ class UIManager {
 
       const isRegistered = await contractManager.isUserRegistered();
       
-      // ИСПРАВЛЕНО: Получение ID от контракта вместо генерации
-      let userId = await contractManager.getUserIdByAddress();
-      if (!userId || userId === '0') {
-        userId = await this.generateUserId(web3Manager.account);
+      // ИСПРАВЛЕНО: Получение ID только от контракта
+      let userId = null;
+      if (isRegistered) {
+        userId = await contractManager.getUserIdByAddress();
       }
       
-      document.getElementById('userId').textContent = `GW${userId}`;
-      document.getElementById('refLink').value = `${window.location.origin}/ref${userId}`;
+      // Отображаем ID если есть, иначе показываем что нужна регистрация
+      if (userId) {
+        document.getElementById('userId').textContent = `GW${userId}`;
+        document.getElementById('refLink').value = `${window.location.origin}/ref${userId}`;
+      } else {
+        document.getElementById('userId').textContent = 'Not registered';
+        document.getElementById('refLink').value = 'Register first to get referral link';
+      }
       
       if (isRegistered) {
         const userData = await contractManager.getUserData();
@@ -258,41 +263,6 @@ class UIManager {
     }
     
     return hasAccess;
-  }
-
-  // ИСПРАВЛЕНО: Теперь использует контрактный ID
-  async generateUserId(address) {
-    if (!address) return '0000000';
-    
-    try {
-      const contractId = await contractManager.getUserIdByAddress(address);
-      if (contractId && contractId !== '0') {
-        return contractId;
-      }
-      
-      if (this.userIdDatabase.has(address)) {
-        return this.userIdDatabase.get(address);
-      }
-      
-      let hash = 0;
-      for (let i = 0; i < address.length; i++) {
-        const char = address.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      
-      const userId = Math.abs(hash % 9000000) + 1000000;
-      this.userIdDatabase.set(address, userId.toString());
-      
-      const savedIds = JSON.parse(localStorage.getItem('globalway_userIds') || '{}');
-      savedIds[address] = userId.toString();
-      localStorage.setItem('globalway_userIds', JSON.stringify(savedIds));
-      
-      return userId.toString();
-    } catch (error) {
-      console.error('Failed to generate user ID:', error);
-      return '0000000';
-    }
   }
 
   updateUserProfile(userData) {
@@ -458,101 +428,31 @@ class UIManager {
     });
   }
 
-  // ИСПРАВЛЕНО: Загрузка реальных транзакций вместо заглушки
+  // ИСПРАВЛЕНО: Загрузка реальной истории через контракт
   async loadTransactionHistory() {
     try {
       const historyTable = document.getElementById('historyTable');
       if (!historyTable) return;
 
-      // Пытаемся загрузить последние события из контракта
-      const globalwayContract = this.web3.contracts.globalway;
-      if (!globalwayContract) {
-        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Contract not loaded</td></tr>';
-        return;
-      }
+      historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Loading transactions...</td></tr>';
 
-      // Получаем последние блоки для фильтрации событий
-      const currentBlock = await this.web3.provider.request({
-        method: 'eth_blockNumber',
-        params: []
-      });
+      const transactions = await contractManager.getTransactionHistory(web3Manager.account, 20);
       
-      const fromBlock = Math.max(0, parseInt(currentBlock, 16) - 10000); // Последние 10000 блоков
-      
-      // Создаем фильтры для различных событий
-      const filters = {
-        address: globalwayContract.address,
-        fromBlock: '0x' + fromBlock.toString(16),
-        toBlock: 'latest'
-      };
-
-      const logs = await this.web3.provider.request({
-        method: 'eth_getLogs',
-        params: [filters]
-      });
-
-      if (logs && logs.length > 0) {
-        // Фильтруем логи связанные с текущим пользователем
-        const userLogs = logs.filter(log => {
-          // Проверяем топики на наличие адреса пользователя
-          const userAddressTopic = '0x' + this.web3.account.slice(2).padStart(64, '0').toLowerCase();
-          return log.topics.some(topic => topic && topic.toLowerCase() === userAddressTopic);
-        });
-
-        if (userLogs.length > 0) {
-          const rows = await Promise.all(userLogs.slice(0, 20).map(async (log) => {
-            const block = await this.web3.provider.request({
-              method: 'eth_getBlockByNumber',
-              params: [log.blockNumber, false]
-            });
-            
-            const timestamp = new Date(parseInt(block.timestamp, 16) * 1000);
-            const txHash = log.transactionHash;
-            
-            // Определяем тип транзакции по сигнатуре события
-            let type = 'Transaction';
-            let amount = '0';
-            let status = 'Success';
-            
-            // Сигнатуры событий (первый топик)
-            const eventSignatures = {
-              [`0x${this.web3Keccak256('LevelPurchased(address,uint8,uint256)')}`]: 'Level Purchase',
-              [`0x${this.web3Keccak256('ReferralReward(address,address,uint256,uint8)')}`]: 'Referral Reward',
-              [`0x${this.web3Keccak256('QuarterlyActivityPaid(address,uint256,uint256)')}`]: 'Quarterly Payment',
-              [`0x${this.web3Keccak256('Registration(address,address,uint256)')}`]: 'Registration'
-            };
-            
-            if (log.topics[0] && eventSignatures[log.topics[0]]) {
-              type = eventSignatures[log.topics[0]];
-              
-              // Парсим amount из data если есть
-              if (log.data && log.data !== '0x') {
-                try {
-                  amount = (parseInt(log.data.slice(0, 66), 16) / 1e18).toFixed(4);
-                } catch (e) {
-                  amount = '0';
-                }
-              }
-            }
-            
-            return `
-              <tr>
-                <td>${timestamp.toLocaleDateString()} ${timestamp.toLocaleTimeString()}</td>
-                <td>${type}</td>
-                <td>${amount} BNB</td>
-                <td><a href="${CONFIG.EXPLORER_URL}/tx/${txHash}" target="_blank">${txHash.slice(0, 10)}...</a></td>
-                <td><span class="status-badge ${status.toLowerCase()}">${status}</span></td>
-                <td><button class="btn-small" onclick="window.open('${CONFIG.EXPLORER_URL}/tx/${txHash}', '_blank')">View</button></td>
-              </tr>
-            `;
-          }));
-          
-          historyTable.innerHTML = rows.join('');
-        } else {
-          historyTable.innerHTML = '<tr><td colspan="6" class="no-data">No transactions found for your account</td></tr>';
-        }
+      if (transactions && transactions.length > 0) {
+        const rows = transactions.map((tx, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${tx.type}</td>
+            <td>${tx.amount} BNB</td>
+            <td>${tx.timestamp.toLocaleDateString()} ${tx.timestamp.toLocaleTimeString()}</td>
+            <td><a href="${CONFIG.EXPLORER_URL}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 10)}...</a></td>
+            <td><span class="status-badge ${tx.status.toLowerCase()}">${tx.status}</span></td>
+          </tr>
+        `);
+        
+        historyTable.innerHTML = rows.join('');
       } else {
-        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">No recent transactions found</td></tr>';
+        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">No transactions found</td></tr>';
       }
       
     } catch (error) {
@@ -562,18 +462,6 @@ class UIManager {
         historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Failed to load transaction history</td></tr>';
       }
     }
-  }
-
-  // Вспомогательная функция для keccak256
-  web3Keccak256(text) {
-    // Простая реализация для сигнатур событий
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).padStart(64, '0').slice(0, 64);
   }
 
   async loadTokenBalance() {
@@ -918,15 +806,14 @@ class UIManager {
     if (alertElement && messageElement && actionElement) {
       alertElement.className = 'alert info';
       messageElement.textContent = getTranslation('dashboard.needRegister');
-      // ИСПРАВЛЕНО: Кнопка теперь зеленая и видимая
       actionElement.textContent = getTranslation('dashboard.register');
-      actionElement.className = 'btn-success'; // Зеленая кнопка вместо btn-primary
+      actionElement.className = 'btn-success';
       actionElement.onclick = () => this.showRegistrationModal();
       alertElement.style.display = 'block';
     }
   }
 
-  // ИСПРАВЛЕНО: Регистрация теперь по ID
+  // ИСПРАВЛЕНО: Регистрация только через контракт
   showRegistrationModal() {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -964,7 +851,7 @@ class UIManager {
     };
   }
 
-  // ИСПРАВЛЕНО: Теперь возвращает ID из локального хранилища
+  // ИСПРАВЛЕНО: Получение ID из localStorage для реферальной ссылки
   getReferralId() {
     const referralId = localStorage.getItem('referralId');
     if (referralId) {
@@ -990,7 +877,7 @@ class UIManager {
     }
 
     try {
-      const overview = await contractManager.callContract('globalway', 'getContractOverview');
+      const overview = await contractManager.getContractOverview();
       if (overview) {
         const totalUsersEl = document.getElementById('adminTotalUsers');
         const activeUsersEl = document.getElementById('adminActiveUsers');
@@ -1025,12 +912,7 @@ class UIManager {
         return;
       }
       
-      const txHash = await contractManager.sendTransaction(
-        'globalway',
-        'freeRegistrationWithLevels',
-        [address, maxLevel]
-      );
-      
+      const txHash = await contractManager.freeActivateUser(address, maxLevel);
       this.showSuccess('Free activation sent. Transaction: ' + txHash);
       
       document.getElementById('activationAddress').value = '';
@@ -1052,12 +934,7 @@ class UIManager {
         return;
       }
       
-      const txHash = await contractManager.sendTransaction(
-        'globalway',
-        'batchFreeRegistration',
-        [members, sponsor, maxLevel]
-      );
-      
+      const txHash = await contractManager.batchActivateTeam(members, sponsor, maxLevel);
       this.showSuccess('Batch activation sent. Transaction: ' + txHash);
       
       document.getElementById('batchMembers').value = '';
@@ -1280,7 +1157,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Загрузка реальных партнеров вместо заглушки
+  // ИСПРАВЛЕНО: Загрузка реальных партнеров через контракт
   async showPartnerLevel(level) {
     document.querySelectorAll('#partnerLevels .level-selector-btn').forEach(btn => {
       btn.classList.remove('active');
@@ -1298,11 +1175,9 @@ class UIManager {
       tbody.innerHTML = '<tr><td colspan="8" class="no-data">Loading partner data...</td></tr>';
       
       try {
-        // Получаем реферальные связи текущего пользователя
-        const userData = await contractManager.callContract('globalway', 'getUserStats', [web3Manager.account]);
+        const userData = await contractManager.getUserData();
         
         if (userData && userData.referrals && userData.referrals.length > 0) {
-          // Фильтруем партнеров по уровню
           const partnersWithLevel = [];
           
           for (const partnerAddress of userData.referrals) {
@@ -1349,25 +1224,28 @@ class UIManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Копирование реферальной ссылки с реальным ID
   async copyReferralLink() {
-    const userId = await this.generateUserId(web3Manager.account || 'default');
-    const link = `${window.location.origin}/ref${userId}`;
-    
     try {
+      const userId = await contractManager.getUserIdByAddress(web3Manager.account);
+      
+      if (!userId) {
+        this.showError('You need to be registered to get referral link');
+        return;
+      }
+      
+      const link = `${window.location.origin}/ref${userId}`;
+      
       await navigator.clipboard.writeText(link);
       this.showSuccess('Referral link copied!');
+      
+      const refLinkEl = document.getElementById('refLink');
+      if (refLinkEl) refLinkEl.value = link;
+      
     } catch (error) {
-      const input = document.createElement('input');
-      input.value = link;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      this.showSuccess('Referral link copied!');
+      console.error('Copy failed:', error);
+      this.showError('Failed to copy referral link');
     }
-    
-    const refLinkEl = document.getElementById('refLink');
-    if (refLinkEl) refLinkEl.value = link;
   }
 
   async copyToClipboard(text) {
@@ -1737,8 +1615,10 @@ class MatrixManager {
   async loadCurrentUserMatrix() {
     if (!web3Manager.account) return;
     
-    this.currentUserId = await uiManager.generateUserId(web3Manager.account);
-    await this.loadMatrixData(this.currentUserId, this.currentLevel);
+    this.currentUserId = await contractManager.getUserIdByAddress(web3Manager.account);
+    if (this.currentUserId) {
+      await this.loadMatrixData(this.currentUserId, this.currentLevel);
+    }
   }
 
   async loadMatrixData(userId, level) {
@@ -1746,8 +1626,7 @@ class MatrixManager {
     this.showLoadingState();
 
     try {
-      // ИСПРАВЛЕНО: Получаем реальные данные матрицы из контракта
-      const userAddress = await contractManager.getAddressFromUserId(userId) || web3Manager.account;
+      const userAddress = await contractManager.getAddressByUserId(userId) || web3Manager.account;
       const matrixData = await contractManager.getMatrixData(userAddress, level);
       
       this.updateMatrixVisualization(matrixData);
