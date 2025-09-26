@@ -86,7 +86,7 @@ class GlobalWayApp {
   }
 
   // ИСПРАВЛЕНО: Очистка URL без перезагрузки
-    cleanupURL() {
+  cleanupURL() {
     // Очищаем URL только после успешной регистрации
     if (sessionStorage.getItem('registrationComplete') === 'true') {
       const cleanURL = window.location.origin + window.location.pathname.replace(/\/ref\d{7}/, '');
@@ -128,11 +128,11 @@ class GlobalWayApp {
     document.body.appendChild(modal);
     
     // ИСПРАВЛЕНО: Обработчик подключения кошелька
-        modal.querySelector('#connectAndJoin').onclick = async () => {
+    modal.querySelector('#connectAndJoin').onclick = async () => {
       try {
         await web3Manager.connect();
         modal.remove();
-    
+        
         // Отмечаем что готовы к регистрации
         sessionStorage.setItem('readyForRegistration', 'true');
         
@@ -140,20 +140,28 @@ class GlobalWayApp {
         if (uiManager && uiManager.showDApp) {
           uiManager.showDApp();
         }
-    
+        
         // Показываем модал регистрации с предзаполненным ID
         setTimeout(() => {
           if (uiManager && uiManager.showRegistrationModal) {
             uiManager.showRegistrationModal();
           }
         }, 1000);
-    
+        
       } catch (error) {
         console.error('Connection failed:', error);
         modal.remove();
         this.showError('Failed to connect wallet: ' + error.message);
       }
     };
+    
+    // Auto-close after 30 seconds
+    setTimeout(() => {
+      if (modal.parentNode) {
+        modal.remove();
+      }
+    }, 30000);
+  }
 
   setupPWA() {
     // Register service worker
