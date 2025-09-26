@@ -1,4 +1,4 @@
-const CACHE_NAME = 'globalway-v1';
+const CACHE_NAME = 'globalway-v2'; // Изменена версия
 const urlsToCache = [
   '/',
   '/index.html',
@@ -21,6 +21,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Пропускаем внешние CDN
+  if (event.request.url.includes('unpkg.com') || 
+      event.request.url.includes('cdn.ethers.io') ||
+      event.request.url.includes('cdn.jsdelivr.net')) {
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -28,7 +35,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         return fetch(event.request);
-      }
-    )
+      })
   );
 });
