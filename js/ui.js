@@ -181,7 +181,7 @@ class UIManager {
   async connectWallet() {
     try {
       const connectBtn = document.getElementById('connectBtn');
-      connectBtn.textContent = getTranslation('wallet.connecting');
+      connectBtn.textContent = getTranslation ? getTranslation('wallet.connecting') : 'Connecting...';
       connectBtn.style.pointerEvents = 'none';
       
       await web3Manager.connect();
@@ -193,106 +193,96 @@ class UIManager {
       this.showError('Failed to connect wallet: ' + error.message);
       
       const connectBtn = document.getElementById('connectBtn');
-      connectBtn.textContent = getTranslation('wallet.connect');
+      connectBtn.textContent = getTranslation ? getTranslation('wallet.connect') : 'Connect SafePal';
       connectBtn.style.pointerEvents = 'auto';
     }
   }
 
-// ИСПРАВЛЕНО: Загрузка только реальных данных пользователя
-async loadUserData() {
-  if (!web3Manager.isConnected || !web3Manager.account) return;
-  
-  try {
-    if (this.hasAdminAccess()) {
-      const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
-      if (adminNavBtn) {
-        adminNavBtn.style.display = 'flex';
-      }
-    }
-    
-    // ИСПРАВЛЕНО: Проверяем реальную регистрацию
-    const isRegistered = await contractManager.isUserRegistered();
-    
-    // ИСПРАВЛЕНО: Получаем только реальный ID из контракта
-    let userId = null;
-    try {
-      userId = await contractManager.getUserIdByAddress();
-      console.log('Real user ID from contract:', userId, 'Registered:', isRegistered);
-    } catch (idError) {
-      console.warn('Failed to get user ID:', idError);
-    }
-    
-    // ИСПРАВЛЕНО: Показываем ID и ссылку ТОЛЬКО если есть реальный ID
-    if (userId && userId !== '0' && userId !== 0) {
-      document.getElementById('userId').textContent = `GW${userId}`;
-      const refLink = `${window.location.origin}/ref${userId}`;
-      document.getElementById('refLink').value = refLink;
-      console.log('Valid referral link set:', refLink);
+  // ИСПРАВЛЕНО: Загрузка только реальных данных пользователя
+  async loadUserData() {
+    if (!web3Manager.isConnected || !web3Manager.account) return;
 
-      // Очищаем URL после успешной загрузки данных пользователя
-      if (sessionStorage.getItem('pendingRegistration') === 'true') {
-        sessionStorage.setItem('registrationComplete', 'true');
-        // Очищаем URL напрямую
-        const cleanURL = window.location.origin + window.location.pathname.replace(/\/ref\d{7}/, '');
-        window.history.replaceState({}, document.title, cleanURL);
-        sessionStorage.removeItem('pendingRegistration');
-        sessionStorage.removeItem('readyForRegistration');
+    try {
+      if (this.hasAdminAccess()) {
+        const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
+        if (adminNavBtn) {
+          adminNavBtn.style.display = 'flex';
+        }
       }
-    } else if (isRegistered) {
-      // ИСПРАВЛЕНО: Если зарегистрирован но нет ID - показываем предупреждение
-      document.getElementById('userId').textContent = 'ID not assigned yet';
-      document.getElementById('refLink').value = 'ID assignment required - contact support';
+
+      // ИСПРАВЛЕНО: Проверяем реальную регистрацию
+      const isRegistered = await contractManager.isUserRegistered();
       
-      // Предлагаем получить ID через контракт
+      // ИСПРАВЛЕНО: Получаем только реальный ID из контракта
+      let userId = null;
       try {
-        const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
-        console.log('ID assignment transaction:', txHash);
-        this.showSuccess('ID assignment in progress. Please wait...');
-        
-        // Проверяем ID через 5 секунд
-        setTimeout(async () => {
-          try {
-            const newUserId = await contractManager.getUserIdByAddress();
-            if (newUserId && newUserId !== '0') {
-              document.getElementById('userId').textContent = `GW${newUserId}`;
-              document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
-              this.showSuccess('Referral link generated!');
-            }
-          } catch (error) {
-            console.error('Failed to get assigned ID:', error);
-          }
-        }, 5000);
-        
-      } catch (assignError) {
-        console.error('Failed to assign ID:', assignError);
-        document.getElementById('userId').textContent = 'ID assignment failed';
-        document.getElementById('refLink').value = 'Contact support for referral link';
+        userId = await contractManager.getUserIdByAddress();
+        console.log('Real user ID from contract:', userId, 'Registered:', isRegistered);
+      } catch (idError) {
+        console.warn('Failed to get user ID:', idError);
       }
-    } else {
-      // ИСПРАВЛЕНО: Незарегистрированные - четкое сообщение
-      document.getElementById('userId').textContent = 'Not registered';
-      document.getElementById('refLink').value = 'Register first to get referral link';
-    }
-    
-    if (isRegistered) {
-      const userData = await contractManager.getUserData();
-      this.updateUserProfile(userData);
       
-      await this.loadQuarterlyStatus();
-      await this.loadEarningsData();
-      await this.loadTransactionHistory();
-      await this.loadTokenBalance();
+      // ИСПРАВЛЕНО: Показываем ID и ссылку ТОЛЬКО если есть реальный ID
+      if (userId && userId !== '0' && userId !== 0) {
+        document.getElementById('userId').textContent = `GW${userId}`;
+        const refLink = `${window.location.origin}/ref${userId}`;
+        document.getElementById('refLink').value = refLink;
+        console.log('Valid referral link set:', refLink);
+      } else if (isRegistered) {
+        // ИСПРАВЛЕНО: Если зарегистрирован но нет ID - показываем предупреждение
+        document.getElementById('userId').textContent = 'ID not assigned yet';
+        document.getElementById('refLink').value = 'ID assignment required - contact support';
+        
+        // Предлагаем получить ID через контракт
+        try {
+          const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
+          console.log('ID assignment transaction:', txHash);
+          this.showSuccess('ID assignment in progress. Please wait...');
+          
+          // Проверяем ID через 5 секунд
+          setTimeout(async () => {
+            try {
+              const newUserId = await contractManager.getUserIdByAddress();
+              if (newUserId && newUserId !== '0') {
+                document.getElementById('userId').textContent = `GW${newUserId}`;
+                document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
+                this.showSuccess('Referral link generated!');
+              }
+            } catch (error) {
+              console.error('Failed to get assigned ID:', error);
+            }
+          }, 5000);
+          
+        } catch (assignError) {
+          console.error('Failed to assign ID:', assignError);
+          document.getElementById('userId').textContent = 'ID assignment failed';
+          document.getElementById('refLink').value = 'Contact support for referral link';
+        }
+      } else {
+        // ИСПРАВЛЕНО: Незарегистрированные - четкое сообщение
+        document.getElementById('userId').textContent = 'Not registered';
+        document.getElementById('refLink').value = 'Register first to get referral link';
+      }
       
-      this.hideConnectionAlert();
-    } else {
-      this.showRegistrationPrompt();
+      if (isRegistered) {
+        const userData = await contractManager.getUserData();
+        this.updateUserProfile(userData);
+        
+        await this.loadQuarterlyStatus();
+        await this.loadEarningsData();
+        await this.loadTransactionHistory();
+        await this.loadTokenBalance();
+        
+        this.hideConnectionAlert();
+      } else {
+        this.showRegistrationPrompt();
+      }
+      
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      this.showError('Failed to load user data');
     }
-    
-  } catch (error) {
-    console.error('Failed to load user data:', error);
-    this.showError('Failed to load user data');
   }
-}
 
   hasAdminAccess() {
     if (!web3Manager.account) return false;
@@ -332,24 +322,21 @@ async loadUserData() {
 
   // ИСПРАВЛЕНО: Проверка показа кнопок только для зарегистрированных
   async updateActiveLevels(activeLevels) {
-    // Блокируем уже активированные уровни
-    for (let level = 1; level <= 12; level++) {
-    const btn = document.querySelector(`[data-level="${level}"]`);
-    if (btn) {
-      if (activeLevels.includes(level)) {
+    // ИСПРАВЛЕНО: Блокируем уже активированные уровни
+    activeLevels.forEach(level => {
+      const btn = document.querySelector(`[data-level="${level}"]`);
+      if (btn) {
         btn.disabled = true;
         btn.classList.add('activated');
         btn.style.background = '#6c757d';
-        btn.innerHTML = `<span class="level-num">${level}</span><span class="level-price">✓ Active</span>`;
-      } else {
-        btn.disabled = false;
-        btn.classList.remove('activated');
-        btn.style.background = '';
+        btn.innerHTML = `
+          <span class="level-num">${level}</span>
+          <span class="level-price">ACTIVE</span>
+        `;
       }
-    }
-  }
+    });
     
-    // Обновляем цены bulk кнопок
+    // ИСПРАВЛЕНО: Обновляем цены bulk кнопок
     this.updateBulkButtonPrices(activeLevels);
   }
 
@@ -430,8 +417,8 @@ async loadUserData() {
     
     if (alertElement && messageElement && actionElement) {
       alertElement.className = 'alert warning';
-      messageElement.textContent = getTranslation('dashboard.notActive');
-      actionElement.textContent = getTranslation('dashboard.payActivity');
+      messageElement.textContent = getTranslation ? getTranslation('dashboard.notActive') : 'Account inactive';
+      actionElement.textContent = getTranslation ? getTranslation('dashboard.payActivity') : 'Pay Activity';
       actionElement.onclick = () => this.payQuarterlyActivity();
       alertElement.style.display = 'block';
     }
@@ -523,112 +510,28 @@ async loadUserData() {
   }
 
   async loadTokenBalance() {
-  try {
-    // ИСПРАВЛЕНО: Получаем реальный баланс токенов из контракта
-    const balance = await contractManager.getTokenBalance(web3Manager.account);
-    let currentPrice = '0';
-    
     try {
-      currentPrice = await contractManager.callContract('token', 'getCurrentPrice', []);
-    } catch (priceError) {
-      console.warn('Failed to get token price:', priceError);
+      const balance = await contractManager.getTokenBalance();
+      const price = await contractManager.callContract('token', 'getCurrentPrice');
+      
+      if (balance) {
+        const balanceFormatted = (parseInt(balance) / 1e18).toFixed(2);
+        const priceFormatted = price ? `${(parseInt(price) / 1e18).toFixed(6)}` : '$0.00';
+        const valueFormatted = price ? `${(parseInt(balance) * parseInt(price) / 1e36).toFixed(2)}` : '$0.00';
+        
+        document.getElementById('tokenAmount').textContent = `${balanceFormatted} GWT`;
+        document.getElementById('tokenPrice').textContent = priceFormatted;
+        document.getElementById('tokenValue').textContent = valueFormatted;
+        
+        document.getElementById('totalTokens').textContent = `${balanceFormatted} GWT`;
+        document.getElementById('totalValue').textContent = valueFormatted;
+        document.getElementById('currentPrice').textContent = priceFormatted;
+      }
+      
+    } catch (error) {
+      console.error('Failed to load token balance:', error);
     }
-    
-    if (balance) {
-      const balanceFormatted = (parseInt(balance) / 1e18).toFixed(2);
-      const priceNum = parseInt(currentPrice) / 1e18;
-      const priceFormatted = priceNum > 0 ? `$${priceNum.toFixed(6)}` : '$0.000001';
-      const valueFormatted = priceNum > 0 ? `$${(parseInt(balance) * priceNum / 1e18).toFixed(2)}` : '$0.00';
-      
-      // Обновляем элементы на странице Dashboard
-      const tokenAmountEl = document.getElementById('tokenAmount');
-      const tokenPriceEl = document.getElementById('tokenPrice');
-      const tokenValueEl = document.getElementById('tokenValue');
-      
-      if (tokenAmountEl) tokenAmountEl.textContent = `${balanceFormatted} GWT`;
-      if (tokenPriceEl) tokenPriceEl.textContent = priceFormatted;
-      if (tokenValueEl) tokenValueEl.textContent = valueFormatted;
-      
-      // Обновляем элементы на странице Tokens
-      const totalTokensEl = document.getElementById('totalTokens');
-      const totalValueEl = document.getElementById('totalValue');
-      const currentPriceEl = document.getElementById('currentPrice');
-      
-      if (totalTokensEl) totalTokensEl.textContent = `${balanceFormatted} GWT`;
-      if (totalValueEl) totalValueEl.textContent = valueFormatted;
-      if (currentPriceEl) currentPriceEl.textContent = priceFormatted;
-      
-      // Обновляем статистику токенов
-      await this.updateTokenStatistics();
-      
-    } else {
-      this.setDefaultTokenValues();
-    }
-    
-  } catch (error) {
-    console.error('Failed to load token balance:', error);
-    this.setDefaultTokenValues();
   }
-}
-
-// Добавляем метод обновления статистики токенов
-async updateTokenStatistics() {
-  try {
-    const totalSupplyEl = document.getElementById('totalSupply');
-    const circSupplyEl = document.getElementById('circSupply');
-    const marketCapEl = document.getElementById('marketCap');
-    
-    if (totalSupplyEl) {
-      const totalSupply = await contractManager.callContract('token', 'totalSupply', []);
-      if (totalSupply) {
-        const supply = (parseInt(totalSupply) / 1e18).toLocaleString();
-        totalSupplyEl.textContent = `${supply} GWT`;
-      }
-    }
-    
-    if (circSupplyEl) {
-      // Для расчета circulating supply можно использовать totalSupply минус locked tokens
-      const totalSupply = await contractManager.callContract('token', 'totalSupply', []);
-      if (totalSupply) {
-        const circulating = parseInt(totalSupply) * 0.8; // 80% в обороте
-        circSupplyEl.textContent = `${(circulating / 1e18).toLocaleString()} GWT`;
-      }
-    }
-    
-    if (marketCapEl) {
-      const price = await contractManager.callContract('token', 'getCurrentPrice', []);
-      const marketCap = await contractManager.callContract('token', 'getMarketCap', []);
-      if (marketCap) {
-        const cap = (parseInt(marketCap) / 1e18).toFixed(0);
-        marketCapEl.textContent = `$${parseFloat(cap).toLocaleString()}`;
-      }
-    }
-    
-  } catch (error) {
-    console.warn('Failed to update token statistics:', error);
-  }
-}
-
-// Добавляем метод установки значений по умолчанию
-setDefaultTokenValues() {
-  const elements = [
-    'tokenAmount', 'tokenPrice', 'tokenValue',
-    'totalTokens', 'totalValue', 'currentPrice'
-  ];
-  
-  elements.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) {
-      if (id.includes('Amount') || id.includes('Tokens')) {
-        el.textContent = '0 GWT';
-      } else if (id.includes('Price')) {
-        el.textContent = '$0.000001';
-      } else {
-        el.textContent = '$0.00';
-      }
-    }
-  });
-}
 
   generateLevelButtons() {
     const individualLevels = document.getElementById('individualLevels');
@@ -834,15 +737,7 @@ setDefaultTokenValues() {
         return;
       }
 
-      // Проверяем предыдущие уровни
-      // Проверяем что уровень еще не активен
-      const isAlreadyActive = await contractManager.callContract('globalway', 'isLevelActive', [web3Manager.account, level]);
-      if (isAlreadyActive) {
-        this.showError(`Level ${level} is already active`);
-        return;
-      }
-
-      // Проверяем предыдущие уровни
+      // ИСПРАВЛЕНО: Проверяем предыдущие уровни
       for (let i = 1; i < level; i++) {
         const isActive = await contractManager.callContract('globalway', 'isLevelActive', [web3Manager.account, i]);
         if (!isActive) {
@@ -860,6 +755,10 @@ setDefaultTokenValues() {
         btn.disabled = true;
         btn.classList.add('activated');
         btn.style.background = '#6c757d';
+        btn.innerHTML = `
+          <span class="level-num">${level}</span>
+          <span class="level-price">ACTIVE</span>
+        `;
       }
       
       // Обновляем данные после транзакции
@@ -982,122 +881,47 @@ setDefaultTokenValues() {
 
   // ИСПРАВЛЕНО: Регистрация только через контракт
   showRegistrationModal() {
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.innerHTML = `
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h3>Register in GlobalWay</h3>
-      <div class="registration-form">
-        <label>Sponsor ID (optional, format: GW1234567):</label>
-        <input type="text" id="sponsorIdInput" placeholder="GW1234567" value="${this.getReferralId()}" ${sessionStorage.getItem('readyForRegistration') === 'true' ? 'readonly' : ''}>
-        <div id="sponsorStatus" class="sponsor-status" style="margin: 10px 0; font-size: 0.9em;"></div>
-        <p><strong>Important:</strong> If you don't have a valid sponsor ID, registration will be processed without sponsor assignment.</p>
-        <button id="registerBtn" class="btn-success">Register</button>
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Register in GlobalWay</h3>
+        <div class="registration-form">
+          <label>Sponsor ID (optional, format: GW1234567):</label>
+          <input type="text" id="sponsorIdInput" placeholder="GW1234567" value="${this.getReferralId()}">
+          <p><strong>Important:</strong> If you don't have a valid sponsor ID, registration will be processed without sponsor assignment.</p>
+          <button id="registerBtn" class="btn-success">Register</button>
+        </div>
       </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  modal.style.display = 'block';
-  
-  modal.querySelector('.close').onclick = () => {
-    document.body.removeChild(modal);
-  };
-  
-  // ИСПРАВЛЕНО: Добавляем проверку спонсора при вводе
-  const sponsorInput = modal.querySelector('#sponsorIdInput');
-  const sponsorStatus = modal.querySelector('#sponsorStatus');
-  const registerBtn = modal.querySelector('#registerBtn');
-  
-  sponsorInput.addEventListener('input', async () => {
-    const sponsorId = sponsorInput.value.trim();
-    if (sponsorId && sponsorId.length >= 7) {
-      await this.validateSponsor(sponsorId, sponsorStatus);
-    } else {
-      sponsorStatus.textContent = '';
-    }
-  });
-  
-  // Проверяем спонсора сразу если есть значение
-  if (sponsorInput.value) {
-    this.validateSponsor(sponsorInput.value, sponsorStatus);
-  }
-  
-  registerBtn.onclick = async () => {
-    const sponsorIdInput = sponsorInput.value.trim();
-    try {
-      registerBtn.disabled = true;
-      registerBtn.textContent = 'Processing...';
-      
-      // ИСПРАВЛЕНО: Реальная регистрация через контракт с проверкой
-      const txHash = await contractManager.registerUserWithId(sponsorIdInput);
-      this.showSuccess('Registration transaction sent: ' + txHash);
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    modal.querySelector('.close').onclick = () => {
       document.body.removeChild(modal);
-      
-      // Очищаем временные данные регистрации
-      sessionStorage.removeItem('readyForRegistration');
-      sessionStorage.setItem('registrationInProgress', 'true');
-      
-      // Обновляем данные через 10 секунд после транзакции
-      setTimeout(async () => {
-        await this.loadUserData();
-        sessionStorage.removeItem('registrationInProgress');
-      }, 10000);
-      
-    } catch (error) {
-      registerBtn.disabled = false;
-      registerBtn.textContent = 'Register';
-      this.showError('Registration failed: ' + error.message);
-    }
-  };
-}
-
-// Добавляем метод проверки спонсора
-async validateSponsor(sponsorId, statusElement) {
-  try {
-    statusElement.textContent = 'Checking sponsor...';
-    statusElement.style.color = '#ffc107';
+    };
     
-    const cleanId = sponsorId.toString().replace(/^GW/i, '');
-    
-    if (!/^\d{7}$/.test(cleanId)) {
-      statusElement.textContent = 'Invalid ID format. Use GW1234567 or 1234567';
-      statusElement.style.color = '#dc3545';
-      return false;
-    }
-    
-    // Проверяем что спонсор существует
-    const sponsorAddress = await contractManager.getAddressByUserId(cleanId);
-    if (!sponsorAddress || sponsorAddress === '0x0000000000000000000000000000000000000000') {
-      statusElement.textContent = 'Sponsor ID not found';
-      statusElement.style.color = '#dc3545';
-      return false;
-    }
-    
-    // Проверяем что спонсор зарегистрирован
-    const isRegistered = await contractManager.callContract('globalway', 'isUserRegistered', [sponsorAddress]);
-    if (!isRegistered) {
-      statusElement.textContent = 'Sponsor is not registered';
-      statusElement.style.color = '#dc3545';
-      return false;
-    }
-    
-    statusElement.textContent = `Valid sponsor: ${sponsorAddress.slice(0,6)}...${sponsorAddress.slice(-4)}`;
-    statusElement.style.color = '#28a745';
-    return true;
-    
-  } catch (error) {
-    console.error('Sponsor validation failed:', error);
-    statusElement.textContent = 'Unable to verify sponsor';
-    statusElement.style.color = '#dc3545';
-    return false;
+    modal.querySelector('#registerBtn').onclick = async () => {
+      const sponsorIdInput = modal.querySelector('#sponsorIdInput').value.trim();
+      try {
+        // ИСПРАВЛЕНО: Используем только реальную регистрацию через контракт
+        const txHash = await contractManager.registerUserWithId(sponsorIdInput);
+        this.showSuccess('Registration transaction sent: ' + txHash);
+        document.body.removeChild(modal);
+        
+        // Обновляем данные через 5 секунд после транзакции
+        setTimeout(() => this.loadUserData(), 5000);
+      } catch (error) {
+        this.showError('Registration failed: ' + error.message);
+      }
+    };
   }
-}
 
   // ИСПРАВЛЕНО: Получение реального ID из localStorage
   getReferralId() {
-    const referralId = localStorage.getItem('referralId');
+    const referralId = localStorage.getItem('pendingReferralId') || localStorage.getItem('referralId');
     if (referralId && /^\d{7}$/.test(referralId)) {
       return `GW${referralId}`;
     }
@@ -1403,192 +1227,107 @@ async validateSponsor(sponsorId, statusElement) {
 
   // ИСПРАВЛЕНО: Загрузка реальных партнеров через контракт
   async showPartnerLevel(level) {
-  document.querySelectorAll('#partnerLevels .level-selector-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  const targetBtn = document.querySelector(`#partnerLevels .level-selector-btn:nth-child(${level})`);
-  if (targetBtn) targetBtn.classList.add('active');
-  
-  const currentLevelNum = document.getElementById('currentLevelNum');
-  const currentLevelCost = document.getElementById('currentLevelCost');
-  if (currentLevelNum) currentLevelNum.textContent = level;
-  if (currentLevelCost) currentLevelCost.textContent = `${this.levelPrices[level]} BNB`;
-  
-  const tbody = document.getElementById('partnersTable');
-  if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="8" class="no-data">Loading partner data...</td></tr>';
+    document.querySelectorAll('#partnerLevels .level-selector-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    const targetBtn = document.querySelector(`#partnerLevels .level-selector-btn:nth-child(${level})`);
+    if (targetBtn) targetBtn.classList.add('active');
     
-    try {
-      // ИСПРАВЛЕНО: Получаем реальных партнеров через контракт
-      const userStats = await contractManager.callContract('globalway', 'getUserStats', [web3Manager.account]);
+    const currentLevelNum = document.getElementById('currentLevelNum');
+    const currentLevelCost = document.getElementById('currentLevelCost');
+    if (currentLevelNum) currentLevelNum.textContent = level;
+    if (currentLevelCost) currentLevelCost.textContent = `${this.levelPrices[level]} BNB`;
+    
+    const tbody = document.getElementById('partnersTable');
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="8" class="no-data">Loading partner data...</td></tr>';
       
-      if (userStats && userStats.referrals && userStats.referrals.length > 0) {
-        const partnersWithLevel = [];
+      try {
+        const userData = await contractManager.getUserData();
         
-        for (const partnerAddress of userStats.referrals) {
-          try {
+        if (userData && userData.referrals && userData.referrals.length > 0) {
+          const partnersWithLevel = [];
+          
+          for (const partnerAddress of userData.referrals) {
             const isLevelActive = await contractManager.callContract('globalway', 'isLevelActive', [partnerAddress, level]);
             if (isLevelActive) {
-              const partnerData = await contractManager.callContract('globalway', 'getUserData', [partnerAddress]);
+              const partnerData = await contractManager.getUserData(partnerAddress);
               const partnerId = await contractManager.getUserIdByAddress(partnerAddress);
-              const partnerStats = await contractManager.callContract('globalway', 'getUserStats', [partnerAddress]);
-              
               partnersWithLevel.push({
                 address: partnerAddress,
                 id: partnerId,
-                data: partnerData,
-                stats: partnerStats
+                data: partnerData
               });
             }
-          } catch (partnerError) {
-            console.warn('Failed to load partner data for:', partnerAddress, partnerError);
           }
+          
+          if (partnersWithLevel.length > 0) {
+            const rows = partnersWithLevel.map((partner, index) => {
+              const userData = partner.data;
+              return `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>GW${partner.id || '0000000'}</td>
+                  <td>${partner.address.slice(0, 6)}...${partner.address.slice(-4)}</td>
+                  <td>Level ${level}</td>
+                  <td>${userData ? (parseInt(userData.totalEarned) / 1e18).toFixed(4) : '0.0000'} BNB</td>
+                  <td><span class="status-badge active">Active</span></td>
+                  <td>${userData ? new Date(userData.registrationTime * 1000).toLocaleDateString() : '-'}</td>
+                  <td><a href="${CONFIG.EXPLORER_URL}/address/${partner.address}" target="_blank">View</a></td>
+                </tr>
+              `;
+            });
+            
+            tbody.innerHTML = rows.join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found for this level</td></tr>';
+          }
+        } else {
+          tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found</td></tr>';
         }
-        
-        if (partnersWithLevel.length > 0) {
-  // ИСПРАВЛЕНО: Убираем await из map функции
-  const rows = [];
-  
-  for (const [index, partner] of partnersWithLevel.entries()) {
-    const userData = partner.data;
-    const userStats = partner.stats;
-    const qualification = contractManager.getQualificationLevel(
-      userData[4] || 0, // personalInvites
-      userData[5] || 0  // totalEarned
-    );
-    
-    // Получаем sponsor ID без await в map
-    let sponsorId = 'GW0000000';
-    try {
-      if (userData[1]) {
-        const id = await contractManager.getUserIdByAddress(userData[1]);
-        sponsorId = id ? `GW${id}` : 'GW0000000';
+      } catch (error) {
+        console.error('Failed to load partners:', error);
+        tbody.innerHTML = '<tr><td colspan="8" class="no-data">Failed to load partner data</td></tr>';
       }
-    } catch (error) {
-      console.warn('Failed to get sponsor ID:', error);
     }
-    
-    rows.push(`
-      <tr>
-        <td>${index + 1}</td>
-        <td>GW${partner.id || '0000000'}</td>
-        <td>${partner.address.slice(0, 6)}...${partner.address.slice(-4)}</td>
-        <td>${sponsorId}</td>
-        <td>${userData[2] ? new Date(userData[2] * 1000).toLocaleDateString() : '-'}</td>
-        <td>Level ${level}</td>
-        <td>${userStats ? userStats.referrals.length : 0}</td>
-        <td><span class="qualification-badge ${qualification.toLowerCase()}">${qualification}</span></td>
-      </tr>
-    `);
   }
-  
-  tbody.innerHTML = rows.join('');
-  
-  // Обновляем статистику партнеров
-  this.updatePartnerStats(partnersWithLevel, userStats);
-  
-} else {
-  tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found for this level</td></tr>';
-}
-
-}
-
-// Добавляем метод обновления статистики партнеров
-updatePartnerStats(partners, userStats) {
-  const personalInvitesEl = document.getElementById('personalInvites');
-  const activePartnersEl = document.getElementById('activePartners');
-  const totalTeamEl = document.getElementById('totalTeam');
-  
-  if (personalInvitesEl && userStats) {
-    personalInvitesEl.textContent = userStats.personalInvites || 0;
-  }
-  
-  if (activePartnersEl) {
-    activePartnersEl.textContent = partners.length;
-  }
-  
-  if (totalTeamEl && userStats) {
-    totalTeamEl.textContent = userStats.referrals ? userStats.referrals.length : 0;
-  }
-}
-
-} 
-
-const uiManager = new UIManager();
-window.uiManager = uiManager;
 
   // ИСПРАВЛЕНО: Копирование только реальных ссылок
   async copyReferralLink() {
-  try {
-    if (!web3Manager.account) {
-      this.showError('Connect wallet first');
-      return;
-    }
-
-    // ИСПРАВЛЕНО: Проверяем регистрацию перед копированием
-    const isRegistered = await contractManager.isUserRegistered(web3Manager.account);
-    if (!isRegistered) {
-      this.showError('You need to register first to get referral link');
-      return;
-    }
-
-    const userId = await contractManager.getUserIdByAddress(web3Manager.account);
-    
-    if (!userId || userId === '0' || userId === 0) {
-      this.showError('ID not assigned yet. Please wait or contact support.');
-      return;
-    }
-    
-    const link = `${window.location.origin}/ref${userId}`;
-    
-    // ИСПРАВЛЕНО: Улучшенное копирование с fallback
     try {
+      if (!web3Manager.account) {
+        this.showError('Connect wallet first');
+        return;
+      }
+
+      const userId = await contractManager.getUserIdByAddress(web3Manager.account);
+      
+      if (!userId || userId === '0' || userId === 0) {
+        this.showError('You need to be registered and have an assigned ID to get referral link');
+        return;
+      }
+      
+      const link = `${window.location.origin}/ref${userId}`;
       await navigator.clipboard.writeText(link);
-      this.showSuccess('Referral link copied to clipboard!');
-    } catch (clipboardError) {
-      // Fallback для старых браузеров
-      const textArea = document.createElement('textarea');
-      textArea.value = link;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
       this.showSuccess('Referral link copied!');
+      
+      const refLinkEl = document.getElementById('refLink');
+      if (refLinkEl) refLinkEl.value = link;
+      
+    } catch (error) {
+      console.error('Copy failed:', error);
+      this.showError('Failed to copy referral link');
     }
-    
-    // Обновляем поле ссылки если оно есть
-    const refLinkEl = document.getElementById('refLink');
-    if (refLinkEl) refLinkEl.value = link;
-    
-  } catch (error) {
-    console.error('Copy failed:', error);
-    this.showError('Failed to copy referral link: ' + error.message);
   }
-}
 
   async copyToClipboard(text) {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
+    try {
       await navigator.clipboard.writeText(text);
-    } else {
-      // Fallback для небезопасных контекстов
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
+      this.showSuccess('Copied to clipboard!');
+    } catch (error) {
+      console.warn('Copy failed:', error);
     }
-    this.showSuccess('Copied to clipboard!');
-  } catch (error) {
-    console.warn('Copy failed:', error);
-    this.showError('Failed to copy text');
   }
-}
 
   async addTokenToWallet() {
     try {
@@ -1649,24 +1388,24 @@ window.uiManager = uiManager;
 
     const planetData = {
       club: {
-        title: getTranslation('planets.club'),
-        text: getTranslation('planets.clubText')
+        title: getTranslation ? getTranslation('planets.club') : 'Club GlobalWay',
+        text: getTranslation ? getTranslation('planets.clubText') : 'Welcome to GlobalWay decentralized club'
       },
       mission: {
-        title: getTranslation('planets.mission'),
-        text: getTranslation('planets.missionText')
+        title: getTranslation ? getTranslation('planets.mission') : 'Our Mission',
+        text: getTranslation ? getTranslation('planets.missionText') : 'Building the future of decentralized communities'
       },
       goals: {
-        title: getTranslation('planets.goals'),
-        text: getTranslation('planets.goalsText')
+        title: getTranslation ? getTranslation('planets.goals') : 'Club Goals',
+        text: getTranslation ? getTranslation('planets.goalsText') : 'Creating opportunities for global collaboration'
       },
       roadmap: {
-        title: getTranslation('planets.roadmap'),
-        text: getTranslation('planets.roadmapText')
+        title: getTranslation ? getTranslation('planets.roadmap') : 'Roadmap',
+        text: getTranslation ? getTranslation('planets.roadmapText') : 'Our path to decentralized future'
       },
       projects: {
-        title: getTranslation('planets.projects'),
-        text: getTranslation('planets.projectsText')
+        title: getTranslation ? getTranslation('planets.projects') : 'Our Projects',
+        text: getTranslation ? getTranslation('planets.projectsText') : 'Innovative blockchain projects'
       }
     };
 
@@ -1749,6 +1488,7 @@ window.uiManager = uiManager;
       opacity: 0;
       transform: translateX(100%);
       transition: all 0.3s ease;
+      position: relative;
     `;
     
     notificationEl.innerHTML = `
@@ -1872,6 +1612,7 @@ window.uiManager = uiManager;
   }
 }
 
+// Matrix Manager Class
 class MatrixManager {
   constructor() {
     this.currentLevel = 1;
