@@ -13,30 +13,37 @@ class GlobalWayApp {
   }
 
   async performInit() {
-    try {
-      // Initialize components
-      await this.initializeApp();
-      
-      // ИСПРАВЛЕНО: Проверяем реферальную ссылку
-      this.handleReferralLink();
-      
-      // Initialize managers
-      await web3Manager.init();
-      if (typeof uiManager !== 'undefined') {
-        uiManager.init();
-      }
-      initI18n();      
-      // Setup PWA
-      this.setupPWA();
-      
-      this.initialized = true;
-      console.log('GlobalWay DApp initialized successfully');
-      
-    } catch (error) {
-      console.error('Failed to initialize app:', error);
-      this.showError('Failed to initialize application: ' + error.message);
+  try {
+    // Initialize components
+    await this.initializeApp();
+    
+    // ИСПРАВЛЕНО: Проверяем реферальную ссылку
+    this.handleReferralLink();
+    
+    // Initialize managers
+    await web3Manager.init();
+    
+    // Ждем загрузки uiManager
+    if (typeof uiManager !== 'undefined') {
+      await uiManager.init();
     }
+    
+    // Инициализируем переводы
+    if (typeof initI18n === 'function') {
+      initI18n();
+    }
+    
+    // Setup PWA
+    this.setupPWA();
+    
+    this.initialized = true;
+    console.log('GlobalWay DApp initialized successfully');
+    
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    this.showError('Failed to initialize application: ' + error.message);
   }
+}
 
   async initializeApp() {
     // Set initial page state
