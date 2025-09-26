@@ -99,6 +99,16 @@ class Web3Manager {
 
       console.log('🔗 Connecting to SafePal...');
 
+      // Проверка мобильного устройства
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        // Если мы НЕ в SafePal браузере
+        if (!window.safepal && !window.ethereum?.isSafePal) {
+          // Перенаправляем на SafePal
+          window.location.href = `https://link.safepal.io/dapp/${window.location.href}`;
+          return;
+        }
+      }
+
       const accounts = await this.provider.request({
         method: 'eth_requestAccounts'
       });
