@@ -22,9 +22,10 @@ class GlobalWayApp {
       
       // Initialize managers
       await web3Manager.init();
-      uiManager.init();
-      initI18n();
-      
+      if (typeof uiManager !== 'undefined') {
+        uiManager.init();
+      }
+      initI18n();      
       // Setup PWA
       this.setupPWA();
       
