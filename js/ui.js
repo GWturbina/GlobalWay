@@ -198,90 +198,91 @@ class UIManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Загрузка только реальных данных пользователя
   async loadUserData() {
-  if (!web3Manager.isConnected || !web3Manager.account) return;
+    if (!web3Manager.isConnected || !web3Manager.account) return;
 
-  try {
-    if (this.hasAdminAccess()) {
-      const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
-      if (adminNavBtn) {
-        adminNavBtn.style.display = 'flex';
-      }
-    }
-
-    const isRegistered = await contractManager.isUserRegistered();
-    
-    // ИСПРАВЛЕНО: Получение ID от контракта с отладкой
-    let userId = null;
-    
-    // Всегда пытаемся получить ID, независимо от статуса регистрации
     try {
-      userId = await contractManager.getUserIdByAddress();
-      console.log('User ID from contract:', userId, 'Registered:', isRegistered);
-    } catch (idError) {
-      console.warn('Failed to get user ID:', idError);
-    }
-    
-    // Отображаем ID если есть
-    if (userId && userId !== '0' && userId !== 0) {
-      document.getElementById('userId').textContent = `GW${userId}`;
-      document.getElementById('refLink').value = `${window.location.origin}/ref${userId}`;
-      console.log('Referral link set:', `${window.location.origin}/ref${userId}`);
-    } else if (isRegistered) {
-      // Если зарегистрирован но нет ID - пытаемся получить ID
-      console.log('User is registered but has no ID, attempting to assign...');
-      document.getElementById('userId').textContent = 'Getting ID...';
-      document.getElementById('refLink').value = 'Generating referral link...';
-      
-      try {
-        const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
-        console.log('ID assignment transaction:', txHash);
-        this.showSuccess('ID assignment in progress. Please wait...');
-        
-        // Проверяем ID через 5 секунд
-        setTimeout(async () => {
-          try {
-            const newUserId = await contractManager.getUserIdByAddress();
-            if (newUserId && newUserId !== '0') {
-              document.getElementById('userId').textContent = `GW${newUserId}`;
-              document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
-              this.showSuccess('Referral link generated!');
-            }
-          } catch (error) {
-            console.error('Failed to get assigned ID:', error);
-          }
-        }, 5000);
-        
-      } catch (assignError) {
-        console.error('Failed to assign ID:', assignError);
-        document.getElementById('userId').textContent = 'ID assignment failed';
-        document.getElementById('refLink').value = 'Contact support for referral link';
+      if (this.hasAdminAccess()) {
+        const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
+        if (adminNavBtn) {
+          adminNavBtn.style.display = 'flex';
+        }
       }
-    } else {
-      // Не зарегистрирован
-      document.getElementById('userId').textContent = 'Not registered';
-      document.getElementById('refLink').value = 'Register first to get referral link';
-    }
-    
-    if (isRegistered) {
-      const userData = await contractManager.getUserData();
-      this.updateUserProfile(userData);
+
+      // ИСПРАВЛЕНО: Проверяем реальную регистрацию
+      const isRegistered = await contractManager.isUserRegistered();
       
-      await this.loadQuarterlyStatus();
-      await this.loadEarningsData();
-      await this.loadTransactionHistory();
-      await this.loadTokenBalance();
+      // ИСПРАВЛЕНО: Получаем только реальный ID из контракта
+      let userId = null;
+      try {
+        userId = await contractManager.getUserIdByAddress();
+        console.log('Real user ID from contract:', userId, 'Registered:', isRegistered);
+      } catch (idError) {
+        console.warn('Failed to get user ID:', idError);
+      }
       
-      this.hideConnectionAlert();
-    } else {
-      this.showRegistrationPrompt();
+      // ИСПРАВЛЕНО: Показываем ID и ссылку ТОЛЬКО если есть реальный ID
+      if (userId && userId !== '0' && userId !== 0) {
+        document.getElementById('userId').textContent = `GW${userId}`;
+        const refLink = `${window.location.origin}/ref${userId}`;
+        document.getElementById('refLink').value = refLink;
+        console.log('Valid referral link set:', refLink);
+      } else if (isRegistered) {
+        // ИСПРАВЛЕНО: Если зарегистрирован но нет ID - показываем предупреждение
+        document.getElementById('userId').textContent = 'ID not assigned yet';
+        document.getElementById('refLink').value = 'ID assignment required - contact support';
+        
+        // Предлагаем получить ID через контракт
+        try {
+          const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
+          console.log('ID assignment transaction:', txHash);
+          this.showSuccess('ID assignment in progress. Please wait...');
+          
+          // Проверяем ID через 5 секунд
+          setTimeout(async () => {
+            try {
+              const newUserId = await contractManager.getUserIdByAddress();
+              if (newUserId && newUserId !== '0') {
+                document.getElementById('userId').textContent = `GW${newUserId}`;
+                document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
+                this.showSuccess('Referral link generated!');
+              }
+            } catch (error) {
+              console.error('Failed to get assigned ID:', error);
+            }
+          }, 5000);
+          
+        } catch (assignError) {
+          console.error('Failed to assign ID:', assignError);
+          document.getElementById('userId').textContent = 'ID assignment failed';
+          document.getElementById('refLink').value = 'Contact support for referral link';
+        }
+      } else {
+        // ИСПРАВЛЕНО: Незарегистрированные - четкое сообщение
+        document.getElementById('userId').textContent = 'Not registered';
+        document.getElementById('refLink').value = 'Register first to get referral link';
+      }
+      
+      if (isRegistered) {
+        const userData = await contractManager.getUserData();
+        this.updateUserProfile(userData);
+        
+        await this.loadQuarterlyStatus();
+        await this.loadEarningsData();
+        await this.loadTransactionHistory();
+        await this.loadTokenBalance();
+        
+        this.hideConnectionAlert();
+      } else {
+        this.showRegistrationPrompt();
+      }
+      
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      this.showError('Failed to load user data');
     }
-    
-  } catch (error) {
-    console.error('Failed to load user data:', error);
-    this.showError('Failed to load user data');
   }
-}
 
   hasAdminAccess() {
     if (!web3Manager.account) return false;
@@ -319,7 +320,9 @@ class UIManager {
     }
   }
 
-  updateActiveLevels(activeLevels) {
+  // ИСПРАВЛЕНО: Проверка показа кнопок только для зарегистрированных
+  async updateActiveLevels(activeLevels) {
+    // Блокируем уже активированные уровни
     activeLevels.forEach(level => {
       const btn = document.querySelector(`[data-level="${level}"]`);
       if (btn) {
@@ -329,6 +332,7 @@ class UIManager {
       }
     });
     
+    // Обновляем цены bulk кнопок
     this.updateBulkButtonPrices(activeLevels);
   }
 
@@ -708,6 +712,7 @@ class UIManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Покупка уровней только для зарегистрированных
   async buyLevel(level) {
     try {
       if (!web3Manager.isConnected) {
@@ -715,6 +720,7 @@ class UIManager {
         return;
       }
 
+      // ИСПРАВЛЕНО: Проверяем реальную регистрацию
       const isRegistered = await contractManager.isUserRegistered();
       if (!isRegistered) {
         this.showRegistrationPrompt();
@@ -727,6 +733,7 @@ class UIManager {
         return;
       }
 
+      // Проверяем предыдущие уровни
       for (let i = 1; i < level; i++) {
         const isActive = await contractManager.callContract('globalway', 'isLevelActive', [web3Manager.account, i]);
         if (!isActive) {
@@ -735,8 +742,9 @@ class UIManager {
         }
       }
 
+      // ИСПРАВЛЕНО: Прямой вызов контракта
       const txHash = await contractManager.buyLevel(level, price);
-      this.showSuccess(`Level ${level} purchase initiated. Transaction: ${txHash}`);
+      this.showSuccess(`Level ${level} purchase transaction sent: ${txHash}`);
       
       const btn = document.querySelector(`[data-level="${level}"]`);
       if (btn) {
@@ -745,7 +753,8 @@ class UIManager {
         btn.style.background = '#6c757d';
       }
       
-      setTimeout(() => this.loadUserData(), 3000);
+      // Обновляем данные после транзакции
+      setTimeout(() => this.loadUserData(), 5000);
       
     } catch (error) {
       console.error('Level purchase failed:', error);
@@ -753,6 +762,7 @@ class UIManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Bulk покупка только для зарегистрированных
   async buyBulkLevels(maxLevel, packageType) {
     try {
       if (!web3Manager.isConnected) {
@@ -766,9 +776,10 @@ class UIManager {
         return;
       }
 
-      const activeLevels = await this.getActiveLevels();
-      let totalPrice = 0;
+      const userData = await contractManager.getUserData();
+      const activeLevels = userData ? userData.activeLevels || [] : [];
       
+      let totalPrice = 0;
       for (let i = 1; i <= maxLevel; i++) {
         if (!activeLevels.includes(i)) {
           totalPrice += this.levelPrices[i];
@@ -780,6 +791,7 @@ class UIManager {
         return;
       }
 
+      // ИСПРАВЛЕНО: Прямой вызов контракта
       const txHash = await contractManager.sendTransaction(
         'globalway', 
         'buyLevelsBulk', 
@@ -787,7 +799,7 @@ class UIManager {
         '0x' + (totalPrice * 1e18).toString(16)
       );
       
-      this.showSuccess(`Bulk purchase initiated for levels 1-${maxLevel}. Transaction: ${txHash}`);
+      this.showSuccess(`Bulk purchase transaction sent: ${txHash}`);
       
       const btn = document.querySelector(`[data-levels="${maxLevel}"]`);
       if (btn) {
@@ -795,7 +807,7 @@ class UIManager {
         btn.style.opacity = '0.5';
       }
       
-      setTimeout(() => this.loadUserData(), 3000);
+      setTimeout(() => this.loadUserData(), 5000);
       
     } catch (error) {
       console.error('Bulk purchase failed:', error);
@@ -803,6 +815,7 @@ class UIManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Квартальная оплата только для зарегистрированных
   async payQuarterlyActivity() {
     try {
       if (!web3Manager.isConnected) {
@@ -810,15 +823,22 @@ class UIManager {
         return;
       }
 
+      const isRegistered = await contractManager.isUserRegistered();
+      if (!isRegistered) {
+        this.showError('You must be registered to pay quarterly activity');
+        return;
+      }
+
+      // ИСПРАВЛЕНО: Прямой вызов контракта
       const txHash = await contractManager.payQuarterlyActivity();
-      this.showSuccess(`Quarterly activity payment sent. Transaction: ${txHash}`);
+      this.showSuccess(`Quarterly activity payment sent: ${txHash}`);
       
       const warningElement = document.getElementById('paymentWarning');
       if (warningElement) {
         warningElement.style.display = 'none';
       }
       
-      setTimeout(() => this.loadUserData(), 3000);
+      setTimeout(() => this.loadUserData(), 5000);
       
     } catch (error) {
       console.error('Quarterly payment failed:', error);
@@ -835,6 +855,7 @@ class UIManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Показ регистрации без фальшивых функций
   showRegistrationPrompt() {
     const alertElement = document.getElementById('connectionAlert');
     const messageElement = document.getElementById('alertMessage');
@@ -842,8 +863,8 @@ class UIManager {
     
     if (alertElement && messageElement && actionElement) {
       alertElement.className = 'alert info';
-      messageElement.textContent = getTranslation('dashboard.needRegister');
-      actionElement.textContent = getTranslation('dashboard.register');
+      messageElement.textContent = 'You need to register to use GlobalWay features';
+      actionElement.textContent = 'Register Now';
       actionElement.className = 'btn-success';
       actionElement.onclick = () => this.showRegistrationModal();
       alertElement.style.display = 'block';
@@ -861,7 +882,7 @@ class UIManager {
         <div class="registration-form">
           <label>Sponsor ID (optional, format: GW1234567):</label>
           <input type="text" id="sponsorIdInput" placeholder="GW1234567" value="${this.getReferralId()}">
-          <p>If you don't have a sponsor ID, registration will proceed with random assignment.</p>
+          <p><strong>Important:</strong> If you don't have a valid sponsor ID, registration will be processed without sponsor assignment.</p>
           <button id="registerBtn" class="btn-success">Register</button>
         </div>
       </div>
@@ -877,21 +898,23 @@ class UIManager {
     modal.querySelector('#registerBtn').onclick = async () => {
       const sponsorIdInput = modal.querySelector('#sponsorIdInput').value.trim();
       try {
-        // ИСПРАВЛЕНО: Используем новый метод регистрации по ID
+        // ИСПРАВЛЕНО: Используем только реальную регистрацию через контракт
         const txHash = await contractManager.registerUserWithId(sponsorIdInput);
-        this.showSuccess('Registration initiated. Transaction: ' + txHash);
+        this.showSuccess('Registration transaction sent: ' + txHash);
         document.body.removeChild(modal);
-        setTimeout(() => this.loadUserData(), 3000);
+        
+        // Обновляем данные через 5 секунд после транзакции
+        setTimeout(() => this.loadUserData(), 5000);
       } catch (error) {
         this.showError('Registration failed: ' + error.message);
       }
     };
   }
 
-  // ИСПРАВЛЕНО: Получение ID из localStorage для реферальной ссылки
+  // ИСПРАВЛЕНО: Получение реального ID из localStorage
   getReferralId() {
     const referralId = localStorage.getItem('referralId');
-    if (referralId) {
+    if (referralId && /^\d{7}$/.test(referralId)) {
       return `GW${referralId}`;
     }
     return '';
@@ -1261,18 +1284,22 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Копирование реферальной ссылки с реальным ID
+  // ИСПРАВЛЕНО: Копирование только реальных ссылок
   async copyReferralLink() {
     try {
+      if (!web3Manager.account) {
+        this.showError('Connect wallet first');
+        return;
+      }
+
       const userId = await contractManager.getUserIdByAddress(web3Manager.account);
       
-      if (!userId) {
-        this.showError('You need to be registered to get referral link');
+      if (!userId || userId === '0' || userId === 0) {
+        this.showError('You need to be registered and have an assigned ID to get referral link');
         return;
       }
       
       const link = `${window.location.origin}/ref${userId}`;
-      
       await navigator.clipboard.writeText(link);
       this.showSuccess('Referral link copied!');
       
