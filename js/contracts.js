@@ -243,11 +243,17 @@ class ContractManager {
   }
 
   // Методы для работы с ID
-  async getUserIdByAddress(address = null) {
+async getUserIdByAddress(address = null) {
     address = address || this.web3.account;
     if (!address) return null;
 
     try {
+      // Сначала проверяем регистрацию
+      const isRegistered = await this.isUserRegistered(address);
+      if (!isRegistered) {
+        return null; // Не вызываем контракт если не зарегистрирован
+      }
+    
       const id = await this.callContract('stats', 'getUserIdByAddress', [address]);
       return id || null;
     } catch (error) {
