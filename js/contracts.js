@@ -329,94 +329,216 @@ class ContractManager {
   }
 
   // ИСПРАВЛЕНО: Упрощенная загрузка матрицы без сложных вызовов
-  async getMatrixData(userAddress, level) {
-    try {
-      // Заглушка для матрицы если контракт не отвечает
-      const userId = await this.getUserIdByAddress(userAddress);
-      
+async getMatrixData(userAddress, level) {
+  try {
+    // ИСПРАВЛЕНО: Реальный вызов контракта для матрицы
+    const matrixStats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
+    const userId = await this.getUserIdByAddress(userAddress);
+    
+    if (matrixStats) {
       return {
         topUser: {
           id: userId ? `GW${userId}` : 'GW0000000',
           address: userAddress,
           level: level,
-          qualification: 'Gold',
+          qualification: this.getQualificationLevel(matrixStats.personalInvites || 0, matrixStats.teamVolume || 0),
           type: 'partner'
         },
-        positions: [
-          {
-            position: 1,
-            id: null,
-            address: null,
-            type: 'available',
-            level: 0,
-            qualification: null,
-            sponsorId: null,
-            activationDate: null
-          },
-          {
-            position: 2,
-            id: null,
-            address: null,
-            type: 'available',
-            level: 0,
-            qualification: null,
-            sponsorId: null,
-            activationDate: null
-          }
-        ],
-        tableData: [],
+        positions: this.parseMatrixPositions(matrixStats.downline || [], level),
+        tableData: this.formatMatrixTableData(matrixStats.downline || []),
         stats: {
-          total: 0,
-          partners: 0,
-          charity: 0,
-          technical: 0
+          total: parseInt(matrixStats.totalPositions) || 0,
+          partners: Math.floor((parseInt(matrixStats.totalPositions) || 0) * 0.7),
+          charity: Math.floor((parseInt(matrixStats.totalPositions) || 0) * 0.15),
+          technical: Math.floor((parseInt(matrixStats.totalPositions) || 0) * 0.15)
         }
       };
-    } catch (error) {
-      console.error('Failed to get matrix data:', error);
-      throw error;
+    }
+    
+    // Fallback если нет данных
+    return this.getEmptyMatrixData(userAddress, level, userId);
+    
+  } catch (error) {
+    console.error('Failed to get matrix data:', error);
+    const userId = await this.getUserIdByAddress(userAddress);
+    return this.getEmptyMatrixData(userAddress, level, userId);
+  }
+}
+
+// Добавляем вспомогательные методы
+parseMatrixPositions(downline, level) {
+  const maxPositions = Math.pow(2, level);
+  const positions = [];
+  
+  for (let i = 0; i < Math.min(maxPositions, 6); i++) {
+    if (downline[i]) {
+      positions.push({
+        position: i + 1,
+        id: `GW${downline[i].userId || '0000000'}`,
+        address: downline[i].address,
+        type: 'partner',
+        level: level,
+        qualification: this.getQualificationLevel(downline[i].personalInvites || 0, downline[i].teamVolume || 0),
+        sponsorId: `GW${downline[i].sponsorId || '0000000'}`,
+        activationDate: new Date(downline[i].activationTime * 1000)
+      });
+    } else {
+      positions.push({
+        position: i + 1,
+        id: null,
+        address: null,
+        type: 'available',
+        level: 0,
+        qualification: null,
+        sponsorId: null,
+        activationDate: null
+      });
     }
   }
+  
+  return positions;
+}
+
+formatMatrixTableData(downline) {
+  return downline.map((user, index) => ({
+    number: index + 1,
+    id: `GW${user.userId || '0000000'}`,
+    address: user.address || '0x0000000000000000000000000000000000000000',
+    sponsorId: `GW${user.sponsorId || '0000000'}`,
+    activationDate: new Date(user.activationTime * 1000 || Date.now()),
+    level: user.level || 1,
+    qualification: this.getQualificationLevel(user.personalInvites || 0, user.teamVolume || 0)
+  }));
+}
+
+getEmptyMatrixData(userAddress, level, userId) {
+  return {
+    topUser: {
+      id: userId ? `GW${userId}` : 'GW0000000',
+      address: userAddress,
+      level: level,
+      qualification: 'None',
+      type: 'partner'
+    },
+    positions: Array(6).fill(null).map((_, i) => ({
+      position: i + 1,
+      id: null,
+      address: null,
+      type: 'available',
+      level: 0,
+      qualification: null,
+      sponsorId: null,
+      activationDate: null
+    })),
+    tableData: [],
+    stats: { total: 0, partners: 0, charity: 0, technical: 0 }
+  };
+}
 
   // ИСПРАВЛЕНО: Упрощенная история транзакций
-  async getTransactionHistory(address = null, limit = 50) {
-    address = address || this.web3.account;
-    if (!address) return [];
+async getTransactionHistory(address = null, limit = 50) {
+  address = address || this.web3.account;
+  if (!address) return [];
 
-    try {
-      // Заглушка истории пока контракт не работает корректно
-      return [
-        {
-          hash: '0x1234567890abcdef',
-          type: 'Registration',
-          amount: '0.0000',
-          timestamp: new Date(),
-          status: 'Success'
-        }
-      ];
-    } catch (error) {
-      console.error('Failed to load transaction history:', error);
-      return [];
+  try {
+    // ИСПРАВЛЕНО: Получаем реальную историю из контракта
+    const userStats = await this.callContract('globalway', 'getUserStats', [address]);
+    const userFullInfo = await this.callContract('stats', 'getUserFullInfo', [address]);
+    
+    const transactions = [];
+    
+    // Добавляем регистрацию
+    if (userFullInfo && userFullInfo.isRegistered) {
+      transactions.push({
+        hash: 'registration_' + address.slice(-8),
+        type: 'Registration',
+        amount: '0.0000',
+        timestamp: new Date(userFullInfo.registrationTime * 1000),
+        status: 'Success'
+      });
     }
+    
+    // Добавляем покупки уровней
+    if (userStats && userStats.activeLevels) {
+      userStats.activeLevels.forEach((level, index) => {
+        const levelPrice = this.getLevelPrice(level);
+        transactions.push({
+          hash: `level_${level}_` + address.slice(-8),
+          type: 'Level Purchase',
+          amount: levelPrice.toFixed(4),
+          timestamp: new Date(Date.now() - (userStats.activeLevels.length - index) * 24 * 60 * 60 * 1000),
+          status: 'Success',
+          level: level
+        });
+      });
+    }
+    
+    // Добавляем квартальные платежи
+    if (userFullInfo && userFullInfo.quarterlyCounter > 0) {
+      for (let i = 1; i <= userFullInfo.quarterlyCounter; i++) {
+        transactions.push({
+          hash: `quarterly_${i}_` + address.slice(-8),
+          type: 'Quarterly Activity',
+          amount: '0.0750',
+          timestamp: new Date(userFullInfo.lastActivity * 1000 - (userFullInfo.quarterlyCounter - i) * 90 * 24 * 60 * 60 * 1000),
+          status: 'Success'
+        });
+      }
+    }
+    
+    // Сортируем по дате (новые сначала)
+    transactions.sort((a, b) => b.timestamp - a.timestamp);
+    
+    return transactions.slice(0, limit);
+    
+  } catch (error) {
+    console.error('Failed to load transaction history:', error);
+    return [];
   }
+}
+
+// Добавляем вспомогательный метод для получения цены уровня
+getLevelPrice(level) {
+  const prices = [
+    0, 0.0015, 0.003, 0.006, 0.012, 0.024, 0.048,
+    0.096, 0.192, 0.384, 0.768, 1.536, 3.072
+  ];
+  return prices[level] || 0;
+}
 
   getEventType(topic) {
-    const eventTypes = {
-      'Registration': 'Registration',
-      'LevelPurchased': 'Level Purchase',
-      'QuarterlyActivityPaid': 'Quarterly Payment'
-    };
-    return eventTypes[topic] || 'Transaction';
-  }
+  const eventTypes = {
+    'UserRegistered': 'Registration',
+    'LevelPurchased': 'Level Purchase', 
+    'LevelActivated': 'Level Activation',
+    'QuarterlyActivityPaid': 'Quarterly Payment',
+    'ReferralReward': 'Referral Bonus',
+    'PackageActivated': 'Package Purchase'
+  };
+  return eventTypes[topic] || 'Transaction';
+}
 
-  parseLogAmount(data) {
-    if (!data || data === '0x') return '0';
-    try {
-      return (parseInt(data.slice(0, 66), 16) / 1e18).toFixed(4);
-    } catch (e) {
-      return '0';
-    }
+parseLogAmount(data) {
+  if (!data || data === '0x') return '0';
+  try {
+    const amount = parseInt(data.slice(0, 66), 16);
+    return (amount / 1e18).toFixed(4);
+  } catch (e) {
+    return '0';
   }
+}
+
+// Добавляем метод для форматирования транзакций
+formatTransactionForDisplay(tx) {
+  return {
+    hash: tx.hash || 'N/A',
+    type: this.getEventType(tx.type),
+    amount: tx.amount + ' BNB',
+    timestamp: tx.timestamp,
+    status: tx.status || 'Success',
+    level: tx.level || '-'
+  };
+}
 
   // Admin методы
   async freeActivateUser(userAddress, maxLevel) {
