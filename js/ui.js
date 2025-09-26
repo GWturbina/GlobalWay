@@ -1446,44 +1446,49 @@ async validateSponsor(sponsorId, statusElement) {
         }
         
         if (partnersWithLevel.length > 0) {
-          const rows = partnersWithLevel.map((partner, index) => {
-            const userData = partner.data;
-            const userStats = partner.stats;
-            const qualification = contractManager.getQualificationLevel(
-              userData[4] || 0, // personalInvites
-              userData[5] || 0  // totalEarned
-            );
-            
-            return `
-              <tr>
-                <td>${index + 1}</td>
-                <td>GW${partner.id || '0000000'}</td>
-                <td>${partner.address.slice(0, 6)}...${partner.address.slice(-4)}</td>
-                <td>GW${await contractManager.getUserIdByAddress(userData[1] || web3Manager.account)}</td>
-                <td>${userData[2] ? new Date(userData[2] * 1000).toLocaleDateString() : '-'}</td>
-                <td>Level ${level}</td>
-                <td>${userStats ? userStats.referrals.length : 0}</td>
-                <td><span class="qualification-badge ${qualification.toLowerCase()}">${qualification}</span></td>
-              </tr>
-            `;
-          });
-          
-          tbody.innerHTML = rows.join('');
-          
-          // Обновляем статистику партнеров
-          this.updatePartnerStats(partnersWithLevel, userStats);
-          
-        } else {
-          tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found for this level</td></tr>';
-        }
-      } else {
-        tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found</td></tr>';
+  // ИСПРАВЛЕНО: Убираем await из map функции
+  const rows = [];
+  
+  for (const [index, partner] of partnersWithLevel.entries()) {
+    const userData = partner.data;
+    const userStats = partner.stats;
+    const qualification = contractManager.getQualificationLevel(
+      userData[4] || 0, // personalInvites
+      userData[5] || 0  // totalEarned
+    );
+    
+    // Получаем sponsor ID без await в map
+    let sponsorId = 'GW0000000';
+    try {
+      if (userData[1]) {
+        const id = await contractManager.getUserIdByAddress(userData[1]);
+        sponsorId = id ? `GW${id}` : 'GW0000000';
       }
     } catch (error) {
-      console.error('Failed to load partners:', error);
-      tbody.innerHTML = '<tr><td colspan="8" class="no-data">Failed to load partner data</td></tr>';
+      console.warn('Failed to get sponsor ID:', error);
     }
+    
+    rows.push(`
+      <tr>
+        <td>${index + 1}</td>
+        <td>GW${partner.id || '0000000'}</td>
+        <td>${partner.address.slice(0, 6)}...${partner.address.slice(-4)}</td>
+        <td>${sponsorId}</td>
+        <td>${userData[2] ? new Date(userData[2] * 1000).toLocaleDateString() : '-'}</td>
+        <td>Level ${level}</td>
+        <td>${userStats ? userStats.referrals.length : 0}</td>
+        <td><span class="qualification-badge ${qualification.toLowerCase()}">${qualification}</span></td>
+      </tr>
+    `);
   }
+  
+  tbody.innerHTML = rows.join('');
+  
+  // Обновляем статистику партнеров
+  this.updatePartnerStats(partnersWithLevel, userStats);
+  
+} else {
+  tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found for this level</td></tr>';
 }
 
 // Добавляем метод обновления статистики партнеров
