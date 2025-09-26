@@ -3,6 +3,7 @@ class ContractManager {
     this.web3 = web3Manager;
     this.userCache = new Map();
     this.matrixCache = new Map();
+    this.cacheTimeout = 30000; // 30 секунд
   }
 
   async callContract(contractName, methodName, params = []) {
@@ -93,11 +94,18 @@ class ContractManager {
 
   encodeParam(type, value) {
     if (type === 'address') {
-      return value.replace('0x', '').padStart(64, '0');
+      // ИСПРАВЛЕНО: правильное кодирование адресов
+      const cleanAddress = value.replace('0x', '').toLowerCase();
+      return cleanAddress.padStart(64, '0');
     } else if (type.startsWith('uint')) {
-      return BigInt(value || 0).toString(16).padStart(64, '0');
+      const num = BigInt(value || 0);
+      return num.toString(16).padStart(64, '0');
     } else if (type === 'bool') {
       return value ? '1'.padStart(64, '0') : '0'.padStart(64, '0');
+    } else if (type === 'string') {
+      // Простое кодирование строк
+      const hex = Array.from(value || '', c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+      return hex.padEnd(64, '0');
     }
     return '0'.padStart(64, '0');
   }
@@ -115,7 +123,8 @@ class ContractManager {
     } else if (output.type.startsWith('uint')) {
       return parseInt(cleanResult, 16).toString();
     } else if (output.type === 'address') {
-      return '0x' + cleanResult.slice(-40);
+      const addr = '0x' + cleanResult.slice(-40);
+      return addr === '0x0000000000000000000000000000000000000000' ? null : addr;
     }
 
     return cleanResult;
@@ -126,11 +135,7 @@ class ContractManager {
       return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(text));
     }
     
-    if (typeof Web3 !== 'undefined' && Web3.utils) {
-      return Web3.utils.keccak256(text);
-    }
-    
-    // Fallback - простой хеш для подписи методов
+    // Fallback hash
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
       const char = text.charCodeAt(i);
@@ -140,19 +145,24 @@ class ContractManager {
     return '0x' + Math.abs(hash).toString(16).padStart(64, '0');
   }
 
-  // ИСПРАВЛЕНО: Регистрация по ID через контракт
+  // ИСПРАВЛЕНО: Регистрация только через контракт, никаких заглушек
   async registerUserWithId(sponsorId) {
     try {
       if (!sponsorId) {
-        // Регистрация без спонсора - случайное назначение
+        // Регистрация без спонсора через stats контракт
         return await this.sendTransaction('stats', 'assignIdToExistingUser', []);
       }
       
-      // Очищаем ID от префикса GW если есть
       const cleanId = sponsorId.toString().replace(/^GW/i, '');
       
       if (!/^\d{7}$/.test(cleanId)) {
         throw new Error('Invalid sponsor ID format. Use GW1234567 or 1234567');
+      }
+
+      // Проверяем что спонсор существует
+      const sponsorAddress = await this.getAddressByUserId(cleanId);
+      if (!sponsorAddress || sponsorAddress === '0x0000000000000000000000000000000000000000') {
+        throw new Error('Sponsor ID not found');
       }
 
       return await this.sendTransaction('stats', 'registerWithSponsorId', [cleanId]);
@@ -162,19 +172,15 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Получение ID напрямую от контракта
+  // ИСПРАВЛЕНО: Только реальные ID из контракта
   async getUserIdByAddress(address = null) {
     address = address || this.web3.account;
     if (!address) return null;
 
     try {
-      const isRegistered = await this.isUserRegistered(address);
-      if (!isRegistered) {
-        return null;
-      }
-    
       const id = await this.callContract('stats', 'getUserIdByAddress', [address]);
-      return id && id !== '0' ? id : null;
+      // ВАЖНО: возвращаем null если ID = 0 или не существует
+      return id && id !== '0' && id !== 0 ? id : null;
     } catch (error) {
       console.error('Failed to get user ID:', error);
       return null;
@@ -183,15 +189,20 @@ class ContractManager {
 
   async getAddressByUserId(userId) {
     try {
-      const cleanId = userId.replace(/^GW/i, '');
-      return await this.callContract('stats', 'getAddressByUserId', [cleanId]);
+      const cleanId = userId.toString().replace(/^GW/i, '');
+      if (!/^\d{7}$/.test(cleanId)) {
+        throw new Error('Invalid user ID format');
+      }
+      
+      const address = await this.callContract('stats', 'getAddressByUserId', [cleanId]);
+      return address && address !== '0x0000000000000000000000000000000000000000' ? address : null;
     } catch (error) {
       console.error('Failed to get address by ID:', error);
       return null;
     }
   }
 
-  // ИСПРАВЛЕНО: Реальные вызовы контрактов
+  // ИСПРАВЛЕНО: Реальная проверка регистрации
   async isUserRegistered(address = null) {
     address = address || this.web3.account;
     if (!address) return false;
@@ -204,20 +215,16 @@ class ContractManager {
     }
   }
 
+  // ИСПРАВЛЕНО: Убран кэш, только реальные данные
   async getUserData(address = null) {
     address = address || this.web3.account;
     if (!address) return null;
-
-    const cacheKey = `userData_${address}`;
-    if (this.userCache.has(cacheKey)) {
-      return this.userCache.get(cacheKey);
-    }
 
     try {
       const userData = await this.callContract('globalway', 'getUserData', [address]);
       const userStats = await this.callContract('globalway', 'getUserStats', [address]);
       
-      const parsedData = {
+      return {
         isRegistered: userData[0],
         sponsor: userData[1],
         registrationTime: parseInt(userData[2]),
@@ -228,9 +235,6 @@ class ContractManager {
         activeLevels: userStats[1] || [],
         referrals: userStats[6] || []
       };
-      
-      this.userCache.set(cacheKey, parsedData);
-      return parsedData;
     } catch (error) {
       console.error('Failed to get user data:', error);
       return null;
@@ -271,17 +275,10 @@ class ContractManager {
 
   // ИСПРАВЛЕНО: Реальная загрузка матрицы
   async getMatrixData(userAddress, level) {
-    const cacheKey = `matrix_${userAddress}_${level}`;
-    if (this.matrixCache.has(cacheKey)) {
-      return this.matrixCache.get(cacheKey);
-    }
-
     try {
-      // Получаем статистику матрицы
       const matrixStats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
       const userId = await this.getUserIdByAddress(userAddress);
       
-      // Получаем позиции матрицы (1-6 позиций для уровня)
       const positions = [];
       const maxPositions = Math.min(6, Math.pow(2, level));
       
@@ -332,7 +329,6 @@ class ContractManager {
         }
       }
       
-      // Получаем табличные данные из контракта
       const tableData = [];
       const referrals = await this.callContract('globalway', 'getUserStats', [userAddress]);
       
@@ -358,7 +354,7 @@ class ContractManager {
         }
       }
       
-      const data = {
+      return {
         topUser: {
           id: userId ? `GW${userId}` : 'GW0000000',
           address: userAddress,
@@ -375,16 +371,13 @@ class ContractManager {
           technical: 0
         }
       };
-      
-      this.matrixCache.set(cacheKey, data);
-      return data;
     } catch (error) {
       console.error('Failed to get matrix data:', error);
       throw error;
     }
   }
 
-  // ИСПРАВЛЕНО: Реальная загрузка транзакций через события
+  // Остальные методы остаются без изменений...
   async getTransactionHistory(address = null, limit = 50) {
     address = address || this.web3.account;
     if (!address) return [];
@@ -397,7 +390,6 @@ class ContractManager {
       
       const fromBlock = Math.max(0, parseInt(currentBlock, 16) - 100000);
       
-      // Получаем события регистрации
       const registrationFilter = {
         address: CONFIG.CONTRACTS.GLOBALWAY,
         fromBlock: '0x' + fromBlock.toString(16),
@@ -408,7 +400,6 @@ class ContractManager {
         ]
       };
 
-      // Получаем события покупки уровней
       const levelPurchaseFilter = {
         address: CONFIG.CONTRACTS.GLOBALWAY,
         fromBlock: '0x' + fromBlock.toString(16),
@@ -468,7 +459,7 @@ class ContractManager {
     }
   }
 
-  // Admin методы - реальные вызовы контрактов
+  // Admin методы
   async freeActivateUser(userAddress, maxLevel) {
     try {
       return await this.sendTransaction('globalway', 'freeRegistrationWithLevels', [userAddress, maxLevel]);
@@ -496,7 +487,6 @@ class ContractManager {
     }
   }
 
-  // Helper methods
   getQualificationLevel(personalInvites, teamVolume) {
     const volume = parseFloat(teamVolume) / 1e18;
     if (personalInvites >= 10 && volume >= 100) return 'Gold';
