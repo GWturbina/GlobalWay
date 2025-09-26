@@ -28,3 +28,27 @@ window.CONFIG = {
     ]
   }
 };
+
+// Проверка корректности конфигурации
+window.CONFIG.validateNetwork = function(chainId) {
+  return chainId === this.CHAIN_ID;
+};
+
+window.CONFIG.getNetworkName = function(chainId) {
+  const networks = {
+    '0xCC': 'opBNB Mainnet',
+    '0x61': 'BSC Testnet', 
+    '0x38': 'BSC Mainnet',
+    '0x1': 'Ethereum Mainnet'
+  };
+  return networks[chainId] || 'Unknown Network';
+};
+
+// Проверяем что все адреса контрактов корректные
+Object.values(window.CONFIG.CONTRACTS).forEach(address => {
+  if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    console.error('Invalid contract address detected:', address);
+  }
+});
+
+console.log('✅ Config loaded for opBNB network');
