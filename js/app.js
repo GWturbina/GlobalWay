@@ -73,21 +73,27 @@ class GlobalWayApp {
 
       console.log('Valid referral ID found:', referralId);
       localStorage.setItem('referralId', referralId);
-      
-      // ИСПРАВЛЕНО: Корректное перенаправление
-      this.cleanupURL();
-      
-      // Показываем промпт регистрации через 1 секунду
+      sessionStorage.setItem('pendingRegistration', 'true');
+
+      // НЕ очищаем URL, оставляем реферальную ссылку
+      // this.cleanupURL(); - УБИРАЕМ ЭТУ СТРОКУ
+
+      // Показываем промпт регистрации через 500мс
       setTimeout(() => {
         this.showRegistrationPrompt(referralId);
-      }, 1000);
+      }, 500);
     }
   }
 
   // ИСПРАВЛЕНО: Очистка URL без перезагрузки
-  cleanupURL() {
-    const cleanURL = window.location.origin + window.location.pathname.replace(/\/ref\d{7}/, '');
-    window.history.replaceState({}, document.title, cleanURL);
+    cleanupURL() {
+    // Очищаем URL только после успешной регистрации
+    if (sessionStorage.getItem('registrationComplete') === 'true') {
+      const cleanURL = window.location.origin + window.location.pathname.replace(/\/ref\d{7}/, '');
+      window.history.replaceState({}, document.title, cleanURL);
+      sessionStorage.removeItem('pendingRegistration');
+      sessionStorage.removeItem('registrationComplete');
+    }
   }
 
   // ИСПРАВЛЕНО: Промпт регистрации с проверкой спонсора
@@ -122,32 +128,32 @@ class GlobalWayApp {
     document.body.appendChild(modal);
     
     // ИСПРАВЛЕНО: Обработчик подключения кошелька
-    modal.querySelector('#connectAndJoin').onclick = async () => {
+        modal.querySelector('#connectAndJoin').onclick = async () => {
       try {
         await web3Manager.connect();
         modal.remove();
+    
+        // Отмечаем что готовы к регистрации
+        sessionStorage.setItem('readyForRegistration', 'true');
         
-        // После подключения показываем модал регистрации с предзаполненным ID
+        // Переходим в DApp
+        if (uiManager && uiManager.showDApp) {
+          uiManager.showDApp();
+        }
+    
+        // Показываем модал регистрации с предзаполненным ID
         setTimeout(() => {
           if (uiManager && uiManager.showRegistrationModal) {
             uiManager.showRegistrationModal();
           }
         }, 1000);
-        
+    
       } catch (error) {
         console.error('Connection failed:', error);
         modal.remove();
         this.showError('Failed to connect wallet: ' + error.message);
       }
     };
-    
-    // Auto-close after 30 seconds
-    setTimeout(() => {
-      if (modal.parentNode) {
-        modal.remove();
-      }
-    }, 30000);
-  }
 
   setupPWA() {
     // Register service worker
