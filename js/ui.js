@@ -198,7 +198,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Загрузка только реальных данных пользователя
+  // РЕАЛЬНАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
   async loadUserData() {
     if (!web3Manager.isConnected || !web3Manager.account) return;
 
@@ -210,10 +210,10 @@ class UIManager {
         }
       }
 
-      // ИСПРАВЛЕНО: Проверяем реальную регистрацию
+      // РЕАЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ЧЕРЕЗ КОНТРАКТ
       const isRegistered = await contractManager.isUserRegistered();
       
-      // ИСПРАВЛЕНО: Получаем только реальный ID из контракта
+      // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
       let userId = null;
       try {
         userId = await contractManager.getUserIdByAddress();
@@ -222,24 +222,24 @@ class UIManager {
         console.warn('Failed to get user ID:', idError);
       }
       
-      // ИСПРАВЛЕНО: Показываем ID и ссылку ТОЛЬКО если есть реальный ID
+      // ПОКАЗЫВАЕМ ID И ССЫЛКУ ТОЛЬКО ЕСЛИ ЕСТЬ РЕАЛЬНЫЙ ID
       if (userId && userId !== '0' && userId !== 0) {
         document.getElementById('userId').textContent = `GW${userId}`;
         const refLink = `${window.location.origin}/ref${userId}`;
         document.getElementById('refLink').value = refLink;
         console.log('Valid referral link set:', refLink);
       } else if (isRegistered) {
-        // ИСПРАВЛЕНО: Если зарегистрирован но нет ID - показываем предупреждение
+        // ЕСЛИ ЗАРЕГИСТРИРОВАН НО НЕТ ID - ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ
         document.getElementById('userId').textContent = 'ID not assigned yet';
         document.getElementById('refLink').value = 'ID assignment required - contact support';
         
-        // Предлагаем получить ID через контракт
+        // ПРЕДЛАГАЕМ ПОЛУЧИТЬ ID ЧЕРЕЗ КОНТРАКТ
         try {
           const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
           console.log('ID assignment transaction:', txHash);
           this.showSuccess('ID assignment in progress. Please wait...');
           
-          // Проверяем ID через 5 секунд
+          // ПРОВЕРЯЕМ ID ЧЕРЕЗ 5 СЕКУНД
           setTimeout(async () => {
             try {
               const newUserId = await contractManager.getUserIdByAddress();
@@ -259,7 +259,7 @@ class UIManager {
           document.getElementById('refLink').value = 'Contact support for referral link';
         }
       } else {
-        // ИСПРАВЛЕНО: Незарегистрированные - четкое сообщение
+        // НЕЗАРЕГИСТРИРОВАННЫЕ - ЧЕТКОЕ СООБЩЕНИЕ
         document.getElementById('userId').textContent = 'Not registered';
         document.getElementById('refLink').value = 'Register first to get referral link';
       }
@@ -320,9 +320,9 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Проверка показа кнопок только для зарегистрированных
+  // ПРОВЕРКА ПОКАЗА КНОПОК ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
   async updateActiveLevels(activeLevels) {
-    // ИСПРАВЛЕНО: Блокируем уже активированные уровни
+    // БЛОКИРУЕМ УЖЕ АКТИВИРОВАННЫЕ УРОВНИ
     activeLevels.forEach(level => {
       const btn = document.querySelector(`[data-level="${level}"]`);
       if (btn) {
@@ -336,7 +336,7 @@ class UIManager {
       }
     });
     
-    // ИСПРАВЛЕНО: Обновляем цены bulk кнопок
+    // ОБНОВЛЯЕМ ЦЕНЫ BULK КНОПОК
     this.updateBulkButtonPrices(activeLevels);
   }
 
@@ -473,7 +473,7 @@ class UIManager {
     });
   }
 
-  // ИСПРАВЛЕНО: Загрузка реальной истории через контракт
+  // ЗАГРУЗКА РЕАЛЬНОЙ ИСТОРИИ ЧЕРЕЗ КОНТРАКТ
   async loadTransactionHistory() {
     try {
       const historyTable = document.getElementById('historyTable');
@@ -716,7 +716,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Покупка уровней только для зарегистрированных
+  // ПОКУПКА УРОВНЕЙ ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
   async buyLevel(level) {
     try {
       if (!web3Manager.isConnected) {
@@ -724,7 +724,7 @@ class UIManager {
         return;
       }
 
-      // ИСПРАВЛЕНО: Проверяем реальную регистрацию
+      // ПРОВЕРЯЕМ РЕАЛЬНУЮ РЕГИСТРАЦИЮ
       const isRegistered = await contractManager.isUserRegistered();
       if (!isRegistered) {
         this.showRegistrationPrompt();
@@ -737,7 +737,7 @@ class UIManager {
         return;
       }
 
-      // ИСПРАВЛЕНО: Проверяем предыдущие уровни
+      // ПРОВЕРЯЕМ ПРЕДЫДУЩИЕ УРОВНИ
       for (let i = 1; i < level; i++) {
         const isActive = await contractManager.callContract('globalway', 'isLevelActive', [web3Manager.account, i]);
         if (!isActive) {
@@ -746,7 +746,7 @@ class UIManager {
         }
       }
 
-      // ИСПРАВЛЕНО: Прямой вызов контракта
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
       const txHash = await contractManager.buyLevel(level, price);
       this.showSuccess(`Level ${level} purchase transaction sent: ${txHash}`);
       
@@ -761,7 +761,7 @@ class UIManager {
         `;
       }
       
-      // Обновляем данные после транзакции
+      // ОБНОВЛЯЕМ ДАННЫЕ ПОСЛЕ ТРАНЗАКЦИИ
       setTimeout(() => this.loadUserData(), 5000);
       
     } catch (error) {
@@ -770,7 +770,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Bulk покупка только для зарегистрированных
+  // BULK ПОКУПКА ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
   async buyBulkLevels(maxLevel, packageType) {
     try {
       if (!web3Manager.isConnected) {
@@ -799,7 +799,7 @@ class UIManager {
         return;
       }
 
-      // ИСПРАВЛЕНО: Прямой вызов контракта
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
       const txHash = await contractManager.sendTransaction(
         'globalway', 
         'buyLevelsBulk', 
@@ -823,7 +823,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Квартальная оплата только для зарегистрированных
+  // КВАРТАЛЬНАЯ ОПЛАТА ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
   async payQuarterlyActivity() {
     try {
       if (!web3Manager.isConnected) {
@@ -837,7 +837,7 @@ class UIManager {
         return;
       }
 
-      // ИСПРАВЛЕНО: Прямой вызов контракта
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
       const txHash = await contractManager.payQuarterlyActivity();
       this.showSuccess(`Quarterly activity payment sent: ${txHash}`);
       
@@ -863,7 +863,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Показ регистрации без фальшивых функций
+  // ПОКАЗ РЕГИСТРАЦИИ БЕЗ ФАЛЬШИВЫХ ФУНКЦИЙ
   showRegistrationPrompt() {
     const alertElement = document.getElementById('connectionAlert');
     const messageElement = document.getElementById('alertMessage');
@@ -879,7 +879,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Регистрация только через контракт
+  // РЕГИСТРАЦИЯ ТОЛЬКО ЧЕРЕЗ КОНТРАКТ
   showRegistrationModal() {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -906,12 +906,12 @@ class UIManager {
     modal.querySelector('#registerBtn').onclick = async () => {
       const sponsorIdInput = modal.querySelector('#sponsorIdInput').value.trim();
       try {
-        // ИСПРАВЛЕНО: Используем только реальную регистрацию через контракт
+        // ИСПОЛЬЗУЕМ ТОЛЬКО РЕАЛЬНУЮ РЕГИСТРАЦИЮ ЧЕРЕЗ КОНТРАКТ
         const txHash = await contractManager.registerUserWithId(sponsorIdInput);
         this.showSuccess('Registration transaction sent: ' + txHash);
         document.body.removeChild(modal);
         
-        // Обновляем данные через 5 секунд после транзакции
+        // ОБНОВЛЯЕМ ДАННЫЕ ЧЕРЕЗ 5 СЕКУНД ПОСЛЕ ТРАНЗАКЦИИ
         setTimeout(() => this.loadUserData(), 5000);
       } catch (error) {
         this.showError('Registration failed: ' + error.message);
@@ -919,7 +919,7 @@ class UIManager {
     };
   }
 
-  // ИСПРАВЛЕНО: Получение реального ID из localStorage
+  // ПОЛУЧЕНИЕ РЕАЛЬНОГО ID ИЗ localStorage
   getReferralId() {
     const referralId = localStorage.getItem('pendingReferralId') || localStorage.getItem('referralId');
     if (referralId && /^\d{7}$/.test(referralId)) {
@@ -1225,7 +1225,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Загрузка реальных партнеров через контракт
+  // ЗАГРУЗКА РЕАЛЬНЫХ ПАРТНЕРОВ ЧЕРЕЗ КОНТРАКТ
   async showPartnerLevel(level) {
     document.querySelectorAll('#partnerLevels .level-selector-btn').forEach(btn => {
       btn.classList.remove('active');
@@ -1292,7 +1292,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Копирование только реальных ссылок
+  // КОПИРОВАНИЕ ТОЛЬКО РЕАЛЬНЫХ ССЫЛОК
   async copyReferralLink() {
     try {
       if (!web3Manager.account) {
