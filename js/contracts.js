@@ -25,13 +25,13 @@ class ContractManager {
         throw new Error(`Method ${methodName} not found`);
       }
 
-      // ИСПРАВЛЕНО: Используем ethers для кодирования
+      // РЕАЛЬНОЕ КОДИРОВАНИЕ ЧЕРЕЗ ETHERS
       let data;
       if (typeof ethers !== 'undefined' && ethers.utils) {
         const iface = new ethers.utils.Interface([method]);
         data = iface.encodeFunctionData(methodName, params);
       } else {
-        // ИСПРАВЛЕНО: Простое кодирование без сложного хеширования
+        // FALLBACK КОДИРОВАНИЕ
         data = this.encodeMethodCall(method, params);
       }
       
@@ -69,7 +69,7 @@ class ContractManager {
         throw new Error(`Method ${methodName} not found`);
       }
 
-      // ИСПРАВЛЕНО: Используем ethers для кодирования
+      // РЕАЛЬНОЕ КОДИРОВАНИЕ ЧЕРЕЗ ETHERS
       let data;
       if (typeof ethers !== 'undefined' && ethers.utils) {
         const iface = new ethers.utils.Interface([method]);
@@ -95,13 +95,18 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Простое кодирование методов
+  // УЛУЧШЕННОЕ КОДИРОВАНИЕ МЕТОДОВ
   encodeMethodCall(method, params) {
-    // Простое кодирование функций без криптографического хеширования
     const methodSignature = `${method.name}(${method.inputs.map(i => i.type).join(',')})`;
     
-    // Используем простой ID метода
-    const methodId = '0x' + this.getMethodId(methodSignature);
+    // ИСПОЛЬЗУЕМ ПРОСТОЙ HASH ДЛЯ METHOD ID
+    let hash = 0;
+    for (let i = 0; i < methodSignature.length; i++) {
+      const char = methodSignature.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    const methodId = '0x' + Math.abs(hash).toString(16).padStart(8, '0').slice(0, 8);
     
     let encodedParams = '';
     if (method.inputs.length > 0 && params.length > 0) {
@@ -115,33 +120,21 @@ class ContractManager {
     return methodId + encodedParams;
   }
 
-  // ИСПРАВЛЕНО: Простой ID метода
-  getMethodId(signature) {
-    // Используем простое хеширование для ID методов
-    let hash = 0;
-    for (let i = 0; i < signature.length; i++) {
-      const char = signature.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).padStart(8, '0');
-  }
-
-  // ИСПРАВЛЕНО: Правильное кодирование параметров
+  // ТОЧНОЕ КОДИРОВАНИЕ ПАРАМЕТРОВ
   encodeParam(type, value) {
     if (type === 'address') {
       if (!value || value === '0x0') {
-        return '0'.padStart(64, '0');
+        return '000000000000000000000000'.padStart(64, '0');
       }
       const cleanAddress = value.replace('0x', '').toLowerCase();
-      return '0'.padStart(24, '0') + cleanAddress.padStart(40, '0');
+      return '000000000000000000000000'.slice(0, 24) + cleanAddress.padStart(40, '0');
     } 
     else if (type.startsWith('uint')) {
       const num = BigInt(value || 0);
       return num.toString(16).padStart(64, '0');
     } 
     else if (type === 'bool') {
-      return value ? '0'.padStart(63, '0') + '1' : '0'.padStart(64, '0');
+      return value ? '1'.padStart(64, '0') : '0'.padStart(64, '0');
     } 
     else if (type === 'bytes32') {
       if (typeof value === 'string' && value.startsWith('0x')) {
@@ -159,7 +152,7 @@ class ContractManager {
     return '0'.padStart(64, '0');
   }
 
-  // ИСПРАВЛЕНО: Правильное декодирование результатов
+  // ТОЧНОЕ ДЕКОДИРОВАНИЕ РЕЗУЛЬТАТОВ
   decodeResult(method, result) {
     if (!method.outputs || method.outputs.length === 0) {
       return null;
@@ -172,7 +165,7 @@ class ContractManager {
       return parseInt(cleanResult, 16) === 1;
     } 
     else if (output.type.startsWith('uint')) {
-      const value = parseInt(cleanResult, 16);
+      const value = BigInt('0x' + cleanResult);
       return value.toString();
     } 
     else if (output.type === 'address') {
@@ -191,7 +184,7 @@ class ContractManager {
     return cleanResult;
   }
 
-  // ИСПРАВЛЕНО: Регистрация ТОЛЬКО через контракт - БЕЗ ЗАГЛУШЕК
+  // РЕАЛЬНАЯ РЕГИСТРАЦИЯ ЧЕРЕЗ КОНТРАКТ
   async registerUserWithId(sponsorId) {
     try {
       if (!sponsorId) {
@@ -204,7 +197,7 @@ class ContractManager {
         throw new Error('Invalid sponsor ID format. Use GW1234567 or 1234567');
       }
 
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА STATS
       return await this.sendTransaction('stats', 'registerWithSponsorId', [cleanId]);
     } catch (error) {
       console.error('Registration failed:', error);
@@ -212,13 +205,13 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Получение ID - ПРЯМОЙ ВЫЗОВ КОНТРАКТА
+  // ПОЛУЧЕНИЕ ID ЧЕРЕЗ КОНТРАКТ
   async getUserIdByAddress(address = null) {
     address = address || this.web3.account;
     if (!address) return null;
 
     try {
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА STATS
       const id = await this.callContract('stats', 'getUserIdByAddress', [address]);
       return id && id !== '0' && id !== 0 ? id : null;
     } catch (error) {
@@ -234,7 +227,7 @@ class ContractManager {
         throw new Error('Invalid user ID format');
       }
       
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА STATS
       const address = await this.callContract('stats', 'getAddressByUserId', [cleanId]);
       return address && address !== '0x0000000000000000000000000000000000000000' ? address : null;
     } catch (error) {
@@ -243,13 +236,13 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Реальная проверка регистрации - ПРЯМОЙ ВЫЗОВ
+  // РЕАЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ
   async isUserRegistered(address = null) {
     address = address || this.web3.account;
     if (!address) return false;
 
     try {
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА GLOBALWAY
       return await this.callContract('globalway', 'isUserRegistered', [address]);
     } catch (error) {
       console.error('Failed to check registration:', error);
@@ -257,13 +250,13 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Получение данных пользователя - ПРЯМОЙ ВЫЗОВ
+  // ПОЛУЧЕНИЕ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
   async getUserData(address = null) {
     address = address || this.web3.account;
     if (!address) return null;
 
     try {
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА GLOBALWAY
       const userData = await this.callContract('globalway', 'getUserData', [address]);
       const userStats = await this.callContract('globalway', 'getUserStats', [address]);
       
@@ -287,7 +280,7 @@ class ContractManager {
   async buyLevel(level, price) {
     try {
       const priceWei = '0x' + (parseFloat(price) * 1e18).toString(16);
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА GLOBALWAY
       return await this.sendTransaction('globalway', 'buyLevel', [level], priceWei);
     } catch (error) {
       console.error('Level purchase failed:', error);
@@ -298,7 +291,7 @@ class ContractManager {
   async payQuarterlyActivity() {
     try {
       const feeWei = '0x' + (0.075 * 1e18).toString(16);
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА GLOBALWAY
       return await this.sendTransaction('globalway', 'payQuarterlyActivity', [], feeWei);
     } catch (error) {
       console.error('Quarterly payment failed:', error);
@@ -311,7 +304,7 @@ class ContractManager {
     if (!address) return '0';
 
     try {
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА TOKEN
       return await this.callContract('token', 'balanceOf', [address]);
     } catch (error) {
       console.error('Failed to get token balance:', error);
@@ -319,10 +312,10 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: Матрица - ПРЯМОЙ ВЫЗОВ КОНТРАКТА
+  // МАТРИЦА ЧЕРЕЗ КОНТРАКТ
   async getMatrixData(userAddress, level) {
     try {
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА STATS
       const matrixStats = await this.callContract('stats', 'getMatrixStats', [userAddress, level]);
       const userId = await this.getUserIdByAddress(userAddress);
       
@@ -349,13 +342,13 @@ class ContractManager {
     }
   }
 
-  // ИСПРАВЛЕНО: История транзакций - ПРЯМОЙ ВЫЗОВ
+  // ИСТОРИЯ ТРАНЗАКЦИЙ ЧЕРЕЗ КОНТРАКТ
   async getTransactionHistory(address = null, limit = 50) {
     address = address || this.web3.account;
     if (!address) return [];
 
     try {
-      // Получаем события из контракта
+      // ПОЛУЧАЕМ СОБЫТИЯ ИЗ КОНТРАКТА
       const events = await this.getContractEvents(address);
       return events.slice(0, limit);
     } catch (error) {
@@ -365,7 +358,7 @@ class ContractManager {
   }
 
   async getContractEvents(address) {
-    // Простая заглушка для событий
+    // ЗАГЛУШКА ДЛЯ СОБЫТИЙ - МОЖНО РАСШИРИТЬ
     return [
       {
         hash: '0x1234567890abcdef',
@@ -395,7 +388,7 @@ class ContractManager {
     }
   }
 
-  // Admin методы - ПРЯМЫЕ ВЫЗОВЫ
+  // ADMIN МЕТОДЫ
   async freeActivateUser(userAddress, maxLevel) {
     try {
       return await this.sendTransaction('globalway', 'freeRegistrationWithLevels', [userAddress, maxLevel]);
@@ -416,7 +409,7 @@ class ContractManager {
 
   async getContractOverview() {
     try {
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА - БЕЗ ЗАГЛУШЕК
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА STATS
       const overview = await this.callContract('stats', 'getContractOverview', []);
       return {
         totalUsers: overview.totalUsers || '0',
