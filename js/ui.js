@@ -198,7 +198,7 @@ class UIManager {
     }
   }
 
-  // РЕАЛЬНАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
+  // ИСПРАВЛЕННАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
   async loadUserData() {
     if (!web3Manager.isConnected || !web3Manager.account) return;
 
@@ -210,30 +210,52 @@ class UIManager {
         }
       }
 
-      // РЕАЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ЧЕРЕЗ КОНТРАКТ
-      const isRegistered = await contractManager.isUserRegistered();
-      
       // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
       let userId = null;
       try {
         userId = await contractManager.getUserIdByAddress();
-        console.log('Real user ID from contract:', userId, 'Registered:', isRegistered);
+        console.log('User ID from contract:', userId);
       } catch (idError) {
         console.warn('Failed to get user ID:', idError);
       }
+
+      // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ДЛЯ ВАЛИДАЦИИ
+      let isRegisteredCheck = false;
+      try {
+        isRegisteredCheck = await contractManager.isUserRegistered();
+        console.log('Registration check result:', isRegisteredCheck);
+      } catch (regError) {
+        console.warn('Failed to check registration:', regError);
+      }
+
+      // ЕСЛИ ЕСТЬ ID - ЗНАЧИТ ЗАРЕГИСТРИРОВАН
+      const isRegistered = userId && userId !== '0' && userId !== 0;
       
-      // ПОКАЗЫВАЕМ ID И ССЫЛКУ ТОЛЬКО ЕСЛИ ЕСТЬ РЕАЛЬНЫЙ ID
-      if (userId && userId !== '0' && userId !== 0) {
+      console.log('Registration status determined by ID:', isRegistered);
+      
+      // ПОКАЗЫВАЕМ ID И ССЫЛКУ ЕСЛИ ЗАРЕГИСТРИРОВАН
+      if (isRegistered) {
         document.getElementById('userId').textContent = `GW${userId}`;
         const refLink = `${window.location.origin}/ref${userId}`;
         document.getElementById('refLink').value = refLink;
         console.log('Valid referral link set:', refLink);
-      } else if (isRegistered) {
-        // ЕСЛИ ЗАРЕГИСТРИРОВАН НО НЕТ ID - ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ
+        
+        // ЗАГРУЖАЕМ ДАННЫЕ ЗАРЕГИСТРИРОВАННОГО ПОЛЬЗОВАТЕЛЯ
+        const userData = await contractManager.getUserData();
+        this.updateUserProfile(userData);
+        
+        await this.loadQuarterlyStatus();
+        await this.loadEarningsData();
+        await this.loadTransactionHistory();
+        await this.loadTokenBalance();
+        
+        this.hideConnectionAlert();
+        
+      } else if (isRegisteredCheck && !userId) {
+        // ЗАРЕГИСТРИРОВАН НО НЕТ ID - ПЫТАЕМСЯ ПРИСВОИТЬ
         document.getElementById('userId').textContent = 'ID not assigned yet';
         document.getElementById('refLink').value = 'ID assignment required - contact support';
         
-        // ПРЕДЛАГАЕМ ПОЛУЧИТЬ ID ЧЕРЕЗ КОНТРАКТ
         try {
           const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
           console.log('ID assignment transaction:', txHash);
@@ -247,6 +269,8 @@ class UIManager {
                 document.getElementById('userId').textContent = `GW${newUserId}`;
                 document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
                 this.showSuccess('Referral link generated!');
+                // ПЕРЕЗАГРУЖАЕМ ДАННЫЕ
+                setTimeout(() => this.loadUserData(), 1000);
               }
             } catch (error) {
               console.error('Failed to get assigned ID:', error);
@@ -258,23 +282,11 @@ class UIManager {
           document.getElementById('userId').textContent = 'ID assignment failed';
           document.getElementById('refLink').value = 'Contact support for referral link';
         }
+        
       } else {
         // НЕЗАРЕГИСТРИРОВАННЫЕ - ЧЕТКОЕ СООБЩЕНИЕ
         document.getElementById('userId').textContent = 'Not registered';
         document.getElementById('refLink').value = 'Register first to get referral link';
-      }
-      
-      if (isRegistered) {
-        const userData = await contractManager.getUserData();
-        this.updateUserProfile(userData);
-        
-        await this.loadQuarterlyStatus();
-        await this.loadEarningsData();
-        await this.loadTransactionHistory();
-        await this.loadTokenBalance();
-        
-        this.hideConnectionAlert();
-      } else {
         this.showRegistrationPrompt();
       }
       
