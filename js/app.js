@@ -142,6 +142,18 @@ class GlobalWayApp {
         // ПОСЛЕ ПОДКЛЮЧЕНИЯ АВТОМАТИЧЕСКИ ВЫЗЫВАЕМ РЕГИСТРАЦИЮ
         setTimeout(async () => {
           try {
+            // ПРОВЕРЯЕМ СУЩЕСТВУЕТ ЛИ СПОНСОР ЧЕРЕЗ КОНТРАКТ
+            const sponsorAddress = await contractManager.getAddressByUserId(referralId);
+            
+            if (!sponsorAddress) {
+              console.warn('Sponsor not found in contract:', referralId);
+              this.showError('Sponsor ID not found. Registration without sponsor.');
+              if (uiManager && uiManager.showRegistrationModal) {
+                uiManager.showRegistrationModal();
+              }
+              return;
+            }
+
             // ПРЯМОЙ ВЫЗОВ РЕГИСТРАЦИИ С SPONSOR ID
             await this.registerWithSponsorId(referralId);
           } catch (regError) {
@@ -167,44 +179,136 @@ class GlobalWayApp {
     }, 30000);
   }
 
+  // НОВАЯ ФУНКЦИЯ ПРЯМОЙ РЕГИСТРАЦИИ С SPONSOR ID
   async registerWithSponsorId(sponsorId) {
-  try {
-    if (!web3Manager.isConnected) throw new Error('Wallet not connected');
-
-    const isRegistered = await contractManager.callContract('globalway', 'isUserRegistered', [web3Manager.account]);
-    if (isRegistered) {
-      uiManager.showSuccess('Already registered!');
-      return;
-    }
-
-    console.log('Registering with sponsor ID:', sponsorId);
-    
-    // Вызов правильного метода контракта Stats
-    const txHash = await contractManager.sendTransaction(
-      'stats', 
-      'registerWithSponsorId', 
-      [sponsorId], 
-      '0x0'
-    );
-
-    uiManager.showSuccess(`Registration TX: ${txHash}`);
-    localStorage.removeItem('pendingReferralId');
-
-    // Ждем подтверждения и проверяем ID
-    setTimeout(async () => {
-      const newId = await contractManager.callContract('stats', 'getUserIdByAddress', [web3Manager.account]);
-      if (newId && newId !== '0') {
-        document.getElementById('userId').textContent = `GW${newId}`;
-        document.getElementById('refLink').value = `${window.location.origin}/ref${newId}`;
-        uiManager.loadUserData();
+    try {
+      if (!web3Manager.isConnected) {
+        throw new Error('Wallet not connected');
       }
-    }, 5000);
 
-  } catch (error) {
-    console.error('Registration failed:', error);
-    uiManager.showError('Registration failed: ' + error.message);
+      // ПРОВЕРЯЕМ ЧТО ПОЛЬЗОВАТЕЛЬ НЕ ЗАРЕГИСТРИРОВАН
+      const isRegistered = await contractManager.isUserRegistered();
+      if (isRegistered) {
+        if (uiManager && uiManager.showSuccess) {
+          uiManager.showSuccess('You are already registered!');
+        }
+        return;
+      }
+
+      // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ СПОНСОРА ЧЕРЕЗ КОНТРАКТ
+      const sponsorAddress = await contractManager.getAddressByUserId(sponsorId);
+      if (!sponsorAddress || sponsorAddress === '0x0000000000000000000000000000000000000000') {
+        throw new Error('Sponsor ID not found in contract');
+      }
+
+      console.log('Valid sponsor found, registering with ID:', sponsorId);
+      
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТНОГО МЕТОДА РЕГИСТРАЦИИ
+      const txHash = await contractManager.sendTransaction(
+        'stats', 
+        'registerWithSponsorId', 
+        [sponsorId], 
+        '0x0' // NO PAYMENT REQUIRED FOR REGISTRATION
+      );
+
+      if (uiManager && uiManager.showSuccess) {
+        uiManager.showSuccess(`Registration transaction sent: ${txHash}`);
+      }
+
+      // ОЧИЩАЕМ СОХРАНЕННЫЙ REFERRAL ID
+      localStorage.removeItem('pendingReferralId');
+
+      // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ 5 СЕКУНД
+      setTimeout(() => {
+        if (uiManager && uiManager.loadUserData) {
+          uiManager.loadUserData();
+        }
+      }, 5000);
+
+    } catch (error) {
+      console.error('Registration with sponsor failed:', error);
+      if (uiManager && uiManager.showError) {
+        uiManager.showError('Registration failed: ' + error.message);
+      }
+      
+      // ПОКАЗЫВАЕМ ОБЫЧНУЮ РЕГИСТРАЦИЮ ЕСЛИ СПОНСОР НЕ НАЙДЕН
+      if (error.message.includes('not found')) {
+        setTimeout(() => {
+          if (uiManager && uiManager.showRegistrationModal) {
+            uiManager.showRegistrationModal();
+          }
+        }, 2000);
+      }
+    }
   }
-}
+
+  // ВАЛИДАЦИЯ РЕФЕРАЛЬНОГО ID ЧЕРЕЗ КОНТРАКТ
+  async validateReferralId(referralId) {
+    try {
+      const cleanId = referralId.toString().replace(/^GW/i, '');
+      
+      if (!/^\d{7}$/.test(cleanId)) {
+        return { valid: false, reason: 'Invalid format' };
+      }
+
+      // ПРОВЕРЯЕМ СУЩЕСТВОВАНИЕ В КОНТРАКТЕ
+      const sponsorAddress = await contractManager.getAddressByUserId(cleanId);
+      
+      if (!sponsorAddress || sponsorAddress === '0x0000000000000000000000000000000000000000') {
+        return { valid: false, reason: 'Sponsor not found' };
+      }
+
+      // ПРОВЕРЯЕМ АКТИВНОСТЬ СПОНСОРА
+      const isActive = await contractManager.callContract('globalway', 'isUserActive', [sponsorAddress]);
+      
+      if (!isActive) {
+        return { valid: false, reason: 'Sponsor account inactive' };
+      }
+
+      return { valid: true, sponsorAddress: sponsorAddress };
+    } catch (error) {
+      console.error('Referral validation failed:', error);
+      return { valid: false, reason: 'Validation error' };
+    }
+  }
+
+  // ГЕНЕРАЦИЯ РЕФЕРАЛЬНОЙ ССЫЛКИ ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
+  async generateReferralLink() {
+    try {
+      if (!web3Manager.isConnected) {
+        throw new Error('Wallet not connected');
+      }
+
+      // ПРОВЕРЯЕМ РЕГИСТРАЦИЮ
+      const isRegistered = await contractManager.isUserRegistered();
+      if (!isRegistered) {
+        throw new Error('User must be registered first');
+      }
+
+      // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
+      let userId = await contractManager.getUserIdByAddress();
+      
+      if (!userId || userId === '0' || userId === 0) {
+        // ЕСЛИ НЕТ ID - ПРИСВАИВАЕМ
+        console.log('No ID found, assigning new ID...');
+        await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
+        
+        // ЖДЕМ И ПРОВЕРЯЕМ СНОВА
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        userId = await contractManager.getUserIdByAddress();
+        
+        if (!userId || userId === '0' || userId === 0) {
+          throw new Error('Failed to assign user ID');
+        }
+      }
+
+      const referralLink = `${window.location.origin}/ref${userId}`;
+      return { link: referralLink, id: userId };
+    } catch (error) {
+      console.error('Failed to generate referral link:', error);
+      throw error;
+    }
+  }
 
   setupPWA() {
     // Register service worker
@@ -297,14 +401,85 @@ class GlobalWayApp {
       }
     }, 5000);
   }
+
+  // АВТОМАТИЧЕСКАЯ РЕГИСТРАЦИЯ ПРИ ПОДКЛЮЧЕНИИ КОШЕЛЬКА
+  async handleWalletConnected() {
+    try {
+      const pendingReferralId = localStorage.getItem('pendingReferralId');
+      
+      if (pendingReferralId) {
+        console.log('Processing pending referral registration:', pendingReferralId);
+        
+        // ПРОВЕРЯЕМ НЕ ЗАРЕГИСТРИРОВАН ЛИ УЖЕ
+        const isRegistered = await contractManager.isUserRegistered();
+        
+        if (!isRegistered) {
+          await this.registerWithSponsorId(pendingReferralId);
+        } else {
+          console.log('User already registered, clearing pending referral');
+          localStorage.removeItem('pendingReferralId');
+        }
+      }
+    } catch (error) {
+      console.error('Auto-registration failed:', error);
+    }
+  }
+
+  // ПРОВЕРКА СТАТУСА ПОЛЬЗОВАТЕЛЯ ПРИ ЗАГРУЗКЕ
+  async checkUserStatus() {
+    try {
+      if (!web3Manager.isConnected) return;
+
+      const isRegistered = await contractManager.isUserRegistered();
+      const userId = await contractManager.getUserIdByAddress();
+      
+      console.log('User status check:', {
+        connected: web3Manager.isConnected,
+        registered: isRegistered,
+        userId: userId,
+        account: web3Manager.account
+      });
+
+      return {
+        connected: true,
+        registered: isRegistered,
+        hasId: userId && userId !== '0' && userId !== 0,
+        userId: userId
+      };
+    } catch (error) {
+      console.error('User status check failed:', error);
+      return {
+        connected: false,
+        registered: false,
+        hasId: false,
+        userId: null
+      };
+    }
+  }
 }
 
 // ПРАВИЛЬНАЯ ИНИЦИАЛИЗАЦИЯ С ПРОВЕРКОЙ ГОТОВНОСТИ DOM
 function initializeApp() {
   const app = new GlobalWayApp();
+  
+  // ДОБАВЛЯЕМ ОБРАБОТЧИК ПОДКЛЮЧЕНИЯ КОШЕЛЬКА
+  if (typeof web3Manager !== 'undefined') {
+    const originalConnect = web3Manager.connect.bind(web3Manager);
+    web3Manager.connect = async function() {
+      const result = await originalConnect();
+      if (result && app.handleWalletConnected) {
+        await app.handleWalletConnected();
+      }
+      return result;
+    };
+  }
+  
   app.init().catch(error => {
     console.error('App initialization failed:', error);
   });
+  
+  // ЭКСПОРТИРУЕМ ДЛЯ ГЛОБАЛЬНОГО ДОСТУПА
+  window.globalWayApp = app;
 }
 
 // Initialize app when DOM is ready
