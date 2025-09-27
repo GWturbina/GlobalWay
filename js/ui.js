@@ -1,950 +1,4 @@
-class UIManager {
-  constructor() {
-    this.currentPage = 'dashboard';
-    this.levelPrices = [
-      0, 0.0015, 0.003, 0.006, 0.012, 0.024, 0.048, 
-      0.096, 0.192, 0.384, 0.768, 1.536, 3.072
-    ];
-    this.bulkPrices = [0, 0, 0, 0.021, 0.027, 0.051, 0.099, 0.195, 0.387, 0.771, 1.539, 3.075, 6.147];
-    this.rankNames = [
-      'Новичок', 'Исследователь', 'Инноватор', 
-      'Техно-энтузиаст', 'Крипто-ученик', 'Блокчейн-адепт',
-      'Мастер смарт-контрактов', 'Web3 Профессионал', 
-      'Мета-архитектор', 'AI-визионер', 
-      'Квантовый лидер', 'Глобальный тех-титан'
-    ];
-    this.levelRewards = [0, 5, 5, 10, 15, 35, 75, 150, 300, 600, 1200, 2400, 4500];
-    this.notifications = [];
-    this.matrixManager = new MatrixManager();
-    this.adminLoaded = false;
-  }
-
-  async init() {
-    await this.loadComponents();
-    this.setupEventListeners();
-    this.generateLevelButtons();
-    this.generateEarningsList();
-    this.generateProjectCards();
-    this.setupModals();
-    this.initializeNotifications();
-    this.startQuarterlyCheck();
-    await this.loadUserData();
-    await this.matrixManager.init();
-  }
-
-  async loadComponents() {
-    const components = ['dashboard', 'partners', 'matrix', 'tokens', 'projects'];
-    
-    for (const component of components) {
-      const container = document.getElementById(component);
-      if (container) {
-        try {
-          const response = await fetch(`./components/${component}.html`);
-          if (response.ok) {
-            const html = await response.text();
-            container.innerHTML = html;
-          } else {
-            console.warn(`Component ${component} not found, using embedded HTML`);
-          }
-        } catch (error) {
-          console.warn(`Failed to load ${component}:`, error);
-        }
-      }
-    }
-  }
-
-  async loadAdminComponent() {
-    if (this.adminLoaded) return;
-    
-    const adminContainer = document.getElementById('admin');
-    if (adminContainer && this.hasAdminAccess()) {
-      try {
-        const response = await fetch('./admin.html');
-        if (response.ok) {
-          const html = await response.text();
-          adminContainer.innerHTML = html;
-          this.adminLoaded = true;
-          
-          setTimeout(() => this.loadAdminData(), 200);
-        }
-      } catch (error) {
-        console.warn('Failed to load admin component:', error);
-      }
-    }
-  }
-
-  setupEventListeners() {
-    // Navigation
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('.nav-btn') || e.target.closest('.nav-btn')) {
-        const btn = e.target.matches('.nav-btn') ? e.target : e.target.closest('.nav-btn');
-        this.showPage(btn.dataset.page);
-      }
-    });
-
-    // Connect wallet
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('#connectBtn')) {
-        this.connectWallet();
-      }
-    });
-
-    // Open DApp
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('#openDapp') || e.target.closest('#openDapp')) {
-        this.showDApp();
-      }
-    });
-
-    // Planet clicks
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('.planet')) {
-        const planet = e.target.closest('.planet');
-        this.showPlanetModal(planet.dataset.planet);
-      }
-    });
-
-    // Copy functions
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('#copyRefLink')) {
-        this.copyReferralLink();
-      } else if (e.target.matches('.copy-btn')) {
-        this.copyToClipboard(e.target.dataset.copy);
-      }
-    });
-
-    // Level purchases
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('.level-btn')) {
-        const level = parseInt(e.target.dataset.level);
-        this.buyLevel(level);
-      } else if (e.target.matches('.bulk-btn')) {
-        const levels = parseInt(e.target.dataset.levels);
-        const packageType = parseInt(e.target.dataset.package);
-        this.buyBulkLevels(levels, packageType);
-      }
-    });
-
-    // Quarterly activity
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('#payActivityBtn')) {
-        this.payQuarterlyActivity();
-      }
-    });
-
-    // Token management
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('#addToWallet')) {
-        this.addTokenToWallet();
-      } else if (e.target.matches('#viewExplorer')) {
-        this.viewOnExplorer();
-      }
-    });
-
-    // Admin functions
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('#freeActivateBtn')) {
-        this.freeActivateUser();
-      } else if (e.target.matches('#batchActivateBtn')) {
-        this.batchActivateTeam();
-      } else if (e.target.matches('#blockUserBtn')) {
-        this.blockUser();
-      } else if (e.target.matches('#replaceAddressBtn')) {
-        this.replaceUserAddress();
-      } else if (e.target.matches('#withdrawalBtn')) {
-        this.withdrawFunds();
-      } else if (e.target.matches('#emergencyWithdrawBtn')) {
-        this.emergencyWithdraw();
-      }
-    });
-
-    // Level selectors
-    document.addEventListener('click', (e) => {
-      if (e.target.matches('.level-selector-btn')) {
-        const level = parseInt(e.target.textContent);
-        const container = e.target.closest('.level-selector');
-        if (container.parentElement.id === 'partners') {
-          this.showPartnerLevel(level);
-        }
-      }
-    });
-
-    // Project proposals
-    document.addEventListener('submit', (e) => {
-      if (e.target.matches('#proposalForm')) {
-        e.preventDefault();
-        this.submitProjectProposal();
-      }
-    });
-  }
-
-  async connectWallet() {
-    try {
-      const connectBtn = document.getElementById('connectBtn');
-      connectBtn.textContent = getTranslation ? getTranslation('wallet.connecting') : 'Connecting...';
-      connectBtn.style.pointerEvents = 'none';
-      
-      await web3Manager.connect();
-      await this.loadUserData();
-      this.showConnectionStatus();
-      
-    } catch (error) {
-      console.error('Wallet connection failed:', error);
-      this.showError('Failed to connect wallet: ' + error.message);
-      
-      const connectBtn = document.getElementById('connectBtn');
-      connectBtn.textContent = getTranslation ? getTranslation('wallet.connect') : 'Connect SafePal';
-      connectBtn.style.pointerEvents = 'auto';
-    }
-  }
-
-  // РЕАЛЬНАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
-  async loadUserData() {
-    if (!web3Manager.isConnected || !web3Manager.account) return;
-
-    try {
-      if (this.hasAdminAccess()) {
-        const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
-        if (adminNavBtn) {
-          adminNavBtn.style.display = 'flex';
-        }
-      }
-
-      // РЕАЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ЧЕРЕЗ КОНТРАКТ
-      const isRegistered = await contractManager.isUserRegistered();
-      
-      // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
-      let userId = null;
-      try {
-        userId = await contractManager.getUserIdByAddress();
-        console.log('Real user ID from contract:', userId, 'Registered:', isRegistered);
-      } catch (idError) {
-        console.warn('Failed to get user ID:', idError);
-      }
-      
-      // ПОКАЗЫВАЕМ ID И ССЫЛКУ ТОЛЬКО ЕСЛИ ЕСТЬ РЕАЛЬНЫЙ ID
-      if (userId && userId !== '0' && userId !== 0) {
-        document.getElementById('userId').textContent = `GW${userId}`;
-        const refLink = `${window.location.origin}/ref${userId}`;
-        document.getElementById('refLink').value = refLink;
-        console.log('Valid referral link set:', refLink);
-      } else if (isRegistered) {
-        // ЕСЛИ ЗАРЕГИСТРИРОВАН НО НЕТ ID - ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ
-        document.getElementById('userId').textContent = 'ID not assigned yet';
-        document.getElementById('refLink').value = 'ID assignment required - contact support';
-        
-        // ПРЕДЛАГАЕМ ПОЛУЧИТЬ ID ЧЕРЕЗ КОНТРАКТ
-        try {
-          const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
-          console.log('ID assignment transaction:', txHash);
-          this.showSuccess('ID assignment in progress. Please wait...');
-          
-          // ПРОВЕРЯЕМ ID ЧЕРЕЗ 5 СЕКУНД
-          setTimeout(async () => {
-            try {
-              const newUserId = await contractManager.getUserIdByAddress();
-              if (newUserId && newUserId !== '0') {
-                document.getElementById('userId').textContent = `GW${newUserId}`;
-                document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
-                this.showSuccess('Referral link generated!');
-              }
-            } catch (error) {
-              console.error('Failed to get assigned ID:', error);
-            }
-          }, 5000);
-          
-        } catch (assignError) {
-          console.error('Failed to assign ID:', assignError);
-          document.getElementById('userId').textContent = 'ID assignment failed';
-          document.getElementById('refLink').value = 'Contact support for referral link';
-        }
-      } else {
-        // НЕЗАРЕГИСТРИРОВАННЫЕ - ЧЕТКОЕ СООБЩЕНИЕ
-        document.getElementById('userId').textContent = 'Not registered';
-        document.getElementById('refLink').value = 'Register first to get referral link';
-      }
-      
-      if (isRegistered) {
-        const userData = await contractManager.getUserData();
-        this.updateUserProfile(userData);
-        
-        await this.loadQuarterlyStatus();
-        await this.loadEarningsData();
-        await this.loadTransactionHistory();
-        await this.loadTokenBalance();
-        
-        this.hideConnectionAlert();
-      } else {
-        this.showRegistrationPrompt();
-      }
-      
-    } catch (error) {
-      console.error('Failed to load user data:', error);
-      this.showError('Failed to load user data');
-    }
-  }
-
-  hasAdminAccess() {
-    if (!web3Manager.account) return false;
-    
-    const account = web3Manager.account.toLowerCase();
-    const isOwner = account === CONFIG.ADDRESSES.OWNER.toLowerCase();
-    const isFounder = CONFIG.ADDRESSES.FOUNDERS.some(f => f.toLowerCase() === account);
-    const isBoard = CONFIG.ADDRESSES.BOARD.some(b => b.toLowerCase() === account);
-    
-    const hasAccess = isOwner || isFounder || isBoard;
-    
-    if (hasAccess) {
-      document.body.classList.add('admin-access');
-    } else {
-      document.body.classList.remove('admin-access');
-    }
-    
-    return hasAccess;
-  }
-
-  updateUserProfile(userData) {
-    if (!userData) return;
-    
-    const rankElement = document.getElementById('userRank');
-    if (rankElement && userData.leaderRank) {
-      rankElement.textContent = this.rankNames[userData.leaderRank - 1] || 'Новичок';
-    }
-    
-    if (userData.activeLevels) {
-      this.updateActiveLevels(userData.activeLevels);
-    }
-    
-    if (userData.activeLevels && userData.activeLevels.length >= 4) {
-      this.showAutoUpgradeStatus(true);
-    }
-  }
-
-  // ПРОВЕРКА ПОКАЗА КНОПОК ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
-  async updateActiveLevels(activeLevels) {
-    // БЛОКИРУЕМ УЖЕ АКТИВИРОВАННЫЕ УРОВНИ
-    activeLevels.forEach(level => {
-      const btn = document.querySelector(`[data-level="${level}"]`);
-      if (btn) {
-        btn.disabled = true;
-        btn.classList.add('activated');
-        btn.style.background = '#6c757d';
-        btn.innerHTML = `
-          <span class="level-num">${level}</span>
-          <span class="level-price">ACTIVE</span>
-        `;
-      }
-    });
-    
-    // ОБНОВЛЯЕМ ЦЕНЫ BULK КНОПОК
-    this.updateBulkButtonPrices(activeLevels);
-  }
-
-  updateBulkButtonPrices(activeLevels) {
-    const bulkButtons = document.querySelectorAll('.bulk-btn');
-    bulkButtons.forEach(btn => {
-      const maxLevel = parseInt(btn.dataset.levels);
-      let totalPrice = 0;
-      
-      for (let i = 1; i <= maxLevel; i++) {
-        if (!activeLevels.includes(i)) {
-          totalPrice += this.levelPrices[i];
-        }
-      }
-      
-      const priceSpan = btn.querySelector('.price');
-      if (priceSpan) {
-        priceSpan.textContent = totalPrice.toFixed(3);
-      }
-      
-      if (totalPrice === 0) {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-      }
-    });
-  }
-
-  async loadQuarterlyStatus() {
-    try {
-      const isActive = await contractManager.callContract('globalway', 'isUserActive', [web3Manager.account]);
-      const userData = await contractManager.getUserData();
-      
-      if (userData && userData.lastActivity) {
-        const lastActivity = new Date(userData.lastActivity * 1000);
-        const nextPayment = new Date(lastActivity.getTime() + 90 * 24 * 60 * 60 * 1000);
-        const now = new Date();
-        const daysRemaining = Math.ceil((nextPayment - now) / (24 * 60 * 60 * 1000));
-        
-        document.getElementById('lastPayment').textContent = lastActivity.toLocaleDateString();
-        document.getElementById('nextPayment').textContent = nextPayment.toLocaleDateString();
-        document.getElementById('currentQuarter').textContent = userData.quarterlyCounter || 1;
-        
-        if (daysRemaining <= 10 && daysRemaining > 0) {
-          this.showPaymentWarning(daysRemaining);
-        }
-        
-        if (!isActive) {
-          this.showInactiveStatus();
-        }
-      }
-      
-    } catch (error) {
-      console.error('Failed to load quarterly status:', error);
-    }
-  }
-
-  showPaymentWarning(daysRemaining) {
-    const warningElement = document.getElementById('paymentWarning');
-    const daysElement = document.getElementById('daysRemaining');
-    
-    if (warningElement && daysElement) {
-      daysElement.textContent = daysRemaining;
-      warningElement.style.display = 'flex';
-      warningElement.classList.add('warning-blink');
-      
-      this.addNotification({
-        type: 'warning',
-        message: `Quarterly payment due in ${daysRemaining} days`,
-        action: () => this.payQuarterlyActivity()
-      });
-    }
-  }
-
-  showInactiveStatus() {
-    const alertElement = document.getElementById('connectionAlert');
-    const messageElement = document.getElementById('alertMessage');
-    const actionElement = document.getElementById('alertAction');
-    
-    if (alertElement && messageElement && actionElement) {
-      alertElement.className = 'alert warning';
-      messageElement.textContent = getTranslation ? getTranslation('dashboard.notActive') : 'Account inactive';
-      actionElement.textContent = getTranslation ? getTranslation('dashboard.payActivity') : 'Pay Activity';
-      actionElement.onclick = () => this.payQuarterlyActivity();
-      alertElement.style.display = 'block';
-    }
-  }
-
-  async loadEarningsData() {
-    try {
-      const earningsBreakdown = await contractManager.callContract('stats', 'getEarningsBreakdown', [web3Manager.account]);
-      
-      if (earningsBreakdown) {
-        this.updateEarningsDisplay(earningsBreakdown);
-      }
-      
-    } catch (error) {
-      console.error('Failed to load earnings data:', error);
-    }
-  }
-
-  updateEarningsDisplay(earnings) {
-    const earningsElements = document.querySelectorAll('#earningsRank .earnings-item');
-    earningsElements.forEach((element, index) => {
-      if (index < this.rankNames.length) {
-        const amountSpan = element.querySelector('span:last-child');
-        if (amountSpan && earnings.frozenByLevel && earnings.frozenByLevel[index]) {
-          amountSpan.textContent = `${(earnings.frozenByLevel[index] / 1e18).toFixed(4)} BNB`;
-        }
-      }
-    });
-    
-    const totalElement = document.getElementById('totalIncome');
-    if (totalElement && earnings.totalEarned) {
-      totalElement.textContent = `${(earnings.totalEarned / 1e18).toFixed(4)} BNB`;
-    }
-    
-    this.updatePartnerEarnings(earnings);
-  }
-
-  updatePartnerEarnings(earnings) {
-    const elements = {
-      directBonus: earnings.personalBonus,
-      partnerBonus: earnings.referralBonus,
-      matrixBonus: earnings.matrixBonus,
-      leadershipBonus: earnings.leaderBonus,
-      totalEarned: earnings.totalEarned
-    };
-    
-    Object.entries(elements).forEach(([id, value]) => {
-      const element = document.getElementById(id);
-      if (element && value) {
-        element.textContent = `${(value / 1e18).toFixed(4)} BNB`;
-      }
-    });
-  }
-
-  // ЗАГРУЗКА РЕАЛЬНОЙ ИСТОРИИ ЧЕРЕЗ КОНТРАКТ
-  async loadTransactionHistory() {
-    try {
-      const historyTable = document.getElementById('historyTable');
-      if (!historyTable) return;
-
-      historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Loading transactions...</td></tr>';
-
-      const transactions = await contractManager.getTransactionHistory(web3Manager.account, 20);
-      
-      if (transactions && transactions.length > 0) {
-        const rows = transactions.map((tx, index) => `
-          <tr>
-            <td>${index + 1}</td>
-            <td>${tx.type}</td>
-            <td>${tx.amount} BNB</td>
-            <td>${tx.timestamp.toLocaleDateString()} ${tx.timestamp.toLocaleTimeString()}</td>
-            <td><a href="${CONFIG.EXPLORER_URL}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 10)}...</a></td>
-            <td><span class="status-badge ${tx.status.toLowerCase()}">${tx.status}</span></td>
-          </tr>
-        `);
-        
-        historyTable.innerHTML = rows.join('');
-      } else {
-        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">No transactions found</td></tr>';
-      }
-      
-    } catch (error) {
-      console.error('Failed to load transaction history:', error);
-      const historyTable = document.getElementById('historyTable');
-      if (historyTable) {
-        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Failed to load transaction history</td></tr>';
-      }
-    }
-  }
-
-  async loadTokenBalance() {
-    try {
-      const balance = await contractManager.getTokenBalance();
-      const price = await contractManager.callContract('token', 'getCurrentPrice');
-      
-      if (balance) {
-        const balanceFormatted = (parseInt(balance) / 1e18).toFixed(2);
-        const priceFormatted = price ? `${(parseInt(price) / 1e18).toFixed(6)}` : '$0.00';
-        const valueFormatted = price ? `${(parseInt(balance) * parseInt(price) / 1e36).toFixed(2)}` : '$0.00';
-        
-        document.getElementById('tokenAmount').textContent = `${balanceFormatted} GWT`;
-        document.getElementById('tokenPrice').textContent = priceFormatted;
-        document.getElementById('tokenValue').textContent = valueFormatted;
-        
-        document.getElementById('totalTokens').textContent = `${balanceFormatted} GWT`;
-        document.getElementById('totalValue').textContent = valueFormatted;
-        document.getElementById('currentPrice').textContent = priceFormatted;
-      }
-      
-    } catch (error) {
-      console.error('Failed to load token balance:', error);
-    }
-  }
-
-  generateLevelButtons() {
-    const individualLevels = document.getElementById('individualLevels');
-    if (individualLevels) {
-      individualLevels.innerHTML = '';
-      for (let i = 1; i <= 12; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'level-btn';
-        btn.dataset.level = i;
-        btn.innerHTML = `
-          <span class="level-num">${i}</span>
-          <span class="level-price">${this.levelPrices[i]} BNB</span>
-        `;
-        individualLevels.appendChild(btn);
-      }
-    }
-
-    ['partnerLevels'].forEach(containerId => {
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.innerHTML = '';
-        for (let i = 1; i <= 12; i++) {
-          const btn = document.createElement('button');
-          btn.className = 'level-selector-btn';
-          btn.textContent = i;
-          if (i === 1) btn.classList.add('active');
-          container.appendChild(btn);
-        }
-      }
-    });
-  }
-
-  generateEarningsList() {
-    const earningsRank = document.getElementById('earningsRank');
-    if (!earningsRank) return;
-
-    earningsRank.innerHTML = '';
-    
-    this.rankNames.forEach(rank => {
-      const item = document.createElement('div');
-      item.className = 'earnings-item';
-      item.innerHTML = `
-        <span>${rank}</span>
-        <span>0 BNB</span>
-      `;
-      earningsRank.appendChild(item);
-    });
-
-    const total = document.createElement('div');
-    total.className = 'earnings-item total';
-    total.innerHTML = `
-      <span data-translate="ranks.total">Total Income</span>
-      <span id="totalIncome">0 BNB</span>
-    `;
-    earningsRank.appendChild(total);
-  }
-
-  generateProjectCards() {
-    const projectsGrid = document.getElementById('projectsGrid');
-    if (!projectsGrid) return;
-
-    const projects = [
-      { 
-        name: 'CardGift', 
-        description: 'Create and send digital greeting cards with crypto rewards',
-        status: 'development', 
-        prefix: 'CG',
-        requirements: 'Level 1+',
-        logo: 'assets/icons/CardGift.png'
-      },
-      { 
-        name: 'GlobalTub', 
-        description: 'Decentralized video platform with content monetization',
-        status: 'development', 
-        prefix: 'GT',
-        requirements: 'Level 2+',
-        logo: 'assets/icons/GlobalTub.png'
-      },
-      { 
-        name: 'GlobalMarket', 
-        description: 'P2P marketplace for goods and services',
-        status: 'development', 
-        prefix: 'GM',
-        requirements: 'Level 3+',
-        logo: 'assets/icons/GlobalMarket.png'
-      },
-      { 
-        name: 'GlobalGame', 
-        description: 'Gaming platform with NFT rewards and tournaments',
-        status: 'development', 
-        prefix: 'GG',
-        requirements: 'Level 4+',
-        logo: 'assets/icons/GlobalGame.png'
-      },
-      { 
-        name: 'GlobalEdu', 
-        description: 'Educational courses and certification system',
-        status: 'development', 
-        prefix: 'GE',
-        requirements: 'Level 5+',
-        logo: 'assets/icons/GlobalEdu.png'
-      },
-      { 
-        name: 'GlobalBank', 
-        description: 'DeFi banking services with lending and staking',
-        status: 'development', 
-        prefix: 'GB',
-        requirements: 'Level 6+',
-        logo: 'assets/icons/GlobalBank.png'
-      },
-      { 
-        name: 'GlobalAI', 
-        description: 'AI-powered tools and automated services',
-        status: 'development', 
-        prefix: 'GA',
-        requirements: 'Level 7+',
-        logo: 'assets/icons/GlobalAI.png'
-      },
-      { 
-        name: 'EcoVillages', 
-        description: 'Sustainable living communities and real estate',
-        status: 'development', 
-        prefix: 'EV',
-        requirements: 'Level 8+',
-        logo: 'assets/icons/EcoVillages.png'
-      }
-    ];
-
-    projectsGrid.innerHTML = '';
-    projects.forEach(project => {
-      const card = document.createElement('div');
-      card.className = 'project-card';
-      card.dataset.project = project.name.toLowerCase();
-      card.innerHTML = `
-        <div class="project-header">
-          <img src="${project.logo}" alt="${project.name}" style="width: 64px; height: 64px; border-radius: 8px;">
-          <h3>${project.name}</h3>
-        </div>
-        <p>${project.description}</p>
-        <div class="project-meta">
-          <span class="project-prefix">ID: ${project.prefix}-XXXXXXX</span>
-          <span class="project-requirements">${project.requirements}</span>
-        </div>
-        <div class="project-status status-${project.status}">
-          ${project.status === 'development' ? 'In Development' : project.status}
-        </div>
-        <div class="project-actions">
-          <button class="btn-secondary project-details" data-translate="projects.about">About</button>
-          <button class="btn-primary project-launch" disabled data-translate="projects.openProject">Coming Soon</button>
-        </div>
-      `;
-      
-      card.querySelector('.project-details').addEventListener('click', () => {
-        this.showProjectModal(project);
-      });
-      
-      projectsGrid.appendChild(card);
-    });
-  }
-
-  showProjectModal(project) {
-    const modal = document.getElementById('projectModal');
-    const title = document.getElementById('projectModalTitle');
-    const description = document.getElementById('projectModalDescription');
-    const requirements = document.getElementById('projectModalRequirements');
-    const prefix = document.getElementById('projectModalPrefix');
-    const status = document.getElementById('projectModalStatus');
-    const logo = document.getElementById('projectModalLogo');
-    
-    if (modal && title && description) {
-      title.textContent = project.name;
-      description.textContent = project.description;
-      if (requirements) requirements.textContent = project.requirements;
-      if (prefix) prefix.textContent = `${project.prefix}-XXXXXXX`;
-      if (status) {
-        status.textContent = project.status === 'development' ? 'In Development' : project.status;
-        status.className = `project-status status-${project.status}`;
-      }
-      if (logo) logo.src = project.logo;
-      
-      modal.style.display = 'block';
-    }
-  }
-
-  // ПОКУПКА УРОВНЕЙ ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
-  async buyLevel(level) {
-    try {
-      if (!web3Manager.isConnected) {
-        this.showError('Please connect your wallet first');
-        return;
-      }
-
-      // ПРОВЕРЯЕМ РЕАЛЬНУЮ РЕГИСТРАЦИЮ
-      const isRegistered = await contractManager.isUserRegistered();
-      if (!isRegistered) {
-        this.showRegistrationPrompt();
-        return;
-      }
-
-      const price = this.levelPrices[level];
-      if (!price) {
-        this.showError('Invalid level');
-        return;
-      }
-
-      // ПРОВЕРЯЕМ ПРЕДЫДУЩИЕ УРОВНИ
-      for (let i = 1; i < level; i++) {
-        const isActive = await contractManager.callContract('globalway', 'isLevelActive', [web3Manager.account, i]);
-        if (!isActive) {
-          this.showError(`Please activate level ${i} first`);
-          return;
-        }
-      }
-
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
-      const txHash = await contractManager.buyLevel(level, price);
-      this.showSuccess(`Level ${level} purchase transaction sent: ${txHash}`);
-      
-      const btn = document.querySelector(`[data-level="${level}"]`);
-      if (btn) {
-        btn.disabled = true;
-        btn.classList.add('activated');
-        btn.style.background = '#6c757d';
-        btn.innerHTML = `
-          <span class="level-num">${level}</span>
-          <span class="level-price">ACTIVE</span>
-        `;
-      }
-      
-      // ОБНОВЛЯЕМ ДАННЫЕ ПОСЛЕ ТРАНЗАКЦИИ
-      setTimeout(() => this.loadUserData(), 5000);
-      
-    } catch (error) {
-      console.error('Level purchase failed:', error);
-      this.showError('Level purchase failed: ' + error.message);
-    }
-  }
-
-  // BULK ПОКУПКА ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
-  async buyBulkLevels(maxLevel, packageType) {
-    try {
-      if (!web3Manager.isConnected) {
-        this.showError('Please connect your wallet first');
-        return;
-      }
-
-      const isRegistered = await contractManager.isUserRegistered();
-      if (!isRegistered) {
-        this.showRegistrationPrompt();
-        return;
-      }
-
-      const userData = await contractManager.getUserData();
-      const activeLevels = userData ? userData.activeLevels || [] : [];
-      
-      let totalPrice = 0;
-      for (let i = 1; i <= maxLevel; i++) {
-        if (!activeLevels.includes(i)) {
-          totalPrice += this.levelPrices[i];
-        }
-      }
-
-      if (totalPrice === 0) {
-        this.showError('All levels in this package are already active');
-        return;
-      }
-
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
-      const txHash = await contractManager.sendTransaction(
-        'globalway', 
-        'buyLevelsBulk', 
-        [maxLevel], 
-        '0x' + (totalPrice * 1e18).toString(16)
-      );
-      
-      this.showSuccess(`Bulk purchase transaction sent: ${txHash}`);
-      
-      const btn = document.querySelector(`[data-levels="${maxLevel}"]`);
-      if (btn) {
-        btn.disabled = true;
-        btn.style.opacity = '0.5';
-      }
-      
-      setTimeout(() => this.loadUserData(), 5000);
-      
-    } catch (error) {
-      console.error('Bulk purchase failed:', error);
-      this.showError('Bulk purchase failed: ' + error.message);
-    }
-  }
-
-  // КВАРТАЛЬНАЯ ОПЛАТА ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
-  async payQuarterlyActivity() {
-    try {
-      if (!web3Manager.isConnected) {
-        this.showError('Please connect your wallet first');
-        return;
-      }
-
-      const isRegistered = await contractManager.isUserRegistered();
-      if (!isRegistered) {
-        this.showError('You must be registered to pay quarterly activity');
-        return;
-      }
-
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
-      const txHash = await contractManager.payQuarterlyActivity();
-      this.showSuccess(`Quarterly activity payment sent: ${txHash}`);
-      
-      const warningElement = document.getElementById('paymentWarning');
-      if (warningElement) {
-        warningElement.style.display = 'none';
-      }
-      
-      setTimeout(() => this.loadUserData(), 5000);
-      
-    } catch (error) {
-      console.error('Quarterly payment failed:', error);
-      this.showError('Payment failed: ' + error.message);
-    }
-  }
-
-  async getActiveLevels() {
-    try {
-      const userData = await contractManager.getUserData();
-      return userData ? userData.activeLevels || [] : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  // ПОКАЗ РЕГИСТРАЦИИ БЕЗ ФАЛЬШИВЫХ ФУНКЦИЙ
-  showRegistrationPrompt() {
-    const alertElement = document.getElementById('connectionAlert');
-    const messageElement = document.getElementById('alertMessage');
-    const actionElement = document.getElementById('alertAction');
-    
-    if (alertElement && messageElement && actionElement) {
-      alertElement.className = 'alert info';
-      messageElement.textContent = 'You need to register to use GlobalWay features';
-      actionElement.textContent = 'Register Now';
-      actionElement.className = 'btn-success';
-      actionElement.onclick = () => this.showRegistrationModal();
-      alertElement.style.display = 'block';
-    }
-  }
-
-  // РЕГИСТРАЦИЯ ТОЛЬКО ЧЕРЕЗ КОНТРАКТ
-  showRegistrationModal() {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>Register in GlobalWay</h3>
-        <div class="registration-form">
-          <label>Sponsor ID (optional, format: GW1234567):</label>
-          <input type="text" id="sponsorIdInput" placeholder="GW1234567" value="${this.getReferralId()}">
-          <p><strong>Important:</strong> If you don't have a valid sponsor ID, registration will be processed without sponsor assignment.</p>
-          <button id="registerBtn" class="btn-success">Register</button>
-        </div>
-      </div>
-    `;
-    
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-    
-    modal.querySelector('.close').onclick = () => {
-      document.body.removeChild(modal);
-    };
-    
-    modal.querySelector('#registerBtn').onclick = async () => {
-      const sponsorIdInput = modal.querySelector('#sponsorIdInput').value.trim();
-      try {
-        // ИСПОЛЬЗУЕМ ТОЛЬКО РЕАЛЬНУЮ РЕГИСТРАЦИЮ ЧЕРЕЗ КОНТРАКТ
-        const txHash = await contractManager.registerUserWithId(sponsorIdInput);
-        this.showSuccess('Registration transaction sent: ' + txHash);
-        document.body.removeChild(modal);
-        
-        // ОБНОВЛЯЕМ ДАННЫЕ ЧЕРЕЗ 5 СЕКУНД ПОСЛЕ ТРАНЗАКЦИИ
-        setTimeout(() => this.loadUserData(), 5000);
-      } catch (error) {
-        this.showError('Registration failed: ' + error.message);
-      }
-    };
-  }
-
-  // ПОЛУЧЕНИЕ РЕАЛЬНОГО ID ИЗ localStorage
-  getReferralId() {
-    const referralId = localStorage.getItem('pendingReferralId') || localStorage.getItem('referralId');
-    if (referralId && /^\d{7}$/.test(referralId)) {
-      return `GW${referralId}`;
-    }
-    return '';
-  }
-
-  async loadAdminData() {
-    if (!web3Manager.account) {
-      this.showError('Access denied - Admin privileges required');
-      return;
-    }
-
-    const account = web3Manager.account.toLowerCase();
-    const isOwner = account === CONFIG.ADDRESSES.OWNER.toLowerCase();
-    const isFounder = CONFIG.ADDRESSES.FOUNDERS.some(f => f.toLowerCase() === account);
-    const isBoard = CONFIG.ADDRESSES.BOARD.some(b => b.toLowerCase() === account);
-
-    if (!isOwner && !isFounder && !isBoard) {
-      this.showError('Access denied - Admin privileges required');
-      return;
-    }
-
-    try {
+try {
       const overview = await contractManager.getContractOverview();
       if (overview) {
         const totalUsersEl = document.getElementById('adminTotalUsers');
@@ -1249,7 +303,7 @@ class UIManager {
           const partnersWithLevel = [];
           
           for (const partnerAddress of userData.referrals) {
-            const isLevelActive = await contractManager.callContract('globalway', 'isLevelActive', [partnerAddress, level]);
+            const isLevelActive = await contractManager.callContract('globalway', 'userLevels', [partnerAddress, level]);
             if (isLevelActive) {
               const partnerData = await contractManager.getUserData(partnerAddress);
               const partnerId = await contractManager.getUserIdByAddress(partnerAddress);
@@ -1934,4 +988,957 @@ class MatrixManager {
 }
 
 const uiManager = new UIManager();
-window.uiManager = uiManager;
+window.uiManager = uiManager;class UIManager {
+  constructor() {
+    this.currentPage = 'dashboard';
+    this.levelPrices = [];
+    this.bulkPrices = [];
+    this.rankNames = [
+      'Новичок', 'Исследователь', 'Инноватор', 
+      'Техно-энтузиаст', 'Крипто-ученик', 'Блокчейн-адепт',
+      'Мастер смарт-контрактов', 'Web3 Профессионал', 
+      'Мета-архитектор', 'AI-визионер', 
+      'Квантовый лидер', 'Глобальный тех-титан'
+    ];
+    this.levelRewards = [0, 5, 5, 10, 15, 35, 75, 150, 300, 600, 1200, 2400, 4500];
+    this.notifications = [];
+    this.matrixManager = new MatrixManager();
+    this.adminLoaded = false;
+    this.activeLevels = [];
+  }
+
+  async init() {
+    await this.loadComponents();
+    this.setupEventListeners();
+    await this.loadContractPrices();
+    this.generateLevelButtons();
+    this.generateEarningsList();
+    this.generateProjectCards();
+    this.setupModals();
+    this.initializeNotifications();
+    this.startQuarterlyCheck();
+    await this.loadUserData();
+    await this.matrixManager.init();
+  }
+
+  async loadContractPrices() {
+    try {
+      // Загружаем реальные цены из контракта
+      this.levelPrices = [0]; // Level 0 не существует
+      for (let i = 1; i <= 12; i++) {
+        try {
+          const price = await contractManager.callContract('globalway', 'levelPrices', [i]);
+          const priceInBNB = parseFloat(price) / 1e18;
+          this.levelPrices.push(priceInBNB);
+        } catch (error) {
+          console.warn(`Failed to load price for level ${i}:`, error);
+          this.levelPrices.push(0);
+        }
+      }
+
+      // Загружаем bulk цены
+      this.bulkPrices = [0, 0, 0]; // Первые 3 элемента не используются
+      for (let i = 4; i <= 12; i++) {
+        try {
+          const bulkPrice = await contractManager.callContract('globalway', 'calculateBulkPrice', [i]);
+          const priceInBNB = parseFloat(bulkPrice) / 1e18;
+          this.bulkPrices.push(priceInBNB);
+        } catch (error) {
+          console.warn(`Failed to load bulk price for level ${i}:`, error);
+          // Fallback: суммируем индивидуальные цены
+          let sum = 0;
+          for (let j = 1; j <= i; j++) {
+            sum += this.levelPrices[j] || 0;
+          }
+          this.bulkPrices.push(sum);
+        }
+      }
+
+      console.log('Contract prices loaded:', this.levelPrices);
+    } catch (error) {
+      console.error('Failed to load contract prices:', error);
+      // Fallback цены если контракт недоступен
+      this.levelPrices = [
+        0, 0.0015, 0.003, 0.006, 0.012, 0.024, 0.048, 
+        0.096, 0.192, 0.384, 0.768, 1.536, 3.072
+      ];
+      this.bulkPrices = [0, 0, 0, 0.021, 0.027, 0.051, 0.099, 0.195, 0.387, 0.771, 1.539, 3.075, 6.147];
+    }
+  }
+
+  async loadComponents() {
+    const components = ['dashboard', 'partners', 'matrix', 'tokens', 'projects'];
+    
+    for (const component of components) {
+      const container = document.getElementById(component);
+      if (container) {
+        try {
+          const response = await fetch(`./components/${component}.html`);
+          if (response.ok) {
+            const html = await response.text();
+            container.innerHTML = html;
+          } else {
+            console.warn(`Component ${component} not found, using embedded HTML`);
+          }
+        } catch (error) {
+          console.warn(`Failed to load ${component}:`, error);
+        }
+      }
+    }
+  }
+
+  async loadAdminComponent() {
+    if (this.adminLoaded) return;
+    
+    const adminContainer = document.getElementById('admin');
+    if (adminContainer && this.hasAdminAccess()) {
+      try {
+        const response = await fetch('./admin.html');
+        if (response.ok) {
+          const html = await response.text();
+          adminContainer.innerHTML = html;
+          this.adminLoaded = true;
+          
+          setTimeout(() => this.loadAdminData(), 200);
+        }
+      } catch (error) {
+        console.warn('Failed to load admin component:', error);
+      }
+    }
+  }
+
+  setupEventListeners() {
+    // Navigation
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('.nav-btn') || e.target.closest('.nav-btn')) {
+        const btn = e.target.matches('.nav-btn') ? e.target : e.target.closest('.nav-btn');
+        this.showPage(btn.dataset.page);
+      }
+    });
+
+    // Connect wallet
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#connectBtn')) {
+        this.connectWallet();
+      }
+    });
+
+    // Open DApp
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#openDapp') || e.target.closest('#openDapp')) {
+        this.showDApp();
+      }
+    });
+
+    // Planet clicks
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.planet')) {
+        const planet = e.target.closest('.planet');
+        this.showPlanetModal(planet.dataset.planet);
+      }
+    });
+
+    // Copy functions
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#copyRefLink')) {
+        this.copyReferralLink();
+      } else if (e.target.matches('.copy-btn')) {
+        this.copyToClipboard(e.target.dataset.copy);
+      }
+    });
+
+    // Level purchases - РЕАЛЬНАЯ ИНТЕГРАЦИЯ
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('.level-btn')) {
+        const level = parseInt(e.target.dataset.level);
+        this.buyLevel(level);
+      } else if (e.target.matches('.bulk-btn')) {
+        const levels = parseInt(e.target.dataset.levels);
+        this.buyBulkLevels(levels);
+      }
+    });
+
+    // Quarterly activity
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#payActivityBtn')) {
+        this.payQuarterlyActivity();
+      }
+    });
+
+    // Token management
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#addToWallet')) {
+        this.addTokenToWallet();
+      } else if (e.target.matches('#viewExplorer')) {
+        this.viewOnExplorer();
+      }
+    });
+
+    // Admin functions
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('#freeActivateBtn')) {
+        this.freeActivateUser();
+      } else if (e.target.matches('#batchActivateBtn')) {
+        this.batchActivateTeam();
+      } else if (e.target.matches('#blockUserBtn')) {
+        this.blockUser();
+      } else if (e.target.matches('#replaceAddressBtn')) {
+        this.replaceUserAddress();
+      } else if (e.target.matches('#withdrawalBtn')) {
+        this.withdrawFunds();
+      } else if (e.target.matches('#emergencyWithdrawBtn')) {
+        this.emergencyWithdraw();
+      }
+    });
+
+    // Level selectors
+    document.addEventListener('click', (e) => {
+      if (e.target.matches('.level-selector-btn')) {
+        const level = parseInt(e.target.textContent);
+        const container = e.target.closest('.level-selector');
+        if (container.parentElement.id === 'partners') {
+          this.showPartnerLevel(level);
+        }
+      }
+    });
+
+    // Project proposals
+    document.addEventListener('submit', (e) => {
+      if (e.target.matches('#proposalForm')) {
+        e.preventDefault();
+        this.submitProjectProposal();
+      }
+    });
+  }
+
+  async connectWallet() {
+    try {
+      const connectBtn = document.getElementById('connectBtn');
+      connectBtn.textContent = getTranslation ? getTranslation('wallet.connecting') : 'Connecting...';
+      connectBtn.style.pointerEvents = 'none';
+      
+      await web3Manager.connect();
+      await this.loadUserData();
+      this.showConnectionStatus();
+      
+    } catch (error) {
+      console.error('Wallet connection failed:', error);
+      this.showError('Failed to connect wallet: ' + error.message);
+      
+      const connectBtn = document.getElementById('connectBtn');
+      connectBtn.textContent = getTranslation ? getTranslation('wallet.connect') : 'Connect SafePal';
+      connectBtn.style.pointerEvents = 'auto';
+    }
+  }
+
+  // РЕАЛЬНАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
+  async loadUserData() {
+    if (!web3Manager.isConnected || !web3Manager.account) return;
+
+    try {
+      if (this.hasAdminAccess()) {
+        const adminNavBtn = document.querySelector('.nav-btn[data-page="admin"]');
+        if (adminNavBtn) {
+          adminNavBtn.style.display = 'flex';
+        }
+      }
+
+      // РЕАЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ЧЕРЕЗ КОНТРАКТ
+      const isRegistered = await contractManager.isUserRegistered();
+      
+      // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
+      let userId = null;
+      try {
+        userId = await contractManager.getUserIdByAddress();
+        console.log('Real user ID from contract:', userId, 'Registered:', isRegistered);
+      } catch (idError) {
+        console.warn('Failed to get user ID:', idError);
+      }
+      
+      // ПОКАЗЫВАЕМ ID И ССЫЛКУ ТОЛЬКО ЕСЛИ ЕСТЬ РЕАЛЬНЫЙ ID
+      if (userId && userId !== '0' && userId !== 0) {
+        document.getElementById('userId').textContent = `GW${userId}`;
+        const refLink = `${window.location.origin}/ref${userId}`;
+        document.getElementById('refLink').value = refLink;
+        console.log('Valid referral link set:', refLink);
+      } else if (isRegistered) {
+        // ЕСЛИ ЗАРЕГИСТРИРОВАН НО НЕТ ID - ПОКАЗЫВАЕМ ПРЕДУПРЕЖДЕНИЕ
+        document.getElementById('userId').textContent = 'ID not assigned yet';
+        document.getElementById('refLink').value = 'ID assignment required - contact support';
+        
+        // ПРЕДЛАГАЕМ ПОЛУЧИТЬ ID ЧЕРЕЗ КОНТРАКТ
+        try {
+          const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
+          console.log('ID assignment transaction:', txHash);
+          this.showSuccess('ID assignment in progress. Please wait...');
+          
+          // ПРОВЕРЯЕМ ID ЧЕРЕЗ 5 СЕКУНД
+          setTimeout(async () => {
+            try {
+              const newUserId = await contractManager.getUserIdByAddress();
+              if (newUserId && newUserId !== '0') {
+                document.getElementById('userId').textContent = `GW${newUserId}`;
+                document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
+                this.showSuccess('Referral link generated!');
+              }
+            } catch (error) {
+              console.error('Failed to get assigned ID:', error);
+            }
+          }, 5000);
+          
+        } catch (assignError) {
+          console.error('Failed to assign ID:', assignError);
+          document.getElementById('userId').textContent = 'ID assignment failed';
+          document.getElementById('refLink').value = 'Contact support for referral link';
+        }
+      } else {
+        // НЕЗАРЕГИСТРИРОВАННЫЕ - ЧЕТКОЕ СООБЩЕНИЕ
+        document.getElementById('userId').textContent = 'Not registered';
+        document.getElementById('refLink').value = 'Register first to get referral link';
+      }
+      
+      if (isRegistered) {
+        const userData = await contractManager.getUserData();
+        this.updateUserProfile(userData);
+        
+        await this.loadQuarterlyStatus();
+        await this.loadEarningsData();
+        await this.loadTransactionHistory();
+        await this.loadTokenBalance();
+        
+        this.hideConnectionAlert();
+      } else {
+        this.showRegistrationPrompt();
+      }
+      
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      this.showError('Failed to load user data');
+    }
+  }
+
+  hasAdminAccess() {
+    if (!web3Manager.account) return false;
+    
+    const account = web3Manager.account.toLowerCase();
+    const isOwner = account === CONFIG.ADDRESSES.OWNER.toLowerCase();
+    const isFounder = CONFIG.ADDRESSES.FOUNDERS.some(f => f.toLowerCase() === account);
+    const isBoard = CONFIG.ADDRESSES.BOARD.some(b => b.toLowerCase() === account);
+    
+    const hasAccess = isOwner || isFounder || isBoard;
+    
+    if (hasAccess) {
+      document.body.classList.add('admin-access');
+    } else {
+      document.body.classList.remove('admin-access');
+    }
+    
+    return hasAccess;
+  }
+
+  updateUserProfile(userData) {
+    if (!userData) return;
+    
+    const rankElement = document.getElementById('userRank');
+    if (rankElement && userData.leaderRank) {
+      rankElement.textContent = this.rankNames[userData.leaderRank - 1] || 'Новичок';
+    }
+    
+    if (userData.activeLevels) {
+      this.activeLevels = userData.activeLevels;
+      this.updateActiveLevels(userData.activeLevels);
+    }
+    
+    if (userData.activeLevels && userData.activeLevels.length >= 4) {
+      this.showAutoUpgradeStatus(true);
+    }
+  }
+
+  // ПРОВЕРКА ПОКАЗА КНОПОК ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
+  async updateActiveLevels(activeLevels) {
+    // БЛОКИРУЕМ УЖЕ АКТИВИРОВАННЫЕ УРОВНИ
+    activeLevels.forEach(level => {
+      const btn = document.querySelector(`[data-level="${level}"]`);
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('activated');
+        btn.style.background = '#6c757d';
+        btn.innerHTML = `
+          <span class="level-num">${level}</span>
+          <span class="level-price">ACTIVE</span>
+        `;
+      }
+    });
+    
+    // ОБНОВЛЯЕМ ЦЕНЫ BULK КНОПОК
+    this.updateBulkButtonPrices(activeLevels);
+  }
+
+  updateBulkButtonPrices(activeLevels) {
+    const bulkButtons = document.querySelectorAll('.bulk-btn');
+    bulkButtons.forEach(btn => {
+      const maxLevel = parseInt(btn.dataset.levels);
+      let totalPrice = 0;
+      
+      for (let i = 1; i <= maxLevel; i++) {
+        if (!activeLevels.includes(i)) {
+          totalPrice += this.levelPrices[i];
+        }
+      }
+      
+      const priceSpan = btn.querySelector('.price');
+      if (priceSpan) {
+        priceSpan.textContent = totalPrice.toFixed(3);
+      }
+      
+      if (totalPrice === 0) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+      }
+    });
+  }
+
+  async loadQuarterlyStatus() {
+    try {
+      const isActive = await contractManager.callContract('globalway', 'isUserActive', [web3Manager.account]);
+      const userData = await contractManager.getUserData();
+      
+      if (userData && userData.lastActivity) {
+        const lastActivity = new Date(userData.lastActivity * 1000);
+        const nextPayment = new Date(lastActivity.getTime() + 90 * 24 * 60 * 60 * 1000);
+        const now = new Date();
+        const daysRemaining = Math.ceil((nextPayment - now) / (24 * 60 * 60 * 1000));
+        
+        document.getElementById('lastPayment').textContent = lastActivity.toLocaleDateString();
+        document.getElementById('nextPayment').textContent = nextPayment.toLocaleDateString();
+        document.getElementById('currentQuarter').textContent = userData.quarterlyCounter || 1;
+        
+        if (daysRemaining <= 10 && daysRemaining > 0) {
+          this.showPaymentWarning(daysRemaining);
+        }
+        
+        if (!isActive) {
+          this.showInactiveStatus();
+        }
+      }
+      
+    } catch (error) {
+      console.error('Failed to load quarterly status:', error);
+    }
+  }
+
+  showPaymentWarning(daysRemaining) {
+    const warningElement = document.getElementById('paymentWarning');
+    const daysElement = document.getElementById('daysRemaining');
+    
+    if (warningElement && daysElement) {
+      daysElement.textContent = daysRemaining;
+      warningElement.style.display = 'flex';
+      warningElement.classList.add('warning-blink');
+      
+      this.addNotification({
+        type: 'warning',
+        message: `Quarterly payment due in ${daysRemaining} days`,
+        action: () => this.payQuarterlyActivity()
+      });
+    }
+  }
+
+  showInactiveStatus() {
+    const alertElement = document.getElementById('connectionAlert');
+    const messageElement = document.getElementById('alertMessage');
+    const actionElement = document.getElementById('alertAction');
+    
+    if (alertElement && messageElement && actionElement) {
+      alertElement.className = 'alert warning';
+      messageElement.textContent = getTranslation ? getTranslation('dashboard.notActive') : 'Account inactive';
+      actionElement.textContent = getTranslation ? getTranslation('dashboard.payActivity') : 'Pay Activity';
+      actionElement.onclick = () => this.payQuarterlyActivity();
+      alertElement.style.display = 'block';
+    }
+  }
+
+  async loadEarningsData() {
+    try {
+      const earningsBreakdown = await contractManager.getEarningsBreakdown(web3Manager.account);
+      
+      if (earningsBreakdown) {
+        this.updateEarningsDisplay(earningsBreakdown);
+      }
+      
+    } catch (error) {
+      console.error('Failed to load earnings data:', error);
+    }
+  }
+
+  updateEarningsDisplay(earnings) {
+    const earningsElements = document.querySelectorAll('#earningsRank .earnings-item');
+    earningsElements.forEach((element, index) => {
+      if (index < this.rankNames.length) {
+        const amountSpan = element.querySelector('span:last-child');
+        if (amountSpan && earnings.frozenByLevel && earnings.frozenByLevel[index]) {
+          amountSpan.textContent = `${(earnings.frozenByLevel[index] / 1e18).toFixed(4)} BNB`;
+        }
+      }
+    });
+    
+    const totalElement = document.getElementById('totalIncome');
+    if (totalElement && earnings.totalEarned) {
+      totalElement.textContent = `${(earnings.totalEarned / 1e18).toFixed(4)} BNB`;
+    }
+    
+    this.updatePartnerEarnings(earnings);
+  }
+
+  updatePartnerEarnings(earnings) {
+    const elements = {
+      directBonus: earnings.personalBonus,
+      partnerBonus: earnings.referralBonus,
+      matrixBonus: earnings.matrixBonus,
+      leadershipBonus: earnings.leaderBonus,
+      totalEarned: earnings.totalEarned
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+      const element = document.getElementById(id);
+      if (element && value) {
+        element.textContent = `${(value / 1e18).toFixed(4)} BNB`;
+      }
+    });
+  }
+
+  // ЗАГРУЗКА РЕАЛЬНОЙ ИСТОРИИ ЧЕРЕЗ КОНТРАКТ
+  async loadTransactionHistory() {
+    try {
+      const historyTable = document.getElementById('historyTable');
+      if (!historyTable) return;
+
+      historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Loading transactions...</td></tr>';
+
+      const transactions = await contractManager.getTransactionHistory(web3Manager.account, 20);
+      
+      if (transactions && transactions.length > 0) {
+        const rows = transactions.map((tx, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${tx.type}</td>
+            <td>${tx.amount} BNB</td>
+            <td>${tx.timestamp.toLocaleDateString()} ${tx.timestamp.toLocaleTimeString()}</td>
+            <td><a href="${CONFIG.EXPLORER_URL}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0, 10)}...</a></td>
+            <td><span class="status-badge ${tx.status.toLowerCase()}">${tx.status}</span></td>
+          </tr>
+        `);
+        
+        historyTable.innerHTML = rows.join('');
+      } else {
+        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">No transactions found</td></tr>';
+      }
+      
+    } catch (error) {
+      console.error('Failed to load transaction history:', error);
+      const historyTable = document.getElementById('historyTable');
+      if (historyTable) {
+        historyTable.innerHTML = '<tr><td colspan="6" class="no-data">Failed to load transaction history</td></tr>';
+      }
+    }
+  }
+
+  async loadTokenBalance() {
+    try {
+      const balance = await contractManager.getTokenBalance();
+      const price = await contractManager.callContract('token', 'getCurrentPrice');
+      
+      if (balance) {
+        const balanceFormatted = (parseInt(balance) / 1e18).toFixed(2);
+        const priceFormatted = price ? `${(parseInt(price) / 1e18).toFixed(6)}` : '$0.00';
+        const valueFormatted = price ? `${(parseInt(balance) * parseInt(price) / 1e36).toFixed(2)}` : '$0.00';
+        
+        document.getElementById('tokenAmount').textContent = `${balanceFormatted} GWT`;
+        document.getElementById('tokenPrice').textContent = priceFormatted;
+        document.getElementById('tokenValue').textContent = valueFormatted;
+        
+        document.getElementById('totalTokens').textContent = `${balanceFormatted} GWT`;
+        document.getElementById('totalValue').textContent = valueFormatted;
+        document.getElementById('currentPrice').textContent = priceFormatted;
+      }
+      
+    } catch (error) {
+      console.error('Failed to load token balance:', error);
+    }
+  }
+
+  generateLevelButtons() {
+    const individualLevels = document.getElementById('individualLevels');
+    if (individualLevels) {
+      individualLevels.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn';
+        btn.dataset.level = i;
+        btn.innerHTML = `
+          <span class="level-num">${i}</span>
+          <span class="level-price">${this.levelPrices[i]} BNB</span>
+        `;
+        individualLevels.appendChild(btn);
+      }
+    }
+
+    ['partnerLevels'].forEach(containerId => {
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+          const btn = document.createElement('button');
+          btn.className = 'level-selector-btn';
+          btn.textContent = i;
+          if (i === 1) btn.classList.add('active');
+          container.appendChild(btn);
+        }
+      }
+    });
+  }
+
+  generateEarningsList() {
+    const earningsRank = document.getElementById('earningsRank');
+    if (!earningsRank) return;
+
+    earningsRank.innerHTML = '';
+    
+    this.rankNames.forEach(rank => {
+      const item = document.createElement('div');
+      item.className = 'earnings-item';
+      item.innerHTML = `
+        <span>${rank}</span>
+        <span>0 BNB</span>
+      `;
+      earningsRank.appendChild(item);
+    });
+
+    const total = document.createElement('div');
+    total.className = 'earnings-item total';
+    total.innerHTML = `
+      <span data-translate="ranks.total">Total Income</span>
+      <span id="totalIncome">0 BNB</span>
+    `;
+    earningsRank.appendChild(total);
+  }
+
+  generateProjectCards() {
+    const projectsGrid = document.getElementById('projectsGrid');
+    if (!projectsGrid) return;
+
+    const projects = [
+      { 
+        name: 'CardGift', 
+        description: 'Create and send digital greeting cards with crypto rewards',
+        status: 'development', 
+        prefix: 'CG',
+        requirements: 'Level 1+',
+        logo: 'assets/icons/CardGift.png'
+      },
+      { 
+        name: 'GlobalTub', 
+        description: 'Decentralized video platform with content monetization',
+        status: 'development', 
+        prefix: 'GT',
+        requirements: 'Level 2+',
+        logo: 'assets/icons/GlobalTub.png'
+      },
+      { 
+        name: 'GlobalMarket', 
+        description: 'P2P marketplace for goods and services',
+        status: 'development', 
+        prefix: 'GM',
+        requirements: 'Level 3+',
+        logo: 'assets/icons/GlobalMarket.png'
+      },
+      { 
+        name: 'GlobalGame', 
+        description: 'Gaming platform with NFT rewards and tournaments',
+        status: 'development', 
+        prefix: 'GG',
+        requirements: 'Level 4+',
+        logo: 'assets/icons/GlobalGame.png'
+      },
+      { 
+        name: 'GlobalEdu', 
+        description: 'Educational courses and certification system',
+        status: 'development', 
+        prefix: 'GE',
+        requirements: 'Level 5+',
+        logo: 'assets/icons/GlobalEdu.png'
+      },
+      { 
+        name: 'GlobalBank', 
+        description: 'DeFi banking services with lending and staking',
+        status: 'development', 
+        prefix: 'GB',
+        requirements: 'Level 6+',
+        logo: 'assets/icons/GlobalBank.png'
+      },
+      { 
+        name: 'GlobalAI', 
+        description: 'AI-powered tools and automated services',
+        status: 'development', 
+        prefix: 'GA',
+        requirements: 'Level 7+',
+        logo: 'assets/icons/GlobalAI.png'
+      },
+      { 
+        name: 'EcoVillages', 
+        description: 'Sustainable living communities and real estate',
+        status: 'development', 
+        prefix: 'EV',
+        requirements: 'Level 8+',
+        logo: 'assets/icons/EcoVillages.png'
+      }
+    ];
+
+    projectsGrid.innerHTML = '';
+    projects.forEach(project => {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      card.dataset.project = project.name.toLowerCase();
+      card.innerHTML = `
+        <div class="project-header">
+          <img src="${project.logo}" alt="${project.name}" style="width: 64px; height: 64px; border-radius: 8px;">
+          <h3>${project.name}</h3>
+        </div>
+        <p>${project.description}</p>
+        <div class="project-meta">
+          <span class="project-prefix">ID: ${project.prefix}-XXXXXXX</span>
+          <span class="project-requirements">${project.requirements}</span>
+        </div>
+        <div class="project-status status-${project.status}">
+          ${project.status === 'development' ? 'In Development' : project.status}
+        </div>
+        <div class="project-actions">
+          <button class="btn-secondary project-details" data-translate="projects.about">About</button>
+          <button class="btn-primary project-launch" disabled data-translate="projects.openProject">Coming Soon</button>
+        </div>
+      `;
+      
+      card.querySelector('.project-details').addEventListener('click', () => {
+        this.showProjectModal(project);
+      });
+      
+      projectsGrid.appendChild(card);
+    });
+  }
+
+  showProjectModal(project) {
+    const modal = document.getElementById('projectModal');
+    const title = document.getElementById('projectModalTitle');
+    const description = document.getElementById('projectModalDescription');
+    const requirements = document.getElementById('projectModalRequirements');
+    const prefix = document.getElementById('projectModalPrefix');
+    const status = document.getElementById('projectModalStatus');
+    const logo = document.getElementById('projectModalLogo');
+    
+    if (modal && title && description) {
+      title.textContent = project.name;
+      description.textContent = project.description;
+      if (requirements) requirements.textContent = project.requirements;
+      if (prefix) prefix.textContent = `${project.prefix}-XXXXXXX`;
+      if (status) {
+        status.textContent = project.status === 'development' ? 'In Development' : project.status;
+        status.className = `project-status status-${project.status}`;
+      }
+      if (logo) logo.src = project.logo;
+      
+      modal.style.display = 'block';
+    }
+  }
+
+  // ПОКУПКА УРОВНЕЙ ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
+  async buyLevel(level) {
+    try {
+      if (!web3Manager.isConnected) {
+        this.showError('Please connect your wallet first');
+        return;
+      }
+
+      // ПРОВЕРЯЕМ РЕАЛЬНУЮ РЕГИСТРАЦИЮ
+      const isRegistered = await contractManager.isUserRegistered();
+      if (!isRegistered) {
+        this.showRegistrationPrompt();
+        return;
+      }
+
+      // ПРОВЕРЯЕМ ПРЕДЫДУЩИЕ УРОВНИ ЧЕРЕЗ КОНТРАКТ
+      for (let i = 1; i < level; i++) {
+        const isActive = await contractManager.callContract('globalway', 'userLevels', [web3Manager.account, i]);
+        if (!isActive) {
+          this.showError(`Please activate level ${i} first`);
+          return;
+        }
+      }
+
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
+      const txHash = await contractManager.buyLevel(level);
+      this.showSuccess(`Level ${level} purchase transaction sent: ${txHash}`);
+      
+      const btn = document.querySelector(`[data-level="${level}"]`);
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('activated');
+        btn.style.background = '#6c757d';
+        btn.innerHTML = `
+          <span class="level-num">${level}</span>
+          <span class="level-price">ACTIVE</span>
+        `;
+      }
+      
+      // ОБНОВЛЯЕМ ДАННЫЕ ПОСЛЕ ТРАНЗАКЦИИ
+      setTimeout(() => this.loadUserData(), 5000);
+      
+    } catch (error) {
+      console.error('Level purchase failed:', error);
+      this.showError('Level purchase failed: ' + error.message);
+    }
+  }
+
+  // BULK ПОКУПКА ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
+  async buyBulkLevels(maxLevel) {
+    try {
+      if (!web3Manager.isConnected) {
+        this.showError('Please connect your wallet first');
+        return;
+      }
+
+      const isRegistered = await contractManager.isUserRegistered();
+      if (!isRegistered) {
+        this.showRegistrationPrompt();
+        return;
+      }
+
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
+      const txHash = await contractManager.buyLevelsBulk(maxLevel);
+      
+      this.showSuccess(`Bulk purchase transaction sent: ${txHash}`);
+      
+      const btn = document.querySelector(`[data-levels="${maxLevel}"]`);
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+      }
+      
+      setTimeout(() => this.loadUserData(), 5000);
+      
+    } catch (error) {
+      console.error('Bulk purchase failed:', error);
+      this.showError('Bulk purchase failed: ' + error.message);
+    }
+  }
+
+  // КВАРТАЛЬНАЯ ОПЛАТА ТОЛЬКО ДЛЯ ЗАРЕГИСТРИРОВАННЫХ
+  async payQuarterlyActivity() {
+    try {
+      if (!web3Manager.isConnected) {
+        this.showError('Please connect your wallet first');
+        return;
+      }
+
+      const isRegistered = await contractManager.isUserRegistered();
+      if (!isRegistered) {
+        this.showError('You must be registered to pay quarterly activity');
+        return;
+      }
+
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТА
+      const txHash = await contractManager.payQuarterlyActivity();
+      this.showSuccess(`Quarterly activity payment sent: ${txHash}`);
+      
+      const warningElement = document.getElementById('paymentWarning');
+      if (warningElement) {
+        warningElement.style.display = 'none';
+      }
+      
+      setTimeout(() => this.loadUserData(), 5000);
+      
+    } catch (error) {
+      console.error('Quarterly payment failed:', error);
+      this.showError('Payment failed: ' + error.message);
+    }
+  }
+
+  // ПОКАЗ РЕГИСТРАЦИИ БЕЗ ФАЛЬШИВЫХ ФУНКЦИЙ
+  showRegistrationPrompt() {
+    const alertElement = document.getElementById('connectionAlert');
+    const messageElement = document.getElementById('alertMessage');
+    const actionElement = document.getElementById('alertAction');
+    
+    if (alertElement && messageElement && actionElement) {
+      alertElement.className = 'alert info';
+      messageElement.textContent = 'You need to register to use GlobalWay features';
+      actionElement.textContent = 'Register Now';
+      actionElement.className = 'btn-success';
+      actionElement.onclick = () => this.showRegistrationModal();
+      alertElement.style.display = 'block';
+    }
+  }
+
+  // РЕГИСТРАЦИЯ ТОЛЬКО ЧЕРЕЗ КОНТРАКТ
+  showRegistrationModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Register in GlobalWay</h3>
+        <div class="registration-form">
+          <label>Sponsor ID (optional, format: GW1234567):</label>
+          <input type="text" id="sponsorIdInput" placeholder="GW1234567" value="${this.getReferralId()}">
+          <p><strong>Important:</strong> If you don't have a valid sponsor ID, registration will be processed without sponsor assignment.</p>
+          <button id="registerBtn" class="btn-success">Register</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+    
+    modal.querySelector('.close').onclick = () => {
+      document.body.removeChild(modal);
+    };
+    
+    modal.querySelector('#registerBtn').onclick = async () => {
+      const sponsorIdInput = modal.querySelector('#sponsorIdInput').value.trim();
+      try {
+        // ИСПОЛЬЗУЕМ ТОЛЬКО РЕАЛЬНУЮ РЕГИСТРАЦИЮ ЧЕРЕЗ КОНТРАКТ
+        const txHash = await contractManager.registerUserWithId(sponsorIdInput);
+        this.showSuccess('Registration transaction sent: ' + txHash);
+        document.body.removeChild(modal);
+        
+        // ОБНОВЛЯЕМ ДАННЫЕ ЧЕРЕЗ 5 СЕКУНД ПОСЛЕ ТРАНЗАКЦИИ
+        setTimeout(() => this.loadUserData(), 5000);
+      } catch (error) {
+        this.showError('Registration failed: ' + error.message);
+      }
+    };
+  }
+
+  // ПОЛУЧЕНИЕ РЕАЛЬНОГО ID ИЗ localStorage
+  getReferralId() {
+    const referralId = localStorage.getItem('pendingReferralId') || localStorage.getItem('referralId');
+    if (referralId && /^\d{7}$/.test(referralId)) {
+      return `GW${referralId}`;
+    }
+    return '';
+  }
+
+  async loadAdminData() {
+    if (!web3Manager.account) {
+      this.showError('Access denied - Admin privileges required');
+      return;
+    }
+
+    const account = web3Manager.account.toLowerCase();
+    const isOwner = account === CONFIG.ADDRESSES.OWNER.toLowerCase();
+    const isFounder = CONFIG.ADDRESSES.FOUNDERS.some(f => f.toLowerCase() === account);
+    const isBoard = CONFIG.ADDRESSES.BOARD.some(b => b.toLowerCase() === account);
+
+    if (!isOwner && !isFounder && !isBoard) {
+      this.showError('Access denied - Admin privileges required');
+      return;
+    }
