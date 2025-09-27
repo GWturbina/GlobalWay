@@ -14,29 +14,29 @@ class Web3Manager {
     await this.tryReconnect();
   }
 
-  // ИСПРАВЛЕНО: Корректная логика определения SafePal
+  // КОРРЕКТНАЯ ЛОГИКА ОПРЕДЕЛЕНИЯ SafePal
   async detectProvider() {
     let attempts = 0;
     const maxAttempts = 50;
     
     while (attempts < maxAttempts) {
       if (typeof window !== 'undefined') {
-        // Приоритет 1: SafePal прямой доступ
+        // ПРИОРИТЕТ 1: SafePal ПРЯМОЙ ДОСТУП
         if (window.safepal && window.safepal.ethereum) {
           this.provider = window.safepal.ethereum;
-          console.log('✅ SafePal detected via window.safepal.ethereum');
+          console.log('SafePal detected via window.safepal.ethereum');
           return;
         }
         
-        // Приоритет 2: SafePal через window.ethereum
+        // ПРИОРИТЕТ 2: SafePal ЧЕРЕЗ window.ethereum
         if (window.ethereum) {
           if (window.ethereum.isSafePal === true) {
             this.provider = window.ethereum;
-            console.log('✅ SafePal detected via window.ethereum.isSafePal');
+            console.log('SafePal detected via window.ethereum.isSafePal');
             return;
           }
           
-          // Приоритет 3: SafePal в providers массиве
+          // ПРИОРИТЕТ 3: SafePal В providers МАССИВЕ
           if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
             const safePalProvider = window.ethereum.providers.find(p => 
               p.isSafePal === true || 
@@ -44,7 +44,7 @@ class Web3Manager {
             );
             if (safePalProvider) {
               this.provider = safePalProvider;
-              console.log('✅ SafePal found in providers array');
+              console.log('SafePal found in providers array');
               return;
             }
           }
@@ -55,13 +55,13 @@ class Web3Manager {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // ИСПРАВЛЕНО: Корректная обработка мобильных устройств
+    // КОРРЕКТНАЯ ОБРАБОТКА МОБИЛЬНЫХ УСТРОЙСТВ
     if (this.isMobileDevice() && !this.isInSafePalBrowser()) {
-      console.log('📱 Mobile device detected, SafePal app required');
+      console.log('Mobile device detected, SafePal app required');
       throw new Error('MOBILE_SAFEPAL_REQUIRED');
     }
     
-    console.error('❌ SafePal wallet not found!');
+    console.error('SafePal wallet not found!');
     throw new Error('SafePal wallet required! Please install SafePal wallet extension or use SafePal app.');
   }
 
@@ -96,15 +96,15 @@ class Web3Manager {
         await this.detectProvider();
       }
 
-      console.log('🔗 Connecting to SafePal...');
+      console.log('Connecting to SafePal...');
 
-      // ИСПРАВЛЕНО: Корректная обработка мобильных устройств
+      // КОРРЕКТНАЯ ОБРАБОТКА МОБИЛЬНЫХ УСТРОЙСТВ
       if (this.isMobileDevice() && !this.isInSafePalBrowser()) {
         this.showMobileInstructions();
         return;
       }
 
-      // Запрос подключения с таймаутом
+      // ЗАПРОС ПОДКЛЮЧЕНИЯ С ТАЙМАУТОМ
       const connectPromise = this.provider.request({
         method: 'eth_requestAccounts'
       });
@@ -121,10 +121,10 @@ class Web3Manager {
 
       this.account = accounts[0];
       
-      // ИСПРАВЛЕНО: Автоматическое переключение на opBNB
+      // АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ НА opBNB
       const currentChain = await this.getCurrentNetwork();
       if (currentChain !== CONFIG.CHAIN_ID) {
-        console.log('⚠️ Wrong network detected, switching to opBNB...');
+        console.log('Wrong network detected, switching to opBNB...');
         await this.switchToOpBNB();
       }
       
@@ -132,14 +132,14 @@ class Web3Manager {
       localStorage.setItem('walletConnected', 'safepal');
       localStorage.setItem('connectedAccount', this.account);
       
-      console.log('✅ SafePal connected:', this.account);
+      console.log('SafePal connected:', this.account);
       
       await this.loadContracts();
       this.updateUI();
       
       return this.account;
     } catch (error) {
-      console.error('❌ SafePal connection failed:', error);
+      console.error('SafePal connection failed:', error);
       this.disconnect();
       
       if (error.message === 'MOBILE_SAFEPAL_REQUIRED') {
@@ -157,7 +157,7 @@ class Web3Manager {
     }
   }
 
-  // ИСПРАВЛЕНО: Улучшенные инструкции для мобильных
+  // УЛУЧШЕННЫЕ ИНСТРУКЦИИ ДЛЯ МОБИЛЬНЫХ
   showMobileInstructions() {
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -169,7 +169,7 @@ class Web3Manager {
     
     modal.innerHTML = `
       <div style="background: #1a1a1a; padding: 30px; border-radius: 15px; max-width: 90%; text-align: center;">
-        <h3>📱 Mobile Device Detected</h3>
+        <h3>Mobile Device Detected</h3>
         <p>To use GlobalWay on mobile:</p>
         <ol style="text-align: left; margin: 20px 0;">
           <li>Open SafePal app</li>
@@ -189,7 +189,7 @@ class Web3Manager {
 
   async switchToOpBNB() {
     try {
-      console.log('🔄 Attempting to switch to opBNB...');
+      console.log('Attempting to switch to opBNB...');
       
       await this.provider.request({
         method: 'wallet_switchEthereumChain',
@@ -197,14 +197,14 @@ class Web3Manager {
       });
       
       this.currentChainId = CONFIG.CHAIN_ID;
-      console.log('✅ Successfully switched to opBNB');
+      console.log('Successfully switched to opBNB');
       
     } catch (switchError) {
-      console.log('⚠️ Switch error:', switchError);
+      console.log('Switch error:', switchError);
       
       if (switchError.code === 4902 || switchError.code === -32603) {
         try {
-          console.log('➕ Adding opBNB network...');
+          console.log('Adding opBNB network...');
           await this.provider.request({
             method: 'wallet_addEthereumChain',
             params: [{
@@ -221,14 +221,14 @@ class Web3Manager {
           });
           
           this.currentChainId = CONFIG.CHAIN_ID;
-          console.log('✅ opBNB network added successfully');
+          console.log('opBNB network added successfully');
           
         } catch (addError) {
-          console.error('❌ Failed to add network:', addError);
+          console.error('Failed to add network:', addError);
           throw new Error('Failed to add opBNB network. Please add it manually in SafePal.');
         }
       } else {
-        console.error('❌ Network switch failed:', switchError);
+        console.error('Network switch failed:', switchError);
         throw switchError;
       }
     }
@@ -250,7 +250,7 @@ class Web3Manager {
     
     if (wasConnected === 'safepal' && savedAccount && this.provider) {
       try {
-        console.log('🔄 Trying to reconnect to:', savedAccount);
+        console.log('Trying to reconnect to:', savedAccount);
         
         const accounts = await this.provider.request({
           method: 'eth_accounts'
@@ -259,30 +259,30 @@ class Web3Manager {
         if (accounts.includes(savedAccount)) {
           this.account = savedAccount;
           
-          // Проверяем сеть при переподключении
+          // ПРОВЕРЯЕМ СЕТЬ ПРИ ПЕРЕПОДКЛЮЧЕНИИ
           const currentChain = await this.getCurrentNetwork();
           if (currentChain !== CONFIG.CHAIN_ID) {
-            console.log('⚠️ Wrong network on reconnect, switching...');
+            console.log('Wrong network on reconnect, switching...');
             await this.switchToOpBNB();
           }
           
           this.isConnected = true;
           await this.loadContracts();
           this.updateUI();
-          console.log('✅ Auto-reconnected successfully');
+          console.log('Auto-reconnected successfully');
         } else {
-          console.log('⚠️ Saved account not found');
+          console.log('Saved account not found');
           this.disconnect();
         }
       } catch (error) {
-        console.warn('⚠️ Auto-reconnect failed:', error);
+        console.warn('Auto-reconnect failed:', error);
         this.disconnect();
       }
     }
   }
 
   disconnect() {
-    console.log('🔌 Disconnecting wallet...');
+    console.log('Disconnecting wallet...');
     this.account = null;
     this.isConnected = false;
     this.contracts = {};
@@ -293,7 +293,7 @@ class Web3Manager {
   }
 
   handleAccountsChanged(accounts) {
-    console.log('🔄 Handling account change:', accounts);
+    console.log('Handling account change:', accounts);
     if (accounts.length === 0) {
       this.disconnect();
     } else if (accounts[0] !== this.account) {
@@ -307,19 +307,19 @@ class Web3Manager {
     }
   }
 
-  // ИСПРАВЛЕНО: Правильная обработка смены сети
+  // ПРАВИЛЬНАЯ ОБРАБОТКА СМЕНЫ СЕТИ
   handleChainChanged(chainId) {
-    console.log('🔄 Chain changed to:', chainId);
+    console.log('Chain changed to:', chainId);
     this.currentChainId = chainId;
     
     if (chainId !== CONFIG.CHAIN_ID) {
-      console.warn('⚠️ Wrong network:', chainId, 'Expected:', CONFIG.CHAIN_ID);
+      console.warn('Wrong network:', chainId, 'Expected:', CONFIG.CHAIN_ID);
       
       if (window.uiManager && window.uiManager.showError) {
         window.uiManager.showError('Please switch to opBNB network in SafePal');
       }
       
-      // Автоматическое переключение через 2 секунды
+      // АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ ЧЕРЕЗ 2 СЕКУНДЫ
       setTimeout(async () => {
         try {
           await this.switchToOpBNB();
@@ -332,42 +332,235 @@ class Web3Manager {
       }, 2000);
       
     } else {
-      console.log('✅ Correct network connected');
+      console.log('Correct network connected');
       if (window.uiManager && window.uiManager.loadUserData) {
         window.uiManager.loadUserData();
       }
     }
   }
 
+  // РЕАЛЬНАЯ ЗАГРУЗКА КОНТРАКТОВ ИЗ ABI ФАЙЛОВ
   async loadContracts() {
     try {
-      console.log('📄 Loading contract ABIs...');
+      console.log('Loading contract ABIs...');
       
-      const contractPaths = {
-        globalway: './contracts/GlobalWay.json',
-        stats: './contracts/GlobalWayStats.json', 
-        token: './contracts/GWTToken.json'
+      // ЗАГРУЖАЕМ ABI ИЗ ПЕРЕДАННЫХ JSON ФАЙЛОВ
+      this.contracts.globalway = {
+        address: CONFIG.CONTRACTS.GLOBALWAY,
+        abi: [
+          {
+            "inputs": [{"internalType": "address", "name": "_gwtTokenAddress", "type": "address"}],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+          },
+          {
+            "inputs": [],
+            "name": "QUARTERLY_FEE",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "isUserRegistered",
+            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}],
+            "name": "getUserData",
+            "outputs": [
+              {"internalType": "bool", "name": "isRegistered", "type": "bool"},
+              {"internalType": "address", "name": "sponsor", "type": "address"},
+              {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
+              {"internalType": "uint256", "name": "lastActivity", "type": "uint256"},
+              {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
+              {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+              {"internalType": "uint8", "name": "leaderRank", "type": "uint8"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}],
+            "name": "getUserStats",
+            "outputs": [
+              {"internalType": "bool", "name": "isRegistered", "type": "bool"},
+              {"internalType": "uint8[]", "name": "activeLevels", "type": "uint8[]"},
+              {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
+              {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+              {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
+              {"internalType": "uint8", "name": "leaderRank", "type": "uint8"},
+              {"internalType": "address[]", "name": "referrals", "type": "address[]"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint8", "name": "level", "type": "uint8"}],
+            "name": "buyLevel",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "payQuarterlyActivity",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+            "name": "freeRegistrationWithLevels",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address[]", "name": "users", "type": "address[]"}, {"internalType": "address", "name": "sponsor", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+            "name": "batchFreeRegistration",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          }
+        ]
       };
 
-      for (const [name, path] of Object.entries(contractPaths)) {
-        try {
-          const response = await fetch(path);
-          if (response.ok) {
-            const contractData = await response.json();
-            this.contracts[name] = {
-              address: CONFIG.CONTRACTS[name.toUpperCase()],
-              abi: contractData.abi || contractData
-            };
-            console.log(`✅ Contract ${name} loaded`);
-          } else {
-            console.warn(`⚠️ Failed to load contract ${name}:`, response.statusText);
+      this.contracts.stats = {
+        address: CONFIG.CONTRACTS.STATS,
+        abi: [
+          {
+            "inputs": [{"internalType": "address", "name": "_globalWayAddress", "type": "address"}],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+          },
+          {
+            "inputs": [{"internalType": "uint256", "name": "sponsorId", "type": "uint256"}],
+            "name": "registerWithSponsorId",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "assignIdToExistingUser",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "assignIdByOwner",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "getUserIdByAddress",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint256", "name": "userId", "type": "uint256"}],
+            "name": "getAddressByUserId",
+            "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "getContractOverview",
+            "outputs": [
+              {
+                "components": [
+                  {"internalType": "uint256", "name": "totalUsers", "type": "uint256"},
+                  {"internalType": "uint256", "name": "totalVolume", "type": "uint256"},
+                  {"internalType": "uint256", "name": "activeUsers", "type": "uint256"},
+                  {"internalType": "uint256[]", "name": "levelDistribution", "type": "uint256[]"},
+                  {"internalType": "uint256[]", "name": "poolBalances", "type": "uint256[]"},
+                  {"internalType": "uint256", "name": "lastDistribution", "type": "uint256"},
+                  {"internalType": "uint256", "name": "contractBalance", "type": "uint256"}
+                ],
+                "internalType": "struct GlobalWayStats.ContractOverview",
+                "name": "overview",
+                "type": "tuple"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "level", "type": "uint8"}],
+            "name": "getMatrixStats",
+            "outputs": [
+              {
+                "components": [
+                  {"internalType": "uint256", "name": "totalPositions", "type": "uint256"},
+                  {"internalType": "uint256", "name": "userPosition", "type": "uint256"},
+                  {"internalType": "address[]", "name": "upline", "type": "address[]"},
+                  {"internalType": "address[]", "name": "downline", "type": "address[]"},
+                  {"internalType": "uint256", "name": "matrixEarnings", "type": "uint256"}
+                ],
+                "internalType": "struct GlobalWayStats.MatrixStats",
+                "name": "stats",
+                "type": "tuple"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
           }
-        } catch (error) {
-          console.warn(`❌ Error loading contract ${name}:`, error.message);
-        }
-      }
+        ]
+      };
+
+      this.contracts.token = {
+        address: CONFIG.CONTRACTS.TOKEN,
+        abi: [
+          {
+            "inputs": [],
+            "name": "name",
+            "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "symbol",
+            "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
+            "name": "balanceOf",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "getCurrentPrice",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "totalSupply",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          }
+        ]
+      };
+
+      console.log('All contracts loaded successfully');
+      
     } catch (error) {
-      console.error('❌ Failed to load contracts:', error);
+      console.error('Failed to load contracts:', error);
     }
   }
 
@@ -381,10 +574,10 @@ class Web3Manager {
       });
       
       const balanceInEth = (parseInt(balance, 16) / 1e18).toFixed(4);
-      console.log('💰 Balance loaded:', balanceInEth, 'BNB');
+      console.log('Balance loaded:', balanceInEth, 'BNB');
       return balanceInEth;
     } catch (error) {
-      console.error('❌ Failed to get balance:', error);
+      console.error('Failed to get balance:', error);
       return '0';
     }
   }
@@ -442,7 +635,7 @@ class Web3Manager {
     );
     
     if (isOwner || isFounder || isBoard) {
-      console.log('✅ Admin access granted for:', account);
+      console.log('Admin access granted for:', account);
       const adminElements = document.querySelectorAll('.admin-only');
       adminElements.forEach(el => el.style.display = 'block');
     }
