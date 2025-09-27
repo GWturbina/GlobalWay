@@ -343,361 +343,40 @@ class Web3Manager {
   async loadContracts() {
     try {
       console.log('Loading contract ABIs...');
-      
-      // ЗАГРУЖАЕМ ABI ИЗ ПЕРЕДАННЫХ JSON ФАЙЛОВ
+
+      // Проверяем правильную сеть перед загрузкой контрактов
+      const currentChain = await this.getCurrentNetwork();
+      if (currentChain !== CONFIG.CHAIN_ID) {
+        console.error('Wrong network for contract loading');
+        return;
+      }
+
+      try {
+      // Загружаем ABI из JSON файлов
+      const [globalwayABI, statsABI, tokenABI] = await Promise.all([
+        fetch('./contracts/GlobalWay.json').then(r => r.json()),
+        fetch('./contracts/GlobalWayStats.json').then(r => r.json()),
+        fetch('./contracts/GWTToken.json').then(r => r.json())
+      ]);
+
       this.contracts.globalway = {
         address: CONFIG.CONTRACTS.GLOBALWAY,
-        abi: [
-          {
-            "inputs": [{"internalType": "address", "name": "_gwtTokenAddress", "type": "address"}],
-            "stateMutability": "nonpayable",
-            "type": "constructor"
-          },
-          {
-            "inputs": [],
-            "name": "QUARTERLY_FEE",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "owner",
-            "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "", "type": "address"}],
-            "name": "users",
-            "outputs": [
-              {"internalType": "bool", "name": "isRegistered", "type": "bool"},
-              {"internalType": "address", "name": "sponsor", "type": "address"},
-              {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
-              {"internalType": "uint256", "name": "lastActivity", "type": "uint256"},
-              {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
-              {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
-              {"internalType": "uint8", "name": "leaderRank", "type": "uint8"},
-              {"internalType": "bool", "name": "leaderBonusClaimed", "type": "bool"},
-              {"internalType": "uint256", "name": "quarterlyCounter", "type": "uint256"},
-              {"internalType": "bytes32", "name": "recoveryPasswordHash", "type": "bytes32"},
-              {"internalType": "bool", "name": "walletChanged", "type": "bool"},
-              {"internalType": "address", "name": "charityAccount", "type": "address"},
-              {"internalType": "address", "name": "techAccount1", "type": "address"},
-              {"internalType": "address", "name": "techAccount2", "type": "address"}
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "level", "type": "uint8"}],
-            "name": "userLevels",
-            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
-            "name": "levelPrices",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}],
-            "name": "getUserData",
-            "outputs": [
-              {"internalType": "bool", "name": "isRegistered", "type": "bool"},
-              {"internalType": "address", "name": "sponsor", "type": "address"},
-              {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
-              {"internalType": "uint256", "name": "lastActivity", "type": "uint256"},
-              {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
-              {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
-              {"internalType": "uint8", "name": "leaderRank", "type": "uint8"}
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}],
-            "name": "getUserStats",
-            "outputs": [
-              {"internalType": "bool", "name": "isRegistered", "type": "bool"},
-              {"internalType": "uint8[]", "name": "activeLevels", "type": "uint8[]"},
-              {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
-              {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
-              {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
-              {"internalType": "uint8", "name": "leaderRank", "type": "uint8"},
-              {"internalType": "address[]", "name": "referrals", "type": "address[]"}
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "isUserRegistered",
-            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "isUserActive",
-            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "level", "type": "uint256"}],
-            "name": "isLevelActive",
-            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint8", "name": "level", "type": "uint8"}],
-            "name": "buyLevel",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
-            "name": "buyLevelsBulk",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
-            "name": "calculateBulkPrice",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "payQuarterlyActivity",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "_sponsor", "type": "address"}],
-            "name": "register",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "userAddress", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
-            "name": "freeRegistrationWithLevels",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address[]", "name": "users", "type": "address[]"}, {"internalType": "address", "name": "sponsor", "type": "address"}, {"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
-            "name": "batchFreeRegistration",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          }
-        ]
+        abi: globalwayABI.abi
       };
 
       this.contracts.stats = {
         address: CONFIG.CONTRACTS.STATS,
-        abi: [
-          {
-            "inputs": [{"internalType": "address", "name": "_globalWayAddress", "type": "address"}],
-            "stateMutability": "nonpayable",
-            "type": "constructor"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "", "type": "address"}],
-            "name": "addressToId",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "assignIdByOwner",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "assignIdToExistingUser",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "userId", "type": "uint256"}],
-            "name": "getAddressByUserId",
-            "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "getContractOverview",
-            "outputs": [
-              {
-                "components": [
-                  {"internalType": "uint256", "name": "totalUsers", "type": "uint256"},
-                  {"internalType": "uint256", "name": "totalVolume", "type": "uint256"},
-                  {"internalType": "uint256", "name": "activeUsers", "type": "uint256"},
-                  {"internalType": "uint256[]", "name": "levelDistribution", "type": "uint256[]"},
-                  {"internalType": "uint256[]", "name": "poolBalances", "type": "uint256[]"},
-                  {"internalType": "uint256", "name": "lastDistribution", "type": "uint256"},
-                  {"internalType": "uint256", "name": "contractBalance", "type": "uint256"}
-                ],
-                "internalType": "struct GlobalWayStats.ContractOverview",
-                "name": "overview",
-                "type": "tuple"
-              }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "getEarningsBreakdown",
-            "outputs": [
-              {
-                "components": [
-                  {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
-                  {"internalType": "uint256", "name": "personalBonus", "type": "uint256"},
-                  {"internalType": "uint256", "name": "referralBonus", "type": "uint256"},
-                  {"internalType": "uint256", "name": "matrixBonus", "type": "uint256"},
-                  {"internalType": "uint256", "name": "leaderBonus", "type": "uint256"},
-                  {"internalType": "uint256", "name": "investmentReturns", "type": "uint256"},
-                  {"internalType": "uint256[]", "name": "frozenByLevel", "type": "uint256[]"}
-                ],
-                "internalType": "struct GlobalWayStats.EarningsBreakdown",
-                "name": "earnings",
-                "type": "tuple"
-              }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "level", "type": "uint8"}],
-            "name": "getMatrixStats",
-            "outputs": [
-              {
-                "components": [
-                  {"internalType": "uint256", "name": "totalPositions", "type": "uint256"},
-                  {"internalType": "uint256", "name": "userPosition", "type": "uint256"},
-                  {"internalType": "address[]", "name": "upline", "type": "address[]"},
-                  {"internalType": "address[]", "name": "downline", "type": "address[]"},
-                  {"internalType": "uint256", "name": "matrixEarnings", "type": "uint256"}
-                ],
-                "internalType": "struct GlobalWayStats.MatrixStats",
-                "name": "stats",
-                "type": "tuple"
-              }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "getUserIdByAddress",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "sponsorId", "type": "uint256"}],
-            "name": "registerWithSponsorId",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          }
-        ]
+        abi: statsABI.abi
       };
 
       this.contracts.token = {
         address: CONFIG.CONTRACTS.TOKEN,
-        abi: [
-          {
-            "inputs": [],
-            "name": "name",
-            "outputs": [{"internalType": "string", "name": "", "type": "string"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "symbol",
-            "outputs": [{"internalType": "string", "name": "", "type": "string"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "decimals",
-            "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "totalSupply",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
-            "name": "balanceOf",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "getCurrentPrice",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
-            "name": "buyTokens",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
-            "name": "sellTokens",
-            "outputs": [],
-            "stateMutability": "nonpayable",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
-            "name": "calculatePurchaseCost",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          },
-          {
-            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
-            "name": "calculateSaleReturn",
-            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
-            "type": "function"
-          }
-        ]
+        abi: tokenABI.abi
       };
+    } catch (error) {
+      console.error('Failed to load contract ABIs:', error);
+      throw new Error('Contract ABI files not found. Please ensure ABI files are in ./abi/ folder');
+    }
 
       console.log('All contracts loaded successfully');
       
@@ -796,6 +475,13 @@ class Web3Manager {
 
   isOnCorrectNetwork() {
     return this.currentChainId === CONFIG.CHAIN_ID;
+  }
+    async ensureCorrectNetwork() {
+    const currentChain = await this.getCurrentNetwork();
+    if (currentChain !== CONFIG.CHAIN_ID) {
+      throw new Error('Please switch to opBNB network in SafePal');
+    }
+    return true;
   }
 }
 
