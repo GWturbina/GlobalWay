@@ -211,7 +211,7 @@ class UIManager {
       }
 
       // РЕАЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ЧЕРЕЗ КОНТРАКТ
-      const isRegistered = userId && userId !== '0' && userId !== 0;
+      const isRegistered = await contractManager.isUserRegistered();
       
       // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
       let userId = null;
