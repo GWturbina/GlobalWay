@@ -1008,21 +1008,32 @@ window.uiManager = uiManager;class UIManager {
   }
 
   async init() {
-    await this.loadComponents();
-    this.setupEventListeners();
-    await this.loadContractPrices();
-    this.generateLevelButtons();
-    this.generateEarningsList();
-    this.generateProjectCards();
-    this.setupModals();
-    this.initializeNotifications();
-    this.startQuarterlyCheck();
-    await this.loadUserData();
-    await this.matrixManager.init();
+    try {
+      await this.loadComponents();
+      this.setupEventListeners();
+      await this.loadContractPrices();
+      this.generateLevelButtons();
+      this.generateEarningsList();
+      this.generateProjectCards();
+      this.setupModals();
+      this.initializeNotifications();
+      this.startQuarterlyCheck();
+      await this.loadUserData();
+      await this.matrixManager.init();
+    } catch (error) {
+      console.error('UI initialization failed:', error);
+    }
   }
 
   async loadContractPrices() {
     try {
+      // Проверяем доступность contractManager
+      if (typeof contractManager === 'undefined' || !web3Manager.isConnected) {
+        console.warn('Contract manager not available, using fallback prices');
+        this.setFallbackPrices();
+        return;
+      }
+
       // Загружаем реальные цены из контракта
       this.levelPrices = [0]; // Level 0 не существует
       for (let i = 1; i <= 12; i++) {
@@ -1032,7 +1043,7 @@ window.uiManager = uiManager;class UIManager {
           this.levelPrices.push(priceInBNB);
         } catch (error) {
           console.warn(`Failed to load price for level ${i}:`, error);
-          this.levelPrices.push(0);
+          this.levelPrices.push(this.getFallbackPrice(i));
         }
       }
 
@@ -1048,7 +1059,7 @@ window.uiManager = uiManager;class UIManager {
           // Fallback: суммируем индивидуальные цены
           let sum = 0;
           for (let j = 1; j <= i; j++) {
-            sum += this.levelPrices[j] || 0;
+            sum += this.levelPrices[j] || this.getFallbackPrice(j);
           }
           this.bulkPrices.push(sum);
         }
@@ -1057,13 +1068,25 @@ window.uiManager = uiManager;class UIManager {
       console.log('Contract prices loaded:', this.levelPrices);
     } catch (error) {
       console.error('Failed to load contract prices:', error);
-      // Fallback цены если контракт недоступен
-      this.levelPrices = [
-        0, 0.0015, 0.003, 0.006, 0.012, 0.024, 0.048, 
-        0.096, 0.192, 0.384, 0.768, 1.536, 3.072
-      ];
-      this.bulkPrices = [0, 0, 0, 0.021, 0.027, 0.051, 0.099, 0.195, 0.387, 0.771, 1.539, 3.075, 6.147];
+      this.setFallbackPrices();
     }
+  }
+
+  setFallbackPrices() {
+    // Fallback цены если контракт недоступен
+    this.levelPrices = [
+      0, 0.0015, 0.003, 0.006, 0.012, 0.024, 0.048, 
+      0.096, 0.192, 0.384, 0.768, 1.536, 3.072
+    ];
+    this.bulkPrices = [0, 0, 0, 0.021, 0.027, 0.051, 0.099, 0.195, 0.387, 0.771, 1.539, 3.075, 6.147];
+  }
+
+  getFallbackPrice(level) {
+    const fallbackPrices = [
+      0, 0.0015, 0.003, 0.006, 0.012, 0.024, 0.048, 
+      0.096, 0.192, 0.384, 0.768, 1.536, 3.072
+    ];
+    return fallbackPrices[level] || 0;
   }
 
   async loadComponents() {
