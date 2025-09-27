@@ -361,9 +361,45 @@ class Web3Manager {
             "type": "function"
           },
           {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "isUserRegistered",
+            "inputs": [],
+            "name": "owner",
+            "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+            "name": "users",
+            "outputs": [
+              {"internalType": "bool", "name": "isRegistered", "type": "bool"},
+              {"internalType": "address", "name": "sponsor", "type": "address"},
+              {"internalType": "uint256", "name": "registrationTime", "type": "uint256"},
+              {"internalType": "uint256", "name": "lastActivity", "type": "uint256"},
+              {"internalType": "uint256", "name": "personalInvites", "type": "uint256"},
+              {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+              {"internalType": "uint8", "name": "leaderRank", "type": "uint8"},
+              {"internalType": "bool", "name": "leaderBonusClaimed", "type": "bool"},
+              {"internalType": "uint256", "name": "quarterlyCounter", "type": "uint256"},
+              {"internalType": "bytes32", "name": "recoveryPasswordHash", "type": "bytes32"},
+              {"internalType": "bool", "name": "walletChanged", "type": "bool"},
+              {"internalType": "address", "name": "charityAccount", "type": "address"},
+              {"internalType": "address", "name": "techAccount1", "type": "address"},
+              {"internalType": "address", "name": "techAccount2", "type": "address"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "level", "type": "uint8"}],
+            "name": "userLevels",
             "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+            "name": "levelPrices",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
             "stateMutability": "view",
             "type": "function"
           },
@@ -398,6 +434,27 @@ class Web3Manager {
             "type": "function"
           },
           {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "isUserRegistered",
+            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "isUserActive",
+            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint256", "name": "level", "type": "uint256"}],
+            "name": "isLevelActive",
+            "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
             "inputs": [{"internalType": "uint8", "name": "level", "type": "uint8"}],
             "name": "buyLevel",
             "outputs": [],
@@ -405,10 +462,31 @@ class Web3Manager {
             "type": "function"
           },
           {
+            "inputs": [{"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+            "name": "buyLevelsBulk",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint8", "name": "maxLevel", "type": "uint8"}],
+            "name": "calculateBulkPrice",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
             "inputs": [],
             "name": "payQuarterlyActivity",
             "outputs": [],
             "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "_sponsor", "type": "address"}],
+            "name": "register",
+            "outputs": [],
+            "stateMutability": "nonpayable",
             "type": "function"
           },
           {
@@ -437,17 +515,10 @@ class Web3Manager {
             "type": "constructor"
           },
           {
-            "inputs": [{"internalType": "uint256", "name": "sponsorId", "type": "uint256"}],
-            "name": "registerWithSponsorId",
-            "outputs": [],
-            "stateMutability": "payable",
-            "type": "function"
-          },
-          {
-            "inputs": [],
-            "name": "assignIdToExistingUser",
+            "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+            "name": "addressToId",
             "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "nonpayable",
+            "stateMutability": "view",
             "type": "function"
           },
           {
@@ -458,10 +529,10 @@ class Web3Manager {
             "type": "function"
           },
           {
-            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
-            "name": "getUserIdByAddress",
+            "inputs": [],
+            "name": "assignIdToExistingUser",
             "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-            "stateMutability": "view",
+            "stateMutability": "nonpayable",
             "type": "function"
           },
           {
@@ -494,6 +565,28 @@ class Web3Manager {
             "type": "function"
           },
           {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "getEarningsBreakdown",
+            "outputs": [
+              {
+                "components": [
+                  {"internalType": "uint256", "name": "totalEarned", "type": "uint256"},
+                  {"internalType": "uint256", "name": "personalBonus", "type": "uint256"},
+                  {"internalType": "uint256", "name": "referralBonus", "type": "uint256"},
+                  {"internalType": "uint256", "name": "matrixBonus", "type": "uint256"},
+                  {"internalType": "uint256", "name": "leaderBonus", "type": "uint256"},
+                  {"internalType": "uint256", "name": "investmentReturns", "type": "uint256"},
+                  {"internalType": "uint256[]", "name": "frozenByLevel", "type": "uint256[]"}
+                ],
+                "internalType": "struct GlobalWayStats.EarningsBreakdown",
+                "name": "earnings",
+                "type": "tuple"
+              }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
             "inputs": [{"internalType": "address", "name": "user", "type": "address"}, {"internalType": "uint8", "name": "level", "type": "uint8"}],
             "name": "getMatrixStats",
             "outputs": [
@@ -511,6 +604,20 @@ class Web3Manager {
               }
             ],
             "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+            "name": "getUserIdByAddress",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint256", "name": "sponsorId", "type": "uint256"}],
+            "name": "registerWithSponsorId",
+            "outputs": [],
+            "stateMutability": "payable",
             "type": "function"
           }
         ]
@@ -534,6 +641,20 @@ class Web3Manager {
             "type": "function"
           },
           {
+            "inputs": [],
+            "name": "decimals",
+            "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [],
+            "name": "totalSupply",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
             "inputs": [{"internalType": "address", "name": "account", "type": "address"}],
             "name": "balanceOf",
             "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
@@ -548,8 +669,29 @@ class Web3Manager {
             "type": "function"
           },
           {
-            "inputs": [],
-            "name": "totalSupply",
+            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
+            "name": "buyTokens",
+            "outputs": [],
+            "stateMutability": "payable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
+            "name": "sellTokens",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
+            "name": "calculatePurchaseCost",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function"
+          },
+          {
+            "inputs": [{"internalType": "uint256", "name": "tokenAmount", "type": "uint256"}],
+            "name": "calculateSaleReturn",
             "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
             "stateMutability": "view",
             "type": "function"
