@@ -167,52 +167,44 @@ class GlobalWayApp {
     }, 30000);
   }
 
-  // НОВАЯ ФУНКЦИЯ ПРЯМОЙ РЕГИСТРАЦИИ С SPONSOR ID
   async registerWithSponsorId(sponsorId) {
-    try {
-      if (!web3Manager.isConnected) {
-        throw new Error('Wallet not connected');
-      }
+  try {
+    if (!web3Manager.isConnected) throw new Error('Wallet not connected');
 
-      // ПРОВЕРЯЕМ ЧТО ПОЛЬЗОВАТЕЛЬ НЕ ЗАРЕГИСТРИРОВАН
-      const isRegistered = await contractManager.isUserRegistered();
-      if (isRegistered) {
-        if (uiManager && uiManager.showSuccess) {
-          uiManager.showSuccess('You are already registered!');
-        }
-        return;
-      }
-
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТНОГО МЕТОДА РЕГИСТРАЦИИ
-      console.log('Registering with sponsor ID:', sponsorId);
-      const txHash = await contractManager.sendTransaction(
-        'stats', 
-        'registerWithSponsorId', 
-        [sponsorId], 
-        '0x0' // NO PAYMENT REQUIRED FOR REGISTRATION
-      );
-
-      if (uiManager && uiManager.showSuccess) {
-        uiManager.showSuccess(`Registration transaction sent: ${txHash}`);
-      }
-
-      // ОЧИЩАЕМ СОХРАНЕННЫЙ REFERRAL ID
-      localStorage.removeItem('pendingReferralId');
-
-      // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ 5 СЕКУНД
-      setTimeout(() => {
-        if (uiManager && uiManager.loadUserData) {
-          uiManager.loadUserData();
-        }
-      }, 5000);
-
-    } catch (error) {
-      console.error('Registration with sponsor failed:', error);
-      if (uiManager && uiManager.showError) {
-        uiManager.showError('Registration failed: ' + error.message);
-      }
+    const isRegistered = await contractManager.callContract('globalway', 'isUserRegistered', [web3Manager.account]);
+    if (isRegistered) {
+      uiManager.showSuccess('Already registered!');
+      return;
     }
+
+    console.log('Registering with sponsor ID:', sponsorId);
+    
+    // Вызов правильного метода контракта Stats
+    const txHash = await contractManager.sendTransaction(
+      'stats', 
+      'registerWithSponsorId', 
+      [sponsorId], 
+      '0x0'
+    );
+
+    uiManager.showSuccess(`Registration TX: ${txHash}`);
+    localStorage.removeItem('pendingReferralId');
+
+    // Ждем подтверждения и проверяем ID
+    setTimeout(async () => {
+      const newId = await contractManager.callContract('stats', 'getUserIdByAddress', [web3Manager.account]);
+      if (newId && newId !== '0') {
+        document.getElementById('userId').textContent = `GW${newId}`;
+        document.getElementById('refLink').value = `${window.location.origin}/ref${newId}`;
+        uiManager.loadUserData();
+      }
+    }, 5000);
+
+  } catch (error) {
+    console.error('Registration failed:', error);
+    uiManager.showError('Registration failed: ' + error.message);
   }
+}
 
   setupPWA() {
     // Register service worker
