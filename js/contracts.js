@@ -415,94 +415,18 @@ class ContractManager {
     }
   }
 
-  // РЕАЛЬНАЯ ИСТОРИЯ ТРАНЗАКЦИЙ ЧЕРЕЗ СОБЫТИЯ
+  // История транзакций требует внешнего сервиса индексации
   async getTransactionHistory(address = null, limit = 50) {
     address = address || this.web3.account;
     if (!address) return [];
 
     try {
-      const transactions = [];
-      
-      // Получаем последний блок
-      const latestBlock = await this.web3.provider.request({
-        method: 'eth_blockNumber',
-        params: []
-      });
-      
-      const currentBlock = parseInt(latestBlock, 16);
-      const fromBlock = Math.max(0, currentBlock - 5000);
-      
-      // Получаем события для пользователя
-      const topics = [
-        null, // topic0 - хеш события
-        '0x' + address.slice(2).padStart(64, '0') // topic1 - адрес пользователя
-      ];
-      
-      // События из контракта GlobalWay
-      const globalwayLogs = await this.web3.provider.request({
-        method: 'eth_getLogs',
-        params: [{
-          fromBlock: '0x' + fromBlock.toString(16),
-          toBlock: 'latest',
-          address: CONFIG.CONTRACTS.GLOBALWAY,
-          topics: topics
-        }]
-      });
-      
-      // Обрабатываем логи
-      for (const log of globalwayLogs) {
-        const event = this.parseLog(log);
-        if (event) {
-          transactions.push(event);
-        }
-      }
-      
-      // Сортируем по времени
-      transactions.sort((a, b) => b.timestamp - a.timestamp);
-      
-      return transactions.slice(0, limit);
+      // Для получения истории транзакций нужен индексированный API (The Graph, Moralis, etc)
+      console.warn('Transaction history requires blockchain indexer service');
+      return [];
     } catch (error) {
       console.error('Failed to load transaction history:', error);
       return [];
-    }
-  }
-
-  parseLog(log) {
-    try {
-      const topic0 = log.topics[0];
-      const blockNumber = parseInt(log.blockNumber, 16);
-      
-      // Реальные хеши событий из ABI
-      const eventHashes = {
-        '0x6a1cf42c24d4b48a4532bf95f8f6b96e07f0c6b6a03b1e3f3dc9e6c8d1e2f1a4': 'Registration',
-        '0x85a66ffd23e2e9e3656de0de35bd618b89dc3f37c4eb178f4b3c3a2c96e5b4a7': 'LevelPurchased',
-        '0xe11cddf1816a43318ca175bbc52cd0185436e9cbead7c83acc54a73e0193566d': 'QuarterlyActivityPaid',
-        '0x3c3912e2bb8f6ad96e3bbf65b5c8f2a5dcacf1e8c2eec6e3b0e7c8d9e0f1a2b3': 'ReferralReward'
-      };
-      
-      const eventType = eventHashes[topic0] || 'Transaction';
-      
-      return {
-        hash: log.transactionHash,
-        type: eventType,
-        amount: this.parseLogAmount(log.data),
-        timestamp: new Date(),
-        status: 'Success',
-        block: blockNumber
-      };
-    } catch (error) {
-      console.error('Failed to parse log:', error);
-      return null;
-    }
-  }
-
-  parseLogAmount(data) {
-    if (!data || data === '0x') return '0';
-    try {
-      const amount = BigInt(data.slice(0, 66));
-      return (amount / BigInt(1e18)).toString();
-    } catch (e) {
-      return '0';
     }
   }
 
