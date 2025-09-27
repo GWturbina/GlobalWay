@@ -1239,58 +1239,61 @@ class UIManager {
     if (currentLevelCost) currentLevelCost.textContent = `${this.levelPrices[level]} BNB`;
     
     const tbody = document.getElementById('partnersTable');
-    if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="8" class="no-data">Loading partner data...</td></tr>';
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="8" class="no-data">Loading...</td></tr>';
+    
+    try {
+      // Получаем реальные данные из контракта
+      const userData = await contractManager.callContract('globalway', 'getUserStats', [web3Manager.account]);
+      const referrals = userData[6]; // массив адресов рефералов
       
-      try {
-        const userData = await contractManager.getUserData();
+      if (referrals && referrals.length > 0) {
+        const partnersWithLevel = [];
         
-        if (userData && userData.referrals && userData.referrals.length > 0) {
-          const partnersWithLevel = [];
+        for (const partnerAddress of referrals) {
+          const levelData = await contractManager.callContract('globalway', 'userLevels', [partnerAddress, level]);
           
-          for (const partnerAddress of userData.referrals) {
-            const isLevelActive = await contractManager.callContract('globalway', 'isLevelActive', [partnerAddress, level]);
-            if (isLevelActive) {
-              const partnerData = await contractManager.getUserData(partnerAddress);
-              const partnerId = await contractManager.getUserIdByAddress(partnerAddress);
-              partnersWithLevel.push({
-                address: partnerAddress,
-                id: partnerId,
-                data: partnerData
-              });
-            }
-          }
-          
-          if (partnersWithLevel.length > 0) {
-            const rows = partnersWithLevel.map((partner, index) => {
-              const userData = partner.data;
-              return `
-                <tr>
-                  <td>${index + 1}</td>
-                  <td>GW${partner.id || '0000000'}</td>
-                  <td>${partner.address.slice(0, 6)}...${partner.address.slice(-4)}</td>
-                  <td>Level ${level}</td>
-                  <td>${userData ? (parseInt(userData.totalEarned) / 1e18).toFixed(4) : '0.0000'} BNB</td>
-                  <td><span class="status-badge active">Active</span></td>
-                  <td>${userData ? new Date(userData.registrationTime * 1000).toLocaleDateString() : '-'}</td>
-                  <td><a href="${CONFIG.EXPLORER_URL}/address/${partner.address}" target="_blank">View</a></td>
-                </tr>
-              `;
-            });
+          if (levelData) {
+            const partnerUserData = await contractManager.callContract('globalway', 'getUserData', [partnerAddress]);
+            const partnerId = await contractManager.callContract('stats', 'getUserIdByAddress', [partnerAddress]);
             
-            tbody.innerHTML = rows.join('');
-          } else {
-            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found for this level</td></tr>';
+            partnersWithLevel.push({
+              address: partnerAddress,
+              id: partnerId || '0000000',
+              registered: partnerUserData[0],
+              totalEarned: partnerUserData[5],
+              registrationTime: partnerUserData[2]
+            });
           }
-        } else {
-          tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found</td></tr>';
         }
-      } catch (error) {
-        console.error('Failed to load partners:', error);
-        tbody.innerHTML = '<tr><td colspan="8" class="no-data">Failed to load partner data</td></tr>';
+        
+        if (partnersWithLevel.length > 0) {
+          const rows = partnersWithLevel.map((partner, index) => `
+            <tr>
+              <td>${index + 1}</td>
+              <td>GW${partner.id}</td>
+              <td>${partner.address.slice(0, 6)}...${partner.address.slice(-4)}</td>
+              <td>Level ${level}</td>
+              <td>${(parseInt(partner.totalEarned) / 1e18).toFixed(4)} BNB</td>
+              <td><span class="status-badge active">Active</span></td>
+              <td>${new Date(parseInt(partner.registrationTime) * 1000).toLocaleDateString()}</td>
+              <td><a href="${CONFIG.EXPLORER_URL}/address/${partner.address}" target="_blank">View</a></td>
+            </tr>
+          `);
+          
+          tbody.innerHTML = rows.join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners with this level</td></tr>';
+        }
+      } else {
+        tbody.innerHTML = '<tr><td colspan="8" class="no-data">No partners found</td></tr>';
       }
+    } catch (error) {
+      console.error('Failed to load partners:', error);
+      tbody.innerHTML = '<tr><td colspan="8" class="no-data">Failed to load</td></tr>';
     }
   }
+}
 
   // КОПИРОВАНИЕ ТОЛЬКО РЕАЛЬНЫХ ССЫЛОК
   async copyReferralLink() {
@@ -1696,193 +1699,66 @@ class MatrixManager {
   }
 
   async loadMatrixData(userId, level) {
-    this.isLoading = true;
-    this.showLoadingState();
+  this.isLoading = true;
+  this.showLoadingState();
 
-    try {
-      const userAddress = await contractManager.getAddressByUserId(userId) || web3Manager.account;
-      const matrixData = await contractManager.getMatrixData(userAddress, level);
-      
-      this.updateMatrixVisualization(matrixData);
-      this.updateMatrixTable(matrixData.tableData);
-      this.updateMatrixStats(matrixData.stats);
-    } catch (error) {
-      console.error('Failed to load matrix data:', error);
-      uiManager.showError('Failed to load matrix data');
-    } finally {
-      this.isLoading = false;
-      this.hideLoadingState();
-    }
-  }
-
-  updateMatrixVisualization(data) {
-    this.updatePosition('topPosition', data.topUser);
+  try {
+    // Получаем адрес по ID
+    const cleanId = userId.replace(/^GW/i, '');
+    const userAddress = await contractManager.callContract('stats', 'getAddressByUserId', [cleanId]);
     
-    data.positions.forEach((posData, index) => {
-      this.updatePosition(`position${index + 1}`, posData);
-    });
-  }
+    if (!userAddress || userAddress === '0x0000000000000000000000000000000000000000') {
+      throw new Error('User not found');
+    }
 
-  updatePosition(elementId, posData) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    const avatar = element.querySelector('.position-avatar');
-    const idSpan = element.querySelector('.position-id');
-    const typeSpan = element.querySelector('.position-type, .position-level');
-
-    element.className = 'matrix-position';
+    // Получаем данные матрицы из контракта
+    const matrixStats = await contractManager.callContract('stats', 'getMatrixStats', [userAddress, level]);
     
-    if (elementId === 'topPosition') {
-      element.classList.add('top-position');
-    }
-
-    if (posData.type) {
-      element.classList.add(posData.type);
-    }
-
-    if (avatar) {
-      avatar.textContent = posData.id ? posData.id.slice(-3) : '?';
-    }
-
-    if (idSpan) {
-      idSpan.textContent = posData.id || 'Empty';
-    }
+    // Обновляем визуализацию
+    const topUser = {
+      id: userId,
+      address: userAddress,
+      level: level,
+      type: 'partner'
+    };
+    this.updatePosition('topPosition', topUser);
     
-    if (typeSpan) {
-      if (elementId === 'topPosition') {
-        typeSpan.textContent = `Level ${posData.level}`;
+    // Обновляем позиции downline
+    const downline = matrixStats[3]; // массив адресов downline
+    for (let i = 0; i < 6; i++) {
+      if (i < downline.length) {
+        const downlineAddress = downline[i];
+        const downlineId = await contractManager.callContract('stats', 'getUserIdByAddress', [downlineAddress]);
+        
+        this.updatePosition(`position${i + 1}`, {
+          id: downlineId ? `GW${downlineId}` : 'Empty',
+          address: downlineAddress,
+          type: downlineAddress !== '0x0000000000000000000000000000000000000000' ? 'partner' : 'available'
+        });
       } else {
-        typeSpan.textContent = posData.type === 'available' ? 'Available' : posData.qualification;
+        this.updatePosition(`position${i + 1}`, {
+          id: 'Empty',
+          type: 'available'
+        });
       }
     }
-
-    element.dataset.positionData = JSON.stringify(posData);
-  }
-
-  updateMatrixTable(tableData) {
-    const tbody = document.getElementById('matrixTableBody');
-    if (!tbody) return;
-  
-    const maxPositions = Math.pow(2, this.currentLevel);
     
-    if (tableData.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="no-data">No partners found for level ${this.currentLevel}</td></tr>`;
-      return;
-    }
-  
-    const limitedData = tableData.slice(0, maxPositions);
-    
-    tbody.innerHTML = limitedData.map(row => `
-      <tr>
-        <td>${row.number}</td>
-        <td>${row.id}</td>
-        <td>${row.address.slice(0, 6)}...${row.address.slice(-4)}</td>
-        <td>${row.sponsorId}</td>
-        <td>${row.activationDate.toLocaleDateString()}</td>
-        <td>${row.level}</td>
-        <td>
-          <span class="qualification-badge ${row.qualification.toLowerCase()}">
-            ${row.qualification}
-          </span>
-        </td>
-      </tr>
-    `).join('');
-    
-    if (tableData.length > maxPositions) {
-      const infoRow = document.createElement('tr');
-      infoRow.innerHTML = `
-        <td colspan="7" class="table-info">
-          Showing ${maxPositions} of ${tableData.length} positions (Level ${this.currentLevel} limit: ${maxPositions})
-        </td>
-      `;
-      tbody.appendChild(infoRow);
-    }
-  }
-
-  updateMatrixStats(stats) {
-    const elements = {
-      'totalActivePositions': stats.total,
-      'partnerPositions': stats.partners,
-      'charityPositions': stats.charity,
-      'technicalPositions': stats.technical
-    };
-
-    Object.entries(elements).forEach(([id, value]) => {
-      const element = document.getElementById(id);
-      if (element) element.textContent = value;
+    // Обновляем статистику
+    this.updateMatrixStats({
+      total: parseInt(matrixStats[0]),
+      partners: downline.filter(addr => addr !== '0x0000000000000000000000000000000000000000').length,
+      charity: 0,
+      technical: 0
     });
-  }
-
-  showPositionModal(positionElement) {
-    const positionData = JSON.parse(positionElement.dataset.positionData || '{}');
     
-    if (!positionData.id && positionData.type === 'available') {
-      return;
-    }
-
-    const modal = document.getElementById('positionModal');
-    if (!modal) return;
-
-    const modalPositionId = document.getElementById('modalPositionId');
-    const modalSponsorId = document.getElementById('modalSponsorId');
-    const modalAddress = document.getElementById('modalAddress');
-    const modalLevel = document.getElementById('modalLevel');
-    const modalStatus = document.getElementById('modalStatus');
-    const modalQualification = document.getElementById('modalQualification');
-
-    if (modalPositionId) modalPositionId.textContent = positionData.id || '-';
-    if (modalSponsorId) modalSponsorId.textContent = positionData.sponsorId || '-';
-    if (modalAddress) {
-      modalAddress.textContent = positionData.address ? 
-        `${positionData.address.slice(0, 6)}...${positionData.address.slice(-4)}` : '-';
-    }
-    if (modalLevel) modalLevel.textContent = positionData.level || '-';
-    if (modalStatus) modalStatus.textContent = positionData.type || '-';
-    if (modalQualification) modalQualification.textContent = positionData.qualification || '-';
-
-    modal.dataset.currentUserId = positionData.id;
-    modal.dataset.currentAddress = positionData.address;
-
-    modal.style.display = 'block';
+  } catch (error) {
+    console.error('Failed to load matrix:', error);
+    uiManager.showError('Failed to load matrix data');
+  } finally {
+    this.isLoading = false;
+    this.hideLoadingState();
   }
-
-  async searchByUserId() {
-    const input = document.getElementById('matrixSearchInput');
-    if (!input) return;
-
-    const searchId = input.value.trim();
-    if (!searchId) {
-      uiManager.showError('Please enter a user ID');
-      return;
-    }
-
-    const cleanId = searchId.replace(/^GW/i, '');
-    
-    if (!/^\d{7}$/.test(cleanId)) {
-      uiManager.showError('Invalid ID format. Use GW1234567 or 1234567');
-      return;
-    }
-
-    try {
-      this.isLoading = true;
-      this.showLoadingState();
-
-      const foundUserId = `GW${cleanId}`;
-      this.currentUserId = foundUserId;
-      
-      await this.loadMatrixData(foundUserId, this.currentLevel);
-      input.value = '';
-      
-      uiManager.showSuccess(`Matrix loaded for user ${foundUserId}`);
-    } catch (error) {
-      console.error('Search failed:', error);
-      uiManager.showError('User not found or matrix data unavailable');
-    } finally {
-      this.isLoading = false;
-      this.hideLoadingState();
-    }
-  }
+}
 
   async viewUserMatrix() {
     const modal = document.getElementById('positionModal');
