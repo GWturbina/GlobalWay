@@ -198,7 +198,7 @@ class UIManager {
     }
   }
 
-  // ИСПРАВЛЕННАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ КОНТРАКТ
+  // ИСПРАВЛЕННАЯ ЗАГРУЗКА ДАННЫХ ПОЛЬЗОВАТЕЛЯ
   async loadUserData() {
     if (!web3Manager.isConnected || !web3Manager.account) return;
 
@@ -210,22 +210,13 @@ class UIManager {
         }
       }
 
-      // ПОЛУЧАЕМ РЕАЛЬНЫЙ ID ИЗ КОНТРАКТА
+      // ПОЛУЧАЕМ ID СНАЧАЛА
       let userId = null;
       try {
         userId = await contractManager.getUserIdByAddress();
         console.log('User ID from contract:', userId);
       } catch (idError) {
         console.warn('Failed to get user ID:', idError);
-      }
-
-      // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА РЕГИСТРАЦИИ ДЛЯ ВАЛИДАЦИИ
-      let isRegisteredCheck = false;
-      try {
-        isRegisteredCheck = await contractManager.isUserRegistered();
-        console.log('Registration check result:', isRegisteredCheck);
-      } catch (regError) {
-        console.warn('Failed to check registration:', regError);
       }
 
       // ЕСЛИ ЕСТЬ ID - ЗНАЧИТ ЗАРЕГИСТРИРОВАН
@@ -250,41 +241,8 @@ class UIManager {
         await this.loadTokenBalance();
         
         this.hideConnectionAlert();
-        
-      } else if (isRegisteredCheck && !userId) {
-        // ЗАРЕГИСТРИРОВАН НО НЕТ ID - ПЫТАЕМСЯ ПРИСВОИТЬ
-        document.getElementById('userId').textContent = 'ID not assigned yet';
-        document.getElementById('refLink').value = 'ID assignment required - contact support';
-        
-        try {
-          const txHash = await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
-          console.log('ID assignment transaction:', txHash);
-          this.showSuccess('ID assignment in progress. Please wait...');
-          
-          // ПРОВЕРЯЕМ ID ЧЕРЕЗ 5 СЕКУНД
-          setTimeout(async () => {
-            try {
-              const newUserId = await contractManager.getUserIdByAddress();
-              if (newUserId && newUserId !== '0') {
-                document.getElementById('userId').textContent = `GW${newUserId}`;
-                document.getElementById('refLink').value = `${window.location.origin}/ref${newUserId}`;
-                this.showSuccess('Referral link generated!');
-                // ПЕРЕЗАГРУЖАЕМ ДАННЫЕ
-                setTimeout(() => this.loadUserData(), 1000);
-              }
-            } catch (error) {
-              console.error('Failed to get assigned ID:', error);
-            }
-          }, 5000);
-          
-        } catch (assignError) {
-          console.error('Failed to assign ID:', assignError);
-          document.getElementById('userId').textContent = 'ID assignment failed';
-          document.getElementById('refLink').value = 'Contact support for referral link';
-        }
-        
       } else {
-        // НЕЗАРЕГИСТРИРОВАННЫЕ - ЧЕТКОЕ СООБЩЕНИЕ
+        // НЕЗАРЕГИСТРИРОВАННЫЕ
         document.getElementById('userId').textContent = 'Not registered';
         document.getElementById('refLink').value = 'Register first to get referral link';
         this.showRegistrationPrompt();
