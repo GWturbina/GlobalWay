@@ -17,7 +17,7 @@ class GlobalWayApp {
       // Initialize components
       await this.initializeApp();
       
-      // ИСПРАВЛЕНО: Правильная обработка реферальных ссылок
+      // ПРАВИЛЬНАЯ ОБРАБОТКА РЕФЕРАЛЬНЫХ ССЫЛОК
       this.handleReferralLink();
       
       // Initialize managers
@@ -49,7 +49,7 @@ class GlobalWayApp {
     }
   }
 
-  // ИСПРАВЛЕНО: Полная переработка referral системы
+  // ПОЛНАЯ ПЕРЕРАБОТКА REFERRAL СИСТЕМЫ
   handleReferralLink() {
     const path = window.location.pathname;
     const refMatch = path.match(/\/ref(\d{7})/);
@@ -57,14 +57,14 @@ class GlobalWayApp {
     if (refMatch) {
       const referralId = refMatch[1];
       
-      // Валидация формата ID
+      // ВАЛИДАЦИЯ ФОРМАТА ID
       if (!/^\d{7}$/.test(referralId)) {
         console.warn('Invalid referral ID format:', referralId);
         this.cleanupURL();
         return;
       }
 
-      // Проверка на фальшивые ID
+      // ПРОВЕРКА НА ФАЛЬШИВЫЕ ID
       if (referralId === '0000000' || referralId === '1111111') {
         console.warn('Invalid referral ID detected:', referralId);
         this.cleanupURL();
@@ -73,26 +73,26 @@ class GlobalWayApp {
 
       console.log('Valid referral ID found:', referralId);
       
-      // ИСПРАВЛЕНО: Сохраняем для использования при регистрации
+      // СОХРАНЯЕМ ДЛЯ ИСПОЛЬЗОВАНИЯ ПРИ РЕГИСТРАЦИИ
       localStorage.setItem('pendingReferralId', referralId);
       
-      // Очищаем URL но сохраняем ID
+      // ОЧИЩАЕМ URL НО СОХРАНЯЕМ ID
       this.cleanupURL();
       
-      // ИСПРАВЛЕНО: Переходим на DApp и показываем регистрацию
+      // ПЕРЕХОДИМ НА DAPP И ПОКАЗЫВАЕМ РЕГИСТРАЦИЮ
       setTimeout(() => {
         this.showDAppWithRegistration(referralId);
       }, 1000);
     }
   }
 
-  // ИСПРАВЛЕНО: Новая функция для перехода к регистрации
+  // НОВАЯ ФУНКЦИЯ ДЛЯ ПЕРЕХОДА К РЕГИСТРАЦИИ
   showDAppWithRegistration(referralId) {
-    // Переходим на DApp
+    // ПЕРЕХОДИМ НА DAPP
     document.getElementById('landing').classList.remove('active');
     document.getElementById('dapp').classList.add('active');
     
-    // Показываем модал регистрации с реферальным ID
+    // ПОКАЗЫВАЕМ МОДАЛ РЕГИСТРАЦИИ С РЕФЕРАЛЬНЫМ ID
     this.showRegistrationPrompt(referralId);
   }
 
@@ -101,7 +101,7 @@ class GlobalWayApp {
     window.history.replaceState({}, document.title, cleanURL);
   }
 
-  // ИСПРАВЛЕНО: Правильный промпт регистрации с подключением кошелька
+  // ПРАВИЛЬНЫЙ ПРОМПТ РЕГИСТРАЦИИ С ПОДКЛЮЧЕНИЕМ КОШЕЛЬКА
   showRegistrationPrompt(referralId) {
     const modal = document.createElement('div');
     modal.style.cssText = `
@@ -132,17 +132,17 @@ class GlobalWayApp {
     modal.className = 'modal-overlay';
     document.body.appendChild(modal);
     
-    // ИСПРАВЛЕНО: Правильная последовательность подключения и регистрации
+    // ПРАВИЛЬНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ ПОДКЛЮЧЕНИЯ И РЕГИСТРАЦИИ
     modal.querySelector('#connectAndJoin').onclick = async () => {
       try {
-        // Сначала подключаем кошелек
+        // СНАЧАЛА ПОДКЛЮЧАЕМ КОШЕЛЕК
         await web3Manager.connect();
         modal.remove();
         
-        // После подключения автоматически вызываем регистрацию
+        // ПОСЛЕ ПОДКЛЮЧЕНИЯ АВТОМАТИЧЕСКИ ВЫЗЫВАЕМ РЕГИСТРАЦИЮ
         setTimeout(async () => {
           try {
-            // ИСПРАВЛЕНО: Прямой вызов регистрации с sponsor ID
+            // ПРЯМОЙ ВЫЗОВ РЕГИСТРАЦИИ С SPONSOR ID
             await this.registerWithSponsorId(referralId);
           } catch (regError) {
             console.error('Registration failed:', regError);
@@ -159,7 +159,7 @@ class GlobalWayApp {
       }
     };
     
-    // Auto-close после 30 секунд
+    // AUTO-CLOSE ПОСЛЕ 30 СЕКУНД
     setTimeout(() => {
       if (modal.parentNode) {
         modal.remove();
@@ -167,14 +167,14 @@ class GlobalWayApp {
     }, 30000);
   }
 
-  // ИСПРАВЛЕНО: Новая функция прямой регистрации с sponsor ID
+  // НОВАЯ ФУНКЦИЯ ПРЯМОЙ РЕГИСТРАЦИИ С SPONSOR ID
   async registerWithSponsorId(sponsorId) {
     try {
       if (!web3Manager.isConnected) {
         throw new Error('Wallet not connected');
       }
 
-      // Проверяем что пользователь не зарегистрирован
+      // ПРОВЕРЯЕМ ЧТО ПОЛЬЗОВАТЕЛЬ НЕ ЗАРЕГИСТРИРОВАН
       const isRegistered = await contractManager.isUserRegistered();
       if (isRegistered) {
         if (uiManager && uiManager.showSuccess) {
@@ -183,23 +183,23 @@ class GlobalWayApp {
         return;
       }
 
-      // ИСПРАВЛЕНО: Прямой вызов контрактного метода регистрации
+      // ПРЯМОЙ ВЫЗОВ КОНТРАКТНОГО МЕТОДА РЕГИСТРАЦИИ
       console.log('Registering with sponsor ID:', sponsorId);
       const txHash = await contractManager.sendTransaction(
         'stats', 
         'registerWithSponsorId', 
         [sponsorId], 
-        '0x0' // no payment required for registration
+        '0x0' // NO PAYMENT REQUIRED FOR REGISTRATION
       );
 
       if (uiManager && uiManager.showSuccess) {
         uiManager.showSuccess(`Registration transaction sent: ${txHash}`);
       }
 
-      // Очищаем сохраненный referral ID
+      // ОЧИЩАЕМ СОХРАНЕННЫЙ REFERRAL ID
       localStorage.removeItem('pendingReferralId');
 
-      // Обновляем данные пользователя через 5 секунд
+      // ОБНОВЛЯЕМ ДАННЫЕ ПОЛЬЗОВАТЕЛЯ ЧЕРЕЗ 5 СЕКУНД
       setTimeout(() => {
         if (uiManager && uiManager.loadUserData) {
           uiManager.loadUserData();
@@ -239,7 +239,7 @@ class GlobalWayApp {
   }
 
   showInstallPrompt(deferredPrompt) {
-    // Не показываем кнопку установки на мобильных устройствах
+    // НЕ ПОКАЗЫВАЕМ КНОПКУ УСТАНОВКИ НА МОБИЛЬНЫХ УСТРОЙСТВАХ
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       return;
     }
@@ -307,7 +307,7 @@ class GlobalWayApp {
   }
 }
 
-// ИСПРАВЛЕНО: Правильная инициализация с проверкой готовности DOM
+// ПРАВИЛЬНАЯ ИНИЦИАЛИЗАЦИЯ С ПРОВЕРКОЙ ГОТОВНОСТИ DOM
 function initializeApp() {
   const app = new GlobalWayApp();
   app.init().catch(error => {
