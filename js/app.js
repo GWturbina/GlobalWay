@@ -144,6 +144,9 @@ class GlobalWayApp {
           try {
             // ПРОВЕРЯЕМ СУЩЕСТВУЕТ ЛИ СПОНСОР ЧЕРЕЗ КОНТРАКТ
             const sponsorAddress = await contractManager.getAddressByUserId(referralId);
+
+            // Проверяем сеть перед регистрацией
+            await web3Manager.ensureCorrectNetwork();
             
             if (!sponsorAddress) {
               console.warn('Sponsor not found in contract:', referralId);
@@ -203,13 +206,8 @@ class GlobalWayApp {
 
       console.log('Valid sponsor found, registering with ID:', sponsorId);
       
-      // ПРЯМОЙ ВЫЗОВ КОНТРАКТНОГО МЕТОДА РЕГИСТРАЦИИ
-      const txHash = await contractManager.sendTransaction(
-        'stats', 
-        'registerWithSponsorId', 
-        [sponsorId], 
-        '0x0' // NO PAYMENT REQUIRED FOR REGISTRATION
-      );
+      // Используем метод из contractManager для регистрации
+      const txHash = await contractManager.registerUserWithId(sponsorId);
 
       if (uiManager && uiManager.showSuccess) {
         uiManager.showSuccess(`Registration transaction sent: ${txHash}`);
@@ -258,8 +256,8 @@ class GlobalWayApp {
         return { valid: false, reason: 'Sponsor not found' };
       }
 
-      // ПРОВЕРЯЕМ АКТИВНОСТЬ СПОНСОРА
-      const isActive = await contractManager.callContract('globalway', 'isUserActive', [sponsorAddress]);
+      // Проверяем регистрацию спонсора
+      const isActive = await contractManager.isUserRegistered(sponsorAddress);
       
       if (!isActive) {
         return { valid: false, reason: 'Sponsor account inactive' };
@@ -291,7 +289,7 @@ class GlobalWayApp {
       if (!userId || userId === '0' || userId === 0) {
         // ЕСЛИ НЕТ ID - ПРИСВАИВАЕМ
         console.log('No ID found, assigning new ID...');
-        await contractManager.sendTransaction('stats', 'assignIdToExistingUser', []);
+        await contractManager.registerUserWithId(null);
         
         // ЖДЕМ И ПРОВЕРЯЕМ СНОВА
         await new Promise(resolve => setTimeout(resolve, 5000));
