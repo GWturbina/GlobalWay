@@ -1,4 +1,4 @@
-// ui.js - ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+// ui.js - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ С ПРАВИЛЬНОЙ ЛОГИКОЙ МАТРИЦЫ
 class UIManager {
   constructor() {
     this.currentPage = 'dashboard';
@@ -8,6 +8,7 @@ class UIManager {
     this.userStats = null;
     this.buyingLevel = false;
     this.adminAutoOpened = false;
+    this.viewingUserAddress = null; // 🔥 НОВОЕ: для просмотра чужой матрицы
   }
 
   async init() {
@@ -97,7 +98,6 @@ class UIManager {
     this.updateHeader();
     this.updateCabinet();
   
-    // ✅ ИСПРАВЛЕНО: Показываем админ-элементы СРАЗУ
     if (web3Manager.isAdmin()) {
       console.log('✅ Admin access granted');
       document.querySelectorAll('.admin-only').forEach(el => {
@@ -105,12 +105,10 @@ class UIManager {
         console.log('✅ Showing admin element:', el.className);
       });
 
-      // Теперь пытаемся открыть админку автоматически
       if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
         this.adminAutoOpened = true;
         console.log('🔄 Attempting to auto-open admin panel...');
         
-        // Простое решение: просто открываем страницу admin через 2 секунды
         setTimeout(() => {
           this.showPage('admin');
           console.log('✅ Admin panel auto-opened');
@@ -119,7 +117,6 @@ class UIManager {
     }
   }
 
-  // ✅ ИСПРАВЛЕНО: Добавлена обработка ошибок сети
   async loadUserData() {
     try {
       const addr = web3Manager && web3Manager.address ? web3Manager.address : null;
@@ -136,7 +133,6 @@ class UIManager {
         return;
       }
 
-      // ✅ ИСПРАВЛЕНО: Обработка ошибок сети
       let info;
       try {
         info = await contracts.getUserFullInfo(addr);
@@ -154,7 +150,6 @@ class UIManager {
         return;
       }
 
-      // Преобразуем все BigNumber и Proxy объекты в обычные значения
       this.userStats = {
         isRegistered: Boolean(info.isRegistered),
         sponsor: info.sponsor || ethers.constants.AddressZero,
@@ -172,7 +167,6 @@ class UIManager {
         isInvestor: Boolean(info.isInvestor)
       };
 
-      // Преобразуем activeLevels правильно
       if (Array.isArray(info.activeLevels)) {
         this.userStats.activeLevels = info.activeLevels.map(l => {
           if (l && typeof l.toNumber === 'function') return l.toNumber();
@@ -180,7 +174,6 @@ class UIManager {
         });
       }
 
-      // Получаем leaderRank из LeaderPool
       try {
         if (contracts.contracts.leaderPool) {
           const rank = await contracts.contracts.leaderPool.getUserRank(addr);
@@ -443,144 +436,139 @@ class UIManager {
     }
   }
 
-  // ✅ ИСПРАВЛЕНО: Улучшена обработка ошибок и показ лоадера
-async loadEarnings() {
-  if (!this.userStats) return;
-  
-  try {
-    const container = document.getElementById('earningsRank');
-    if (container) container.innerHTML = '';
+  async loadEarnings() {
+    if (!this.userStats) return;
     
-    const totalEarned = ethers.utils.formatEther(this.userStats.totalEarned);
+    try {
+      const container = document.getElementById('earningsRank');
+      if (container) container.innerHTML = '';
+      
+      const totalEarned = ethers.utils.formatEther(this.userStats.totalEarned);
+      
+      let directBonus = 0;
+      let partnerBonus = 0;
+      let matrixBonus = parseFloat(totalEarned);
+      let leaderBonus = 0;
+      
+      try {
+        const provider = web3Manager.provider;
+        const globalwayContract = contracts.contracts.globalway;
+        
+        if (provider && globalwayContract) {
+          const currentBlock = await provider.getBlockNumber();
+          const fromBlock = Math.max(0, currentBlock - 2000);
+          
+          try {
+            const levelActivatedFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
+            const levelEvents = await globalwayContract.queryFilter(levelActivatedFilter, fromBlock, currentBlock);
+            console.log(`✅ Found ${levelEvents.length} LevelActivated events`);
+          } catch (e) {
+            console.warn('⚠️ LevelActivated event not found:', e.message);
+          }
+          
+          try {
+            const userRegisteredFilter = globalwayContract.filters.UserRegistered(web3Manager.address);
+            const regEvents = await globalwayContract.queryFilter(userRegisteredFilter, fromBlock, currentBlock);
+            console.log(`✅ Found ${regEvents.length} UserRegistered events`);
+          } catch (e) {
+            console.warn('⚠️ UserRegistered event not found:', e.message);
+          }
+        }
+      } catch (eventsError) {
+        console.warn('⚠️ Could not load events:', eventsError.message);
+      }
+      
+      const earnings = {
+        'Direct Bonus': directBonus.toFixed(4),
+        'Partner Bonus': partnerBonus.toFixed(4),
+        'Matrix Bonus': matrixBonus.toFixed(4),
+        'Leadership Bonus': leaderBonus.toFixed(4)
+      };
+      
+      if (container) {
+        for (const [label, value] of Object.entries(earnings)) {
+          const item = document.createElement('div');
+          item.className = 'earnings-item';
+          item.innerHTML = `
+            <span>${label}:</span>
+            <span>${Utils.formatBNB(value)} BNB</span>
+          `;
+          container.appendChild(item);
+        }
+      }
+      
+      const totalIncomeEl = document.getElementById('totalIncome');
+      if (totalIncomeEl) {
+        totalIncomeEl.textContent = `${Utils.formatBNB(totalEarned)} BNB`;
+      }
+        
+      const rankBadge = document.getElementById('currentRankBadge');
+      if (rankBadge) {
+        rankBadge.textContent = Utils.getRankName(this.userStats.leaderRank);
+        rankBadge.className = `rank-badge rank-${this.userStats.leaderRank}`;
+      }
+      
+      console.log('✅ Earnings loaded');
+    } catch (error) {
+      console.error('Error loading earnings:', error);
+    }
+  }
+
+  async loadHistory() {
+    const tbody = document.getElementById('historyTable');
+    if (!tbody) return;
     
-    let directBonus = 0;
-    let partnerBonus = 0;
-    let matrixBonus = parseFloat(totalEarned); // Используем totalEarned как матричный бонус
-    let leaderBonus = 0;
-    
-    // ✅ ПРАВИЛЬНО: Проверяем РЕАЛЬНЫЕ события из контракта
     try {
       const provider = web3Manager.provider;
       const globalwayContract = contracts.contracts.globalway;
       
-      if (provider && globalwayContract) {
-        const currentBlock = await provider.getBlockNumber();
-        const fromBlock = Math.max(0, currentBlock - 2000);
-        
-        // ✅ Используем событие LevelActivated (оно точно есть)
-        try {
-          const levelActivatedFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
-          const levelEvents = await globalwayContract.queryFilter(levelActivatedFilter, fromBlock, currentBlock);
-          console.log(`✅ Found ${levelEvents.length} LevelActivated events`);
-        } catch (e) {
-          console.warn('⚠️ LevelActivated event not found:', e.message);
-        }
-        
-        // ✅ Проверяем наличие UserRegistered
-        try {
-          const userRegisteredFilter = globalwayContract.filters.UserRegistered(web3Manager.address);
-          const regEvents = await globalwayContract.queryFilter(userRegisteredFilter, fromBlock, currentBlock);
-          console.log(`✅ Found ${regEvents.length} UserRegistered events`);
-        } catch (e) {
-          console.warn('⚠️ UserRegistered event not found:', e.message);
-        }
-      }
-    } catch (eventsError) {
-      console.warn('⚠️ Could not load events:', eventsError.message);
-    }
-    
-    const earnings = {
-      'Direct Bonus': directBonus.toFixed(4),
-      'Partner Bonus': partnerBonus.toFixed(4),
-      'Matrix Bonus': matrixBonus.toFixed(4),
-      'Leadership Bonus': leaderBonus.toFixed(4)
-    };
-    
-    if (container) {
-      for (const [label, value] of Object.entries(earnings)) {
-        const item = document.createElement('div');
-        item.className = 'earnings-item';
-        item.innerHTML = `
-          <span>${label}:</span>
-          <span>${Utils.formatBNB(value)} BNB</span>
-        `;
-        container.appendChild(item);
-      }
-    }
-    
-    const totalIncomeEl = document.getElementById('totalIncome');
-    if (totalIncomeEl) {
-      totalIncomeEl.textContent = `${Utils.formatBNB(totalEarned)} BNB`;
-    }
-      
-    const rankBadge = document.getElementById('currentRankBadge');
-    if (rankBadge) {
-      rankBadge.textContent = Utils.getRankName(this.userStats.leaderRank);
-      rankBadge.className = `rank-badge rank-${this.userStats.leaderRank}`;
-    }
-    
-    console.log('✅ Earnings loaded');
-  } catch (error) {
-    console.error('Error loading earnings:', error);
-  }
-}
-
-async loadHistory() {
-  const tbody = document.getElementById('historyTable');
-  if (!tbody) return;
-  
-  try {
-    const provider = web3Manager.provider;
-    const globalwayContract = contracts.contracts.globalway;
-    
-    if (!provider || !globalwayContract) {
-      tbody.innerHTML = '<tr><td colspan="6">Contract not initialized</td></tr>';
-      return;
-    }
-    
-    const currentBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, currentBlock - 4999);
-    
-    // ✅ ПРАВИЛЬНО: Используем событие LevelActivated (оно точно есть)
-    try {
-      const levelActivatedFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
-      const levelEvents = await globalwayContract.queryFilter(levelActivatedFilter, fromBlock, currentBlock);
-      
-      tbody.innerHTML = '';
-      
-      if (levelEvents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">No transactions yet</td></tr>';
+      if (!provider || !globalwayContract) {
+        tbody.innerHTML = '<tr><td colspan="6">Contract not initialized</td></tr>';
         return;
       }
       
-      for (let i = 0; i < Math.min(levelEvents.length, 10); i++) {
-        const event = levelEvents[i];
-        const block = await provider.getBlock(event.blockNumber);
-        const timestamp = block.timestamp;
-        
-        const level = event.args.level;
-        const amount = ethers.utils.formatEther(event.args.amount);
-        
-        const row = tbody.insertRow();
-        row.innerHTML = `
-          <td>${Utils.formatDateTime(timestamp)}</td>
-          <td>Level Purchase</td>
-          <td>Level ${level}</td>
-          <td class="amount-out">-${Utils.formatBNB(amount)} BNB</td>
-          <td><a href="${CONFIG.NETWORK.explorer}/tx/${event.transactionHash}" target="_blank">View</a></td>
-        `;
-      }
+      const currentBlock = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, currentBlock - 4999);
       
-      console.log('✅ History loaded with LevelActivated events');
+      try {
+        const levelActivatedFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
+        const levelEvents = await globalwayContract.queryFilter(levelActivatedFilter, fromBlock, currentBlock);
+        
+        tbody.innerHTML = '';
+        
+        if (levelEvents.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">No transactions yet</td></tr>';
+          return;
+        }
+        
+        for (let i = 0; i < Math.min(levelEvents.length, 10); i++) {
+          const event = levelEvents[i];
+          const block = await provider.getBlock(event.blockNumber);
+          const timestamp = block.timestamp;
+          
+          const level = event.args.level;
+          const amount = ethers.utils.formatEther(event.args.amount);
+          
+          const row = tbody.insertRow();
+          row.innerHTML = `
+            <td>${Utils.formatDateTime(timestamp)}</td>
+            <td>Level Purchase</td>
+            <td>Level ${level}</td>
+            <td class="amount-out">-${Utils.formatBNB(amount)} BNB</td>
+            <td><a href="${CONFIG.NETWORK.explorer}/tx/${event.transactionHash}" target="_blank">View</a></td>
+          `;
+        }
+        
+        console.log('✅ History loaded with LevelActivated events');
+      } catch (error) {
+        console.error('Error loading LevelActivated events:', error);
+        tbody.innerHTML = '<tr><td colspan="6">History will appear after activating levels</td></tr>';
+      }
     } catch (error) {
-      console.error('Error loading LevelActivated events:', error);
-      tbody.innerHTML = '<tr><td colspan="6">History will appear after activating levels</td></tr>';
+      console.error('Error loading history:', error);
+      tbody.innerHTML = '<tr><td colspan="6">Error loading history</td></tr>';
     }
-  } catch (error) {
-    console.error('Error loading history:', error);
-    tbody.innerHTML = '<tr><td colspan="6">Error loading history</td></tr>';
   }
-}
 
   async loadTokensSummary() {
     try {
@@ -803,7 +791,7 @@ async loadHistory() {
     if (totalEarnedEl) totalEarnedEl.textContent = `${Utils.formatBNB(total)} BNB`;
   }
 
-  // === MATRIX ===
+  // === MATRIX - 🔥 ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ ЛОГИКА ===
 
   async loadMatrix() {
     this.setupMatrixLevels();
@@ -844,11 +832,15 @@ async loadHistory() {
     const maxPositionsInfoEl = document.getElementById('maxPositionsInfo');
     if (maxPositionsInfoEl) maxPositionsInfoEl.textContent = maxPositions;
     
+    // Сброс просмотра чужой матрицы при смене уровня
+    this.viewingUserAddress = null;
+    
     await this.loadMatrixVisualization();
     await this.loadMatrixTable();
     await this.loadMatrixStats();
   }
 
+  // 🔥 ГЛАВНАЯ ИСПРАВЛЕННАЯ ФУНКЦИЯ МАТРИЦЫ
   async loadMatrixVisualization() {
     try {
       if (!this.userStats || !this.userStats.isRegistered) {
@@ -859,57 +851,122 @@ async loadHistory() {
         return;
       }
       
-      const isLevelActive = this.userStats.activeLevels.includes(this.currentMatrixLevel);
+      // Определяем чью матрицу показываем
+      const targetAddress = this.viewingUserAddress || web3Manager.address;
+      const isViewingSelf = targetAddress.toLowerCase() === web3Manager.address.toLowerCase();
+      
+      // Проверяем активность уровня у целевого пользователя
+      const isLevelActive = await contracts.isLevelActive(targetAddress, this.currentMatrixLevel);
+      
       if (!isLevelActive) {
-        console.log(`⚠️ Level ${this.currentMatrixLevel} not purchased`);
+        console.log(`⚠️ Level ${this.currentMatrixLevel} not purchased by target user`);
         document.querySelectorAll('.matrix-position').forEach(el => {
           if (el) el.innerHTML = '<div class="position-locked">🔒 Level Locked</div>';
         });
+        
+        if (!isViewingSelf) {
+          Utils.showNotification(`User hasn't activated level ${this.currentMatrixLevel}`, 'info');
+        }
         return;
       }
       
-      console.log('✅ Loading matrix level', this.currentMatrixLevel);
+      console.log(`✅ Loading matrix level ${this.currentMatrixLevel} for`, targetAddress);
       
-      const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, web3Manager.address);
-      console.log('📍 User position in matrix:', userPosition.toNumber());
+      // 🔥 КЛЮЧЕВОЕ: Получаем позицию целевого пользователя в матрице
+      const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
+      const userPosNum = userPosition.toNumber ? userPosition.toNumber() : Number(userPosition);
       
+      console.log(`📍 Target user position: ${userPosNum}`);
+      
+      // Получаем ID целевого пользователя
+      const targetUserId = await contracts.getUserIdByAddress(targetAddress);
+      
+      // Показываем целевого пользователя наверху (topPosition)
       const topPos = document.getElementById('topPosition');
       if (topPos) {
-        const userId = this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0);
         this.updateMatrixPosition(topPos, {
-          user: web3Manager.address,
-          id: userId,
-          type: 'user'
+          user: targetAddress,
+          id: targetUserId,
+          type: isViewingSelf ? 'user' : 'viewed'
         });
+        
+        // Добавляем кнопку возврата если смотрим чужую матрицу
+        if (!isViewingSelf) {
+          const returnBtn = document.createElement('button');
+          returnBtn.textContent = '🏠 My Matrix';
+          returnBtn.style.cssText = 'margin-top:5px;padding:5px 10px;font-size:11px;cursor:pointer;border-radius:4px;';
+          returnBtn.onclick = () => this.returnToMyMatrix();
+          topPos.appendChild(returnBtn);
+        }
       }
       
-      for (let i = 1; i <= 6; i++) {
-        const element = document.getElementById(`position${i}`);
+      // 🔥 ПРАВИЛЬНАЯ ЛОГИКА: Рассчитываем позиции в бинарном дереве
+      // Для позиции N:
+      // - Левый потомок: 2*N
+      // - Правый потомок: 2*N + 1
+      
+      const basePosition = userPosNum;
+      
+      // Первая линия (positions 2 и 3 в UI = левый и правый потомки)
+      const firstLine = [
+        basePosition * 2,      // левый потомок
+        basePosition * 2 + 1   // правый потомок
+      ];
+      
+      // Вторая линия (positions 4-7 в UI)
+      const secondLine = [
+        firstLine[0] * 2,      // левый-левый
+        firstLine[0] * 2 + 1,  // левый-правый
+        firstLine[1] * 2,      // правый-левый
+        firstLine[1] * 2 + 1   // правый-правый
+      ];
+      
+      const allPositions = [...firstLine, ...secondLine];
+      
+      console.log('📊 Loading positions:', allPositions);
+      
+      // Загружаем данные для каждой позиции
+      for (let i = 0; i < allPositions.length; i++) {
+        const element = document.getElementById(`position${i + 1}`);
         if (!element) continue;
         
+        const globalPos = allPositions[i];
+        
         try {
-          const position = await contracts.getMatrixPosition(this.currentMatrixLevel, i);
+          // 🔥 Получаем данные из контракта по ГЛОБАЛЬНОЙ позиции
+          const position = await contracts.getMatrixPosition(this.currentMatrixLevel, globalPos);
           
           if (position.user !== ethers.constants.AddressZero) {
-            const userId = await contracts.getUserIdByAddress(position.user);
+            const positionUserId = await contracts.getUserIdByAddress(position.user);
             const type = await this.getPositionType(position.user);
+            
+            // Делаем кликабельной для перехода к этому пользователю
+            element.style.cursor = 'pointer';
+            element.onclick = async () => {
+              await this.viewUserMatrix(position.user);
+            };
             
             this.updateMatrixPosition(element, {
               user: position.user,
-              id: userId,
+              id: positionUserId,
               type: type
             });
             
-            console.log(`✅ Position ${i} loaded:`, userId);
+            console.log(`✅ Position ${i + 1} (global ${globalPos}): GW${positionUserId}`);
           } else {
             this.updateMatrixPosition(element, {
               user: ethers.constants.AddressZero,
               id: 0,
               type: 'available'
             });
+            
+            element.style.cursor = 'default';
+            element.onclick = null;
+            
+            console.log(`⭕ Position ${i + 1} (global ${globalPos}): Empty`);
           }
         } catch (error) {
-          console.error(`❌ Error loading position ${i}:`, error);
+          console.error(`❌ Error loading position ${i + 1} (global ${globalPos}):`, error);
           this.updateMatrixPosition(element, {
             user: ethers.constants.AddressZero,
             id: 0,
@@ -921,7 +978,38 @@ async loadHistory() {
       console.log('✅ Matrix visualization loaded');
     } catch (error) {
       console.error('❌ Error loading matrix visualization:', error);
+      Utils.showNotification('Failed to load matrix', 'error');
     }
+  }
+
+  // 🔥 НОВАЯ ФУНКЦИЯ: Просмотр матрицы другого пользователя
+  async viewUserMatrix(userAddress) {
+    try {
+      console.log('👁️ Viewing matrix for:', userAddress);
+      
+      // Сохраняем адрес для просмотра
+      this.viewingUserAddress = userAddress;
+      
+      // Перезагружаем визуализацию
+      await this.loadMatrixVisualization();
+      
+      // Показываем уведомление
+      const userId = await contracts.getUserIdByAddress(userAddress);
+      Utils.showNotification(`Viewing matrix of GW${userId}`, 'info');
+      
+    } catch (error) {
+      console.error('Error viewing user matrix:', error);
+      Utils.showNotification('Failed to load user matrix', 'error');
+      this.viewingUserAddress = null;
+    }
+  }
+
+  // 🔥 НОВАЯ ФУНКЦИЯ: Возврат к своей матрице
+  async returnToMyMatrix() {
+    console.log('🏠 Returning to my matrix');
+    this.viewingUserAddress = null;
+    await this.loadMatrixVisualization();
+    Utils.showNotification('Returned to your matrix', 'success');
   }
 
   updateMatrixPosition(element, data) {
@@ -935,11 +1023,12 @@ async loadHistory() {
       if (avatar) avatar.textContent = '⭕';
       if (id) id.textContent = 'Empty';
       if (type) type.textContent = 'available';
-      element.classList.remove('partner', 'charity', 'technical', 'user');
+      element.classList.remove('partner', 'charity', 'technical', 'user', 'viewed');
       element.classList.add('available');
     } else {
       if (avatar) {
         avatar.textContent = data.type === 'user' ? '👤' : 
+                           data.type === 'viewed' ? '👁️' :
                            data.type === 'partner' ? '👥' :
                            data.type === 'charity' ? '❤️' :
                            data.type === 'technical' ? '⚙️' : '?';
@@ -948,7 +1037,7 @@ async loadHistory() {
       if (id) id.textContent = Utils.formatUserId(data.id);
       if (type) type.textContent = data.type;
       
-      element.classList.remove('available', 'partner', 'charity', 'technical', 'user');
+      element.classList.remove('available', 'partner', 'charity', 'technical', 'user', 'viewed');
       element.classList.add(data.type);
     }
     
@@ -1028,9 +1117,8 @@ async loadHistory() {
 
   async loadMatrixStats() {
     try {
-      const isLevelActive = this.userStats && 
-                           Array.isArray(this.userStats.activeLevels) && 
-                           this.userStats.activeLevels.includes(this.currentMatrixLevel);
+      const targetAddress = this.viewingUserAddress || web3Manager.address;
+      const isLevelActive = await contracts.isLevelActive(targetAddress, this.currentMatrixLevel);
       
       if (!isLevelActive) {
         console.log(`⚠️ Level ${this.currentMatrixLevel} not purchased, skipping matrix stats`);
@@ -1046,7 +1134,7 @@ async loadHistory() {
         return;
       }
       
-      const stats = await contracts.getMatrixStats(web3Manager.address, this.currentMatrixLevel);
+      const stats = await contracts.getMatrixStats(targetAddress, this.currentMatrixLevel);
       
       const totalEl = document.getElementById('totalActivePositions');
       const partnerEl = document.getElementById('partnerPositions');
@@ -1093,11 +1181,20 @@ async loadHistory() {
       if (userId > 0) {
         try {
           const address = await contracts.getAddressByUserId(userId);
-          const position = await contracts.getUserMatrixPosition(this.currentMatrixLevel, address);
-          Utils.showNotification(`User found at position ${position}`, 'success');
+          
+          if (address === ethers.constants.AddressZero) {
+            Utils.showNotification('User not found', 'error');
+            return;
+          }
+          
+          // Переходим к матрице найденного пользователя
+          await this.viewUserMatrix(address);
+          
         } catch (error) {
           Utils.showNotification('User not found', 'error');
         }
+      } else {
+        Utils.showNotification('Invalid user ID', 'error');
       }
     });
   }
