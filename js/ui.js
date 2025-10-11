@@ -86,37 +86,53 @@ class UIManager {
     }
   }
 
-  async updateUI() {
-    if (!web3Manager.connected) {
-      this.showConnectionAlert();
-      return;
-    }
-
-    await this.loadUserData();
-    this.updateHeader();
-    this.updateCabinet();
-  
-    // ✅ ИСПРАВЛЕНО: Показываем админ-элементы СРАЗУ
-    if (web3Manager.isAdmin()) {
-      console.log('✅ Admin access granted');
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = '';
-        console.log('✅ Showing admin element:', el.className);
-      });
-
-      // Теперь пытаемся открыть админку автоматически
-      if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
-        this.adminAutoOpened = true;
-        console.log('🔄 Attempting to auto-open admin panel...');
-        
-        // Простое решение: просто открываем страницу admin через 2 секунды
-        setTimeout(() => {
-          this.showPage('admin');
-          console.log('✅ Admin panel auto-opened');
-        }, 2000);
-      }
-    }
+async updateUI() {
+  if (!web3Manager.connected) {
+    this.showConnectionAlert();
+    return;
   }
+
+  // ✅ ИСПРАВЛЕНО: Проверяем, что контракты инициализированы
+  if (!contracts.contracts.stats || !contracts.contracts.globalway) {
+    console.warn('⚠️ Contracts not initialized yet, skipping UI update');
+    return;
+  }
+
+  try {
+    await this.loadUserData();
+  } catch (error) {
+    console.error('Error loading user data:', error);
+    Utils.showNotification('Error loading user data. Please reconnect wallet.', 'error');
+    return;
+  }
+  
+  this.updateHeader();
+  this.updateCabinet();
+
+  // Показываем админ-элементы
+  if (web3Manager.isAdmin()) {
+    console.log('✅ Admin access granted');
+    
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.style.display = '';
+      console.log('✅ Showing admin element:', el.className);
+    });
+
+    // Автооткрытие админки для Owner/Founder
+    if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
+      this.adminAutoOpened = true;
+      console.log('🔄 Attempting to auto-open admin panel...');
+      
+      setTimeout(async () => {
+        console.log('📂 Opening admin page...');
+        await this.showPage('admin');
+        console.log('✅ Admin panel auto-opened');
+      }, 1000);
+    }
+  } else {
+    console.log('❌ No admin access');
+  }
+}
 
   // ✅ ИСПРАВЛЕНО: Добавлена обработка ошибок сети
   async loadUserData() {
@@ -848,39 +864,85 @@ async loadHistory() {
     await this.loadMatrixStats();
   }
 
-  async loadMatrixVisualization() {
-    try {
-      if (!this.userStats || !this.userStats.isRegistered) {
-        console.log('⚠️ User not registered');
-        document.querySelectorAll('.matrix-position').forEach(el => {
-          if (el) el.innerHTML = '<div class="position-locked">🔒 Not Registered</div>';
+async loadMatrixVisualization() {
+  try {
+    if (!this.userStats || !this.userStats.isRegistered) {
+      console.log('⚠️ User not registered');
+      document.querySelectorAll('.matrix-position').forEach(el => {
+        if (el) el.innerHTML = '<div class="position-locked">🔒 Not Registered</div>';
+      });
+      return;
+    }
+    
+    const isLevelActive = this.userStats.activeLevels.includes(this.currentMatrixLevel);
+    if (!isLevelActive) {
+      console.log(`⚠️ Level ${this.currentMatrixLevel} not purchased`);
+      document.querySelectorAll('.matrix-position').forEach(el => {
+        if (el) el.innerHTML = '<div class="position-locked">🔒 Level Locked</div>';
+      });
+      return;
+    }
+    
+    console.log('✅ Loading matrix level', this.currentMatrixLevel);
+    
+    // ✅ ИСПРАВЛЕНО: Получаем позицию пользователя
+    const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, web3Manager.address);
+    console.log('📍 User position in matrix:', userPosition.toNumber());
+    
+    // ✅ ИСПРАВЛЕНО: Показываем пользователя только в его позиции, а не вверху
+    const userId = this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0);
+    
+    // Загружаем позиции матрицы
+    for (let i = 1; i <= 6; i++) {
+      const element = document.getElementById(`position${i}`);
+      if (!element) continue;
+      
+      try {
+        const position = await contracts.getMatrixPosition(this.currentMatrixLevel, i);
+        
+        if (position.user !== ethers.constants.AddressZero) {
+          const positionUserId = await contracts.getUserIdByAddress(position.user);
+          const type = await this.getPositionType(position.user);
+          
+          this.updateMatrixPosition(element, {
+            user: position.user,
+            id: positionUserId,
+            type: type
+          });
+          
+          console.log(`✅ Position ${i} loaded: GW${positionUserId}`);
+        } else {
+          this.updateMatrixPosition(element, {
+            user: ethers.constants.AddressZero,
+            id: 0,
+            type: 'available'
+          });
+        }
+      } catch (error) {
+        console.error(`❌ Error loading position ${i}:`, error);
+        this.updateMatrixPosition(element, {
+          user: ethers.constants.AddressZero,
+          id: 0,
+          type: 'available'
         });
-        return;
       }
-      
-      const isLevelActive = this.userStats.activeLevels.includes(this.currentMatrixLevel);
-      if (!isLevelActive) {
-        console.log(`⚠️ Level ${this.currentMatrixLevel} not purchased`);
-        document.querySelectorAll('.matrix-position').forEach(el => {
-          if (el) el.innerHTML = '<div class="position-locked">🔒 Level Locked</div>';
-        });
-        return;
-      }
-      
-      console.log('✅ Loading matrix level', this.currentMatrixLevel);
-      
-      const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, web3Manager.address);
-      console.log('📍 User position in matrix:', userPosition.toNumber());
-      
-      const topPos = document.getElementById('topPosition');
-      if (topPos) {
-        const userId = this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0);
-        this.updateMatrixPosition(topPos, {
-          user: web3Manager.address,
-          id: userId,
-          type: 'user'
-        });
-      }
+    }
+    
+    // ✅ ИСПРАВЛЕНО: Показываем текущего пользователя только в topPosition
+    const topPos = document.getElementById('topPosition');
+    if (topPos) {
+      this.updateMatrixPosition(topPos, {
+        user: web3Manager.address,
+        id: userId,
+        type: 'user'
+      });
+    }
+    
+    console.log('✅ Matrix visualization loaded');
+  } catch (error) {
+    console.error('❌ Error loading matrix visualization:', error);
+  }
+}
       
       for (let i = 1; i <= 6; i++) {
         const element = document.getElementById(`position${i}`);
@@ -1576,35 +1638,54 @@ async loadHistory() {
 
     // === ADMIN ===
 
-    async loadAdmin() {
-      if (window.adminManager) {
-        await adminManager.init();
-      }
-    }
-
-    // === MODALS ===
-
-    setupModals() {
-      document.querySelectorAll('.modal .close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', (e) => {
-          e.target.closest('.modal').style.display = 'none';
-        });
-      });
-      
-      window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) {
-          e.target.style.display = 'none';
-        }
-      });
-      
-      const closeModalBtn = document.getElementById('closeModalBtn');
-      if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-          const positionModal = document.getElementById('positionModal');
-          if (positionModal) positionModal.style.display = 'none';
-        });
-      }
-    }
+async loadAdmin() {
+  console.log('🔧 Loading admin panel...');
+  
+  // Проверяем, что контракты инициализированы
+  if (!contracts.contracts.stats || !contracts.contracts.globalway) {
+    console.error('❌ Contracts not initialized');
+    Utils.showNotification('Contracts not ready. Please reconnect wallet.', 'error');
+    this.showPage('dashboard');
+    return;
+  }
+  
+  // Проверяем, что HTML компонент загружен
+  const adminElement = document.getElementById('admin');
+  if (!adminElement || !adminElement.innerHTML || adminElement.innerHTML.trim() === '') {
+    console.error('❌ Admin HTML not loaded');
+    return;
+  }
+  
+  console.log('✅ Admin HTML loaded');
+  
+  // Проверяем права доступа
+  if (!web3Manager.isAdmin()) {
+    console.log('❌ No admin access');
+    Utils.showNotification('Admin access denied', 'error');
+    this.showPage('dashboard');
+    return;
+  }
+  
+  console.log('✅ Admin access confirmed');
+  
+  // Проверяем, что adminManager существует
+  if (!window.adminManager) {
+    console.error('❌ AdminManager not initialized');
+    Utils.showNotification('Admin panel not available', 'error');
+    return;
+  }
+  
+  console.log('🔄 Initializing adminManager...');
+  
+  // Инициализируем adminManager
+  try {
+    await adminManager.init();
+    console.log('✅ Admin panel loaded successfully');
+  } catch (error) {
+    console.error('❌ Error loading admin panel:', error);
+    Utils.showNotification('Error loading admin panel: ' + error.message, 'error');
+  }
+}
 
     showRegistrationModal() {
       const params = Utils.getUrlParams();
