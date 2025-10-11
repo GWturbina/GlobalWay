@@ -1,3 +1,17 @@
+// 🔥 ОЧИСТКА КЭША - ДОБАВЛЕНО В НАЧАЛО ФАЙЛА
+const APP_VERSION = '1.1.0'; // Увеличивайте при каждом обновлении
+const storedVersion = localStorage.getItem('app_version');
+
+if (storedVersion !== APP_VERSION) {
+  console.log('🔄 New version detected, clearing cache...');
+  console.log(`Old version: ${storedVersion}, New version: ${APP_VERSION}`);
+  
+  localStorage.clear();
+  localStorage.setItem('app_version', APP_VERSION);
+  
+  console.log('✅ Cache cleared successfully');
+}
+
 class App {
   constructor() {
     this.initialized = false;
