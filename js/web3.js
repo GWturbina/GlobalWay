@@ -72,6 +72,11 @@ class Web3Manager {
       console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
       console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
 
+    if (this.isMobile) {
+      console.log('⏳ Mobile delay for better compatibility...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      }
+
       // Always wait a bit for SafePal injection (safer UX)
       await this.waitForSafePal(5000);
       console.log('🔍 window.safepal:', !!window.safepal);
