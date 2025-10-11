@@ -11,7 +11,7 @@ class AdminManager {
     this.setupAdminActions();
   }
 
-  checkRights() {
+checkRights() {
     this.isOwner = web3Manager.isOwner();
     this.isFounder = web3Manager.isFounder();
     this.isBoard = web3Manager.isAdmin();
@@ -26,15 +26,32 @@ class AdminManager {
     if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
     if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
     
+    // ✅ ИСПРАВЛЕНО: НЕ скрываем элемент, просто показываем ошибку
     if (!this.isBoard) {
+      console.error('❌ No admin access for:', web3Manager.address);
+      console.log('Owner:', CONFIG.ADMIN.owner);
+      console.log('Founders:', CONFIG.ADMIN.founders);
+      console.log('Board:', CONFIG.ADMIN.board);
+      
       Utils.showNotification('Access denied: Admin rights required', 'error');
-      const adminEl = document.getElementById('admin');
-      if (adminEl) adminEl.style.display = 'none';
+      
+      // Показываем сообщение об отсутствии прав прямо в админке
+      const adminPageEl = document.querySelector('.admin-page');
+      if (adminPageEl) {
+        adminPageEl.innerHTML = `
+          <div style="text-align: center; padding: 50px;">
+            <h2>🔒 Access Denied</h2>
+            <p>You don't have admin rights.</p>
+            <p>Your address: <code>${web3Manager.address}</code></p>
+            <p>Contact the system administrator.</p>
+          </div>
+        `;
+      }
       return;
     }
-    const adminEl = document.getElementById('admin');
-    if (adminEl) adminEl.style.display = 'block';
-  } 
+    
+    console.log('✅ Admin access granted:', rightsLevel);
+} 
 
   async loadAdminStats() {
     try {
