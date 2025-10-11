@@ -10,13 +10,23 @@ class UIManager {
     this.adminAutoOpened = false;
   }
 
-  async init() {
-    await this.loadComponents();
-    this.setupNavigation();
-    this.setupModals();
-    await this.updateUI();
-  }
-
+ async init() {
+  // Контент уже в index.html, не грузим из файлов
+  console.log('ℹ️ Using embedded components');
+  
+  this.setupNavigation();
+  this.setupModals();
+  await this.updateUI();
+  
+  // Автооткрытие админки через 1.5 секунды
+  setTimeout(() => {
+    if (web3Manager.connected && (web3Manager.isOwner() || web3Manager.isFounder())) {
+      console.log('🔓 Opening admin panel...');
+      this.showPage('admin');
+    }
+  }, 1500);
+}
+  
   async loadComponents() {
     const components = ['dashboard', 'partners', 'matrix', 'tokens', 'projects', 'admin'];
     for (const comp of components) {
