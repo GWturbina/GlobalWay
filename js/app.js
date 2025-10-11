@@ -3,44 +3,54 @@ class App {
     this.initialized = false;
   }
 
-  async init() {
-    try {
-      console.log('Initializing GlobalWay DApp...');
+async init() {
+  try {
+    console.log('Initializing GlobalWay DApp...');
+    
+    // 1. Загрузить ABI
+    await contracts.loadABIs();
+    console.log('✅ ABIs loaded');
+    
+    // 2. Инициализировать Web3
+    await web3Manager.init();
+    console.log('✅ Web3 initialized');
+    
+    // ✅ ИСПРАВЛЕНО: Инициализируем контракты СРАЗУ если кошелёк автоподключён
+    if (web3Manager.connected && web3Manager.signer) {
+      console.log('🔗 Auto-connected wallet detected, initializing contracts...');
+      const contractsInitialized = contracts.init();
       
-      // 1. Загрузить ABI ПЕРВЫМ ДЕЛОМ
-      await contracts.loadABIs();
-      console.log('✅ ABIs loaded');
-      
-      // 2. Инициализировать Web3 (но не подключать кошелёк)
-      await web3Manager.init();
-      console.log('✅ Web3 initialized');
-      
-      // 3. НЕ инициализируем контракты здесь - они будут инициализированы после подключения кошелька
-      
-      // 4. Инициализировать UI
-      await uiManager.init();
-      console.log('✅ UI initialized');
-      
-      // 5. Настроить события
-      this.setupEvents();
-      
-      // 6. Настроить копирование
-      this.setupCopyButtons();
-      
-      // 7. Обработать URL параметры
-      await this.handleUrlParams();
-      
-      // 8. Настроить язык
-      this.setupLanguage();
-      
-      this.initialized = true;
-      console.log('✅ App initialized successfully');
-      
-    } catch (error) {
-      console.error('Initialization error:', error);
-      Utils.showNotification('Initialization failed', 'error');
+      if (contractsInitialized) {
+        console.log('✅ Contracts initialized during auto-connect');
+      } else {
+        console.warn('⚠️ Failed to initialize contracts during auto-connect');
+      }
     }
+    
+    // 4. Инициализировать UI
+    await uiManager.init();
+    console.log('✅ UI initialized');
+    
+    // 5. Настроить события
+    this.setupEvents();
+    
+    // 6. Настроить копирование
+    this.setupCopyButtons();
+    
+    // 7. Обработать URL параметры
+    await this.handleUrlParams();
+    
+    // 8. Настроить язык
+    this.setupLanguage();
+    
+    this.initialized = true;
+    console.log('✅ App initialized successfully');
+    
+  } catch (error) {
+    console.error('Initialization error:', error);
+    Utils.showNotification('Initialization failed', 'error');
   }
+}
 
   setupEvents() {
     const connectBtn = document.getElementById('connectBtn');
