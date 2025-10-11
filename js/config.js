@@ -13,7 +13,7 @@ const CONFIG = {
     }
   },
 
-  // ✅ ИСПРАВЛЕНО: Все адреса из успешного деплоя
+  // ✅ ПРАВИЛЬНЫЕ адреса контрактов
   CONTRACTS: {
     GWTToken: '0xdA10f5d40e5C0E3ad6E7c28D34559fE1BA79eB13',
     GlobalWay: '0x46036EA45e004898B14e1f9d7B910fd6EE0E0Aeb',
@@ -26,25 +26,25 @@ const CONFIG = {
     GlobalWayStats: '0xD849b3E460C813B378284eAf35d7968eFf8e5a45'
   },
 
+  // ✅ ПРАВИЛЬНЫЕ адреса администраторов
   ADMIN: {
-    owner: '0xC05E7BE81e98B31CdB79A0b837086c00aA1ddd2e',
+    owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
-    // ✅ ПРАВИЛЬНО: Адреса из смарт-контракта GlobalWay.sol
     founders: [
-      '0x03284A899147f5a07F82C622F34DF92198671635',  // Founder #1
-      '0x9b49bD9c9458615e11C051afd1EBe983563b67EE',  // Founder #2
-      '0xc2b58114cBc873cf360f7A673e4d8EE25d1431e7'   // Founder #3
+      '0x03284a899147f5a07f82c622f34df92198671635',
+      '0x9b49bd9c9458615e11c051afd1ebe983563b67ee',
+      '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7'
     ],
     
     board: [
-      '0xbDA5747bFD65F08deb54cb465eB87D40e51B197E',
-      '0x2546BcD3c84621e976D8185a91A922aE77ECEc30',
-      '0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826',
-      '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
-      '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
-      '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc',
-      '0x976EA74026E726554dB657fA54763abd0C3a0aa9',
-      '0x14dC79964da2C08b23698B3D3cc7Ca32193d9955'
+      '0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA',
+      '0x0AB97e3934b1Afc9F1F6447CCF676E4f1D8B9639',
+      '0x0561671297Eed07accACB41b4882ED61e87E3644',
+      '0x012E0B2b502FE0131Cb342117415a43d59094D6d',
+      '0x15b546a61865bdc46783ACfc50c3101a1121c69B',
+      '0xB5986B808dad481ad86D63DF152cC0ad7B473e48',
+      '0x4d2C77e59538deFe89E3B2951680547FC24aD52C',
+      '0xAB17aDbe29c4E1d695C239206682B02ebdB3f707'
     ]
   },
 
