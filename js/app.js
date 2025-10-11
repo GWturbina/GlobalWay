@@ -184,78 +184,88 @@ async init() {
   }
 
   // ✅ ИСПРАВЛЕНО: Улучшена проверка инициализации контрактов
-  async connectWallet() {
-    try {
-      Utils.showLoader(true);
-      
-      console.log('🔌 Connecting wallet...');
-      
-      // 1. Подключить кошелёк
-      const address = await web3Manager.connect();
-      console.log('✅ Wallet connected:', address);
-      
-      // 2. ✅ ИСПРАВЛЕНО: Детальная проверка инициализации контрактов
-      console.log('📦 Initializing contracts...');
-      const contractsInitialized = contracts.init();
-      
-      if (!contractsInitialized) {
-        Utils.showLoader(false);
-        Utils.showNotification(
-          'Failed to initialize smart contracts. Please refresh the page and try again.', 
-          'error'
-        );
-        console.error('❌ Contract initialization returned false');
-        console.log('Available ABIs:', Object.keys(contracts.abis).filter(k => contracts.abis[k]));
-        console.log('Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
-        throw new Error('Contract initialization failed. Check console for details.');
-      }
-      
-      console.log('✅ All contracts initialized successfully');
-      console.log('📊 Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
-      
-      Utils.showNotification('Wallet connected!', 'success');
-      
-      // 3. Проверить регистрацию
-      const isRegistered = await contracts.isUserRegistered(address);
-      console.log('📝 User registered:', isRegistered);
-      
-      if (!isRegistered) {
-        // Проверяем сохранённый referrer
-        let referrer = localStorage.getItem('referrer');
-        
-        // ✅ ИСПРАВЛЕНО: Проверяем инициализацию Stats контракта перед вызовом
-        const referrerId = localStorage.getItem('referrerId');
-        if (referrerId && !referrer) {
-          try {
-            if (contracts.contracts.stats) {
-              referrer = await contracts.getAddressByUserId(parseInt(referrerId));
-              localStorage.setItem('referrer', referrer);
-              console.log('✅ Referrer address resolved:', referrer);
-            } else {
-              console.warn('⚠️ Stats contract not initialized, cannot resolve referrer ID');
-            }
-          } catch (error) {
-            console.error('Error resolving referrer ID:', error);
-          }
-        }
-        
-        if (referrer && Utils.validateAddress(referrer)) {
-          uiManager.showRegistrationModal();
-        } else {
-          Utils.showNotification('You need a referral link to register', 'error');
-        }
-      } else {
-        await uiManager.updateUI();
-        uiManager.showPage('dashboard');
-      }
-      
-    } catch (error) {
-      console.error('Connect error:', error);
-      Utils.showNotification('Connection failed: ' + error.message, 'error');
-    } finally {
+ async connectWallet() {
+  try {
+    Utils.showLoader(true);
+    
+    console.log('🔌 Connecting wallet...');
+    
+    // 1. Подключить кошелёк
+    const address = await web3Manager.connect();
+    console.log('✅ Wallet connected:', address);
+    
+    // 2. ✅ ИСПРАВЛЕНО: Детальная проверка инициализации контрактов
+    console.log('📦 Initializing contracts...');
+    const contractsInitialized = contracts.init();
+    
+    if (!contractsInitialized) {
       Utils.showLoader(false);
+      Utils.showNotification(
+        'Failed to initialize smart contracts. Please refresh the page and try again.', 
+        'error'
+      );
+      console.error('❌ Contract initialization returned false');
+      console.log('Available ABIs:', Object.keys(contracts.abis).filter(k => contracts.abis[k]));
+      console.log('Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
+      throw new Error('Contract initialization failed. Check console for details.');
     }
+    
+    console.log('✅ All contracts initialized successfully');
+    console.log('📊 Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
+    
+    Utils.showNotification('Wallet connected!', 'success');
+    
+    // 3. Проверить регистрацию
+    const isRegistered = await contracts.isUserRegistered(address);
+    console.log('📝 User registered:', isRegistered);
+    
+    if (!isRegistered) {
+      // Проверяем сохранённый referrer
+      let referrer = localStorage.getItem('referrer');
+      
+      // ✅ ИСПРАВЛЕНО: Проверяем инициализацию Stats контракта перед вызовом
+      const referrerId = localStorage.getItem('referrerId');
+      if (referrerId && !referrer) {
+        try {
+          if (contracts.contracts.stats) {
+            referrer = await contracts.getAddressByUserId(parseInt(referrerId));
+            localStorage.setItem('referrer', referrer);
+            console.log('✅ Referrer address resolved:', referrer);
+          } else {
+            console.warn('⚠️ Stats contract not initialized, cannot resolve referrer ID');
+          }
+        } catch (error) {
+          console.error('Error resolving referrer ID:', error);
+        }
+      }
+      
+      if (referrer && Utils.validateAddress(referrer)) {
+        uiManager.showRegistrationModal();
+      } else {
+        Utils.showNotification('You need a referral link to register', 'error');
+      }
+    } else {
+      // 🔥 ИСПРАВЛЕНО: Переключаем с Landing на DApp
+      const landing = document.getElementById('landing');
+      const dapp = document.getElementById('dapp');
+      
+      if (landing) landing.classList.remove('active');
+      if (dapp) dapp.classList.add('active');
+      
+      // Загружаем данные и показываем Dashboard
+      await uiManager.updateUI();
+      uiManager.showPage('dashboard');
+      
+      Utils.showNotification('Welcome to GlobalWay!', 'success');
+    }
+    
+  } catch (error) {
+    console.error('Connect error:', error);
+    Utils.showNotification('Connection failed: ' + error.message, 'error');
+  } finally {
+    Utils.showLoader(false);
   }
+}
 
   openDapp() {
     const landing = document.getElementById('landing');
