@@ -271,8 +271,39 @@ class ContractsManager {
   async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
+  
+    console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
+  
     const tx = await this.contracts.globalway.buyLevel(level, { value: price });
-    await tx.wait();
+    console.log('📤 Transaction sent:', tx.hash);
+  
+    const receipt = await tx.wait();
+    console.log('✅ Transaction confirmed');
+  
+    // Проверяем события Marketing контракта
+    if (this.contracts.marketing) {
+      const events = receipt.logs.map(log => {
+        try {
+          if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
+            return this.contracts.marketing.interface.parseLog(log);
+          }
+        } catch (e) {
+          return null;
+        }
+      }).filter(e => e !== null);
+    
+      console.log('📊 Marketing events:', events.map(e => e.name));
+    
+      const hasMatrix = events.some(e => e.name === 'MatrixBonusPaid');
+      const hasReferral = events.some(e => e.name === 'ReferralBonusPaid');
+    
+      if (hasMatrix) console.log('✅ Matrix bonus distributed (48%)');
+      else console.warn('⚠️ Matrix bonus NOT distributed');
+    
+      if (hasReferral) console.log('✅ Referral bonus distributed (2%)');
+      else console.warn('⚠️ Referral bonus NOT distributed');
+    }
+  
     return tx.hash;
   }
 
