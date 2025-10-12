@@ -35,65 +35,44 @@
          - Uses a short timeout so normal desktop/tv webviews don't get redirected
     -->
     <script>
-      (function() {
-        try {
-          const ua = navigator.userAgent || '';
-          const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-          const isSafePalBrowser = ua.includes('SafePal') || ua.includes('safepal') || window.location.href.includes('safepal');
-          const url = new URL(window.location.href);
-          // Trigger deep-link if explicit ref or explicit param openInWallet=1
-          const shouldDeepLink = isMobile && !isSafePalBrowser && (url.searchParams.has('ref') || url.searchParams.get('openInWallet') === '1');
-
-          if (!shouldDeepLink) return;
-
-          // Build deep link to open this URL inside SafePal app's internal browser
-          const encoded = encodeURIComponent(window.location.href);
-          const isAndroid = /Android/i.test(ua);
-          const deepLink = isAndroid
-            ? `safepalwallet://open?url=${encoded}`
-            : `safepal://open?url=${encoded}`;
-
-          // Try to open deep link. If SafePal not installed, after timeout open app store.
-          let opened = false;
-          const now = Date.now();
-          const openLink = () => {
-            // For iOS use location assign; for Android assign as well
-            window.location.href = deepLink;
-            opened = true;
-          };
-
-          // Small delay to allow messenger webviews to settle (100ms)
-          setTimeout(() => {
-            openLink();
-          }, 120);
-
-          // If after 2.2s nothing happened, ask user to install SafePal
-          setTimeout(() => {
-            if (!opened) {
-              // fallback prompt
-              const storeUrl = /Android/i.test(ua)
-                ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
-                : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
-
-              // show native confirm only if not within an iframe
-              try {
-                const wantsInstall = confirm(
-                  'To continue please install or open SafePal Wallet.\n\nPress OK to open the store.'
-                );
-                if (wantsInstall) {
-                  window.open(storeUrl, '_blank');
-                }
-              } catch (e) {
-                // ignore
-              }
+    (function() {
+      try {
+        const ua = navigator.userAgent || '';
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+        const isSafePalBrowser = ua.includes('SafePal') || ua.includes('safepal') || window.location.href.includes('safepal');
+        const url = new URL(window.location.href);
+        
+        const shouldDeepLink = isMobile && !isSafePalBrowser && (url.searchParams.has('ref') || url.searchParams.get('openInWallet') === '1');
+        
+        if (!shouldDeepLink) return;
+        
+        const encoded = encodeURIComponent(window.location.href);
+        const isAndroid = /Android/i.test(ua);
+        const deepLink = isAndroid
+          ? `safepalwallet://open?url=${encoded}`
+          : `safepal://open?url=${encoded}`;
+        
+        // Сразу пытаемся открыть
+        window.location.href = deepLink;
+        
+        // Если через 2.5 секунды страница не ушла - показываем store
+        setTimeout(() => {
+          if (document.hasFocus()) {
+            const storeUrl = isAndroid
+              ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
+              : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
+            
+            if (confirm('Установите SafePal Wallet.\n\nОткрыть магазин?')) {
+              window.location.href = storeUrl;
             }
-          }, 2200);
-        } catch (e) {
-          // don't break the page
-          console.warn('SafePal deeplink helper error', e);
-        }
-      })();
-    </script>
+          }
+      }, 2500);
+      
+      } catch (e) {
+        console.warn('Deep-link error', e);
+      }
+    })();
+  </script>
 </head>
 <body>
     <div id="app">
