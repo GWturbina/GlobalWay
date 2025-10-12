@@ -334,26 +334,26 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/i18n.js"></script>
+    <script src="js/config.js?v=112"></script>
+    <script src="js/i18n.js?v=112"></script>
 
     <!-- ✅ ИСПРАВЛЕНО: Правильный порядок загрузки -->
     <!-- 1. СНАЧАЛА utils.js (используется всеми) -->
-    <script src="js/utils.js"></script>
+    <script src="js/utils.js?v=112"></script>
     
     <!-- 2. Web3 менеджер -->
-    <script src="js/web3.js"></script>
+    <script src="js/web3.js?v=112"></script>
     
     <!-- 3. Контракты (используют Utils) -->
-    <script src="js/contracts.js"></script>
+    <script src="js/contracts.js?v=112"></script>
     
     <!-- 4. UI (используют Utils и contracts) -->
-    <script src="js/ui.js"></script>
+    <script src="js/ui.js?v=112"></script>
     
     <!-- 5. Админка (использует UI) -->
-    <script src="js/admin.js"></script>
+    <script src="js/admin.js?v=112"></script>
     
     <!-- 6. Главное приложение (последним) -->
-    <script src="js/app.js"></script>
+    <script src="js/app.js?v=112"></script>
 </body>
 </html>
