@@ -454,18 +454,20 @@ class Web3Manager {
 
   isOwner() {
     if (!this.address || !CONFIG.ADMIN) return false;
-    return (CONFIG.ADMIN.owner && this.address.toLowerCase() === CONFIG.ADMIN.owner.toLowerCase());
+    const result = CONFIG.ADMIN.owner && this.address.toLowerCase() === CONFIG.ADMIN.owner.toLowerCase();
+    console.log('🔍 isOwner check:', this.address, '→', result);
+    return result;
   }
 
   isFounder() {
     if (!this.address || !CONFIG.ADMIN) return false;
     const addr = this.address.toLowerCase();
-    return this.isOwner() || (Array.isArray(CONFIG.ADMIN.founders) && CONFIG.ADMIN.founders.some(f => f.toLowerCase() === addr));
+    const result = this.isOwner() || (Array.isArray(CONFIG.ADMIN.founders) && CONFIG.ADMIN.founders.some(f => f.toLowerCase() === addr));
+    console.log('🔍 isFounder check:', this.address, '→', result);
+    console.log('📋 Founders list:', CONFIG.ADMIN.founders);
+    return result;
   }
-}
+  }
 
 // single global instance for your app to use
 const web3Manager = new Web3Manager();
-
-// If you want to auto-init on load, uncomment the following:
-// window.addEventListener('load', () => web3Manager.init());
