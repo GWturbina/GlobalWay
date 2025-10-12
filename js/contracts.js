@@ -226,11 +226,12 @@ class ContractsManager {
       // ✅ ИСПРАВЛЕНО: Итоговая статистика
       console.log(`📊 Contracts initialized: ${successCount}/${totalCount}`);
       
-      // Минимум требуется: GlobalWay, Token, Stats
+      // Минимум требуется: GlobalWay, Token, Stats, Governance
       const criticalContracts = [
         this.contracts.globalway,
         this.contracts.token,
-        this.contracts.stats
+        this.contracts.stats,
+        this.contracts.governance
       ];
       
       const allCriticalLoaded = criticalContracts.every(c => c !== null && c !== undefined);
