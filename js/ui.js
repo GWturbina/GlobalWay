@@ -820,36 +820,69 @@ class UIManager {
     tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
     
     try {
-      const referrals = await contracts.getUserReferrals(web3Manager.address);
+      // ✅ ИСПРАВЛЕНО: Рекурсивная загрузка партнеров по уровням
+      const partnersAtLevel = await this.getPartnersAtLevel(web3Manager.address, level);
       
-      if (referrals.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8">No partners yet</td></tr>';
+      if (partnersAtLevel.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8">No partners at this level yet</td></tr>';
         return;
       }
       
-      const bulkInfo = await contracts.getUsersBulkInfo(referrals);
       tbody.innerHTML = '';
       
-      for (let i = 0; i < referrals.length; i++) {
-        const addr = referrals[i];
-        const userId = await contracts.getUserIdByAddress(addr);
+      for (let i = 0; i < partnersAtLevel.length; i++) {
+        const addr = partnersAtLevel[i];
         
-        const row = tbody.insertRow();
-        row.innerHTML = `
-          <td>${i + 1}</td>
-          <td>${Utils.formatUserId(userId)}</td>
-          <td>${Utils.formatAddress(addr)}</td>
-          <td>${Utils.formatUserId(this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0))}</td>
-          <td>-</td>
-          <td>${level}</td>
-          <td>${bulkInfo.personalInvites[i]}</td>
-          <td>${Utils.getRankName(bulkInfo.leaderRanks[i])}</td>
-        `;
+        try {
+          const userId = await contracts.getUserIdByAddress(addr);
+          const userInfo = await contracts.getUserFullInfo(addr);
+          const sponsorId = userInfo.userId ? userInfo.userId.toNumber() : 0;
+          
+          const row = tbody.insertRow();
+          row.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${Utils.formatUserId(userId)}</td>
+            <td>${Utils.formatAddress(addr)}</td>
+            <td>${Utils.formatUserId(sponsorId)}</td>
+            <td>-</td>
+            <td>${level}</td>
+            <td>${userInfo.personalInvites || 0}</td>
+            <td>${Utils.getRankName(0)}</td>
+          `;
+        } catch (error) {
+          console.error(`Error loading partner ${i}:`, error);
+        }
       }
+      
+      console.log(`✅ Loaded ${partnersAtLevel.length} partners at level ${level}`);
+      
     } catch (error) {
       console.error('Error loading partners:', error);
       tbody.innerHTML = '<tr><td colspan="8">Error loading data</td></tr>';
     }
+  }
+  
+  // ✅ НОВАЯ ФУНКЦИЯ: Рекурсивное получение партнеров на определенном уровне
+  async getPartnersAtLevel(address, targetLevel) {
+    if (targetLevel === 1) {
+      // Уровень 1 = прямые рефералы
+      return await contracts.getUserReferrals(address);
+    }
+    
+    // Для уровней 2-12: собираем рефералов предыдущего уровня
+    const previousLevelPartners = await this.getPartnersAtLevel(address, targetLevel - 1);
+    const currentLevelPartners = [];
+    
+    for (const partnerAddr of previousLevelPartners) {
+      try {
+        const referrals = await contracts.getUserReferrals(partnerAddr);
+        currentLevelPartners.push(...referrals);
+      } catch (error) {
+        console.error(`Error getting referrals for ${partnerAddr}:`, error);
+      }
+    }
+    
+    return currentLevelPartners;
   }
 
   async loadPartnerStats() {
@@ -1182,12 +1215,35 @@ class UIManager {
     tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
     
     try {
-      const maxPositions = Math.pow(2, this.currentMatrixLevel) - 1;
-      tbody.innerHTML = '';
+      // ✅ ИСПРАВЛЕНО: Количество строк зависит от уровня
+      // Уровень 1: 2 строки (позиции 2-3)
+      // Уровень 2: 4 строки (позиции 4-7)
+      // Уровень 3: 8 строк (позиции 8-15)
+      // ...
+      // Уровень 12: 4096 строк
       
+      const targetAddress = this.viewingUserAddress || web3Manager.address;
+      const isLevelActive = await contracts.isLevelActive(targetAddress, this.currentMatrixLevel);
+      
+      if (!isLevelActive) {
+        tbody.innerHTML = '<tr><td colspan="7">Level not activated</td></tr>';
+        return;
+      }
+      
+      // Получаем позицию пользователя
+      const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
+      const userPosNum = userPosition.toNumber ? userPosition.toNumber() : Number(userPosition);
+      
+      // Рассчитываем диапазон позиций для этого уровня
+      const positionsInLevel = Math.pow(2, this.currentMatrixLevel);
+      const startPos = Math.pow(2, this.currentMatrixLevel); // Начальная позиция уровня
+      const endPos = startPos + positionsInLevel - 1;
+      
+      tbody.innerHTML = '';
       let loadedCount = 0;
       
-      for (let i = 1; i <= maxPositions && loadedCount < 20; i++) {
+      // Загружаем позиции для текущего уровня
+      for (let i = startPos; i <= endPos && loadedCount < positionsInLevel; i++) {
         try {
           const position = await contracts.getMatrixPosition(this.currentMatrixLevel, i);
           
@@ -1205,9 +1261,20 @@ class UIManager {
               <td>${this.currentMatrixLevel}</td>
               <td><span class="type-badge ${type}">${type}</span></td>
             `;
-            
-            loadedCount++;
+          } else {
+            // Показываем пустую строку
+            const row = tbody.insertRow();
+            row.innerHTML = `
+              <td>${i}</td>
+              <td colspan="6" style="text-align:center;color:#888;">Empty position</td>
+            `;
           }
+          
+          loadedCount++;
+          
+          // Ограничение: не более 100 строк для производительности
+          if (loadedCount >= 100) break;
+          
         } catch (error) {
           console.error(`Error loading matrix position ${i}:`, error);
         }
@@ -1216,6 +1283,9 @@ class UIManager {
       if (tbody.rows.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7">No positions yet</td></tr>';
       }
+      
+      console.log(`✅ Matrix table loaded: ${loadedCount} positions at level ${this.currentMatrixLevel}`);
+      
     } catch (error) {
       console.error('Error loading matrix table:', error);
       tbody.innerHTML = '<tr><td colspan="7">Error loading data</td></tr>';
