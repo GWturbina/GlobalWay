@@ -6,7 +6,11 @@ class AdminManager {
   }
 
   async init() {
-    this.checkRights();
+    const hasAccess = this.checkRights();
+    if (!hasAccess) {
+      console.log('❌ Admin init stopped: no access rights');
+      return;
+    }
     await this.loadAdminStats();
     this.setupAdminActions();
   }
@@ -47,7 +51,7 @@ checkRights() {
           </div>
         `;
       }
-      return;
+      return false;
     }
     
     console.log('✅ Admin access granted:', rightsLevel);
