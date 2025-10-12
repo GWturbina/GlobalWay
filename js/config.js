@@ -30,11 +30,12 @@ const CONFIG = {
   ADMIN: {
     owner: '0x7261b8aeaee2f806f64001596a67d68f2055acd2',
     
-    founders: [
-      '0x03284a899147f5a07f82c622f34df92198671635',
-      '0x9b49bd9c9458615e11c051afd1ebe983563b67ee',
-      '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7'
-    ],
+  founders: [
+    '0x03284a899147f5a07f82c622f34df92198671635',
+    '0x9b49bd9c9458615e11c051afd1ebe983563b67ee',
+    '0xc2b58114cbc873cf360f7a673e4d8ee25d1431e7',
+    '0x152b801e3ab0127616774b46531c19bc825e2f5c' // ✅ ДОБАВИТЬ
+   ],
     
     board: [
       '0x11c4FA4126f9B373c4b9A2D43986Cd331E32d2fA',
