@@ -1922,3 +1922,28 @@ textarea:focus {
   box-shadow: none !important;
   background: linear-gradient(135deg, #6c757d, #5a6268) !important;
 }
+
+  .admin-page section {
+      background: rgba(255,255,255,0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+  }
+
+  .admin-page h2, .admin-page h3, .admin-page h4 {
+      color: #fff;
+      margin-bottom: 15px;
+  }
+
+  .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+  }
+
+  .stat-card {
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+  }
