@@ -8,7 +8,7 @@ class UIManager {
     this.userStats = null;
     this.buyingLevel = false;
     this.adminAutoOpened = false;
-    this.viewingUserAddress = null; // 🔥 НОВОЕ: для просмотра чужой матрицы
+    this.viewingUserAddress = null;
   }
 
   async init() {
@@ -436,56 +436,95 @@ class UIManager {
     }
   }
 
+  // 🔥 ИСПРАВЛЕНО: Загрузка всех типов доходов
   async loadEarnings() {
     if (!this.userStats) return;
     
     try {
-      const container = document.getElementById('earningsRank');
+    const container = document.getElementById('earningsRank');
       if (container) container.innerHTML = '';
-      
-      const totalEarned = ethers.utils.formatEther(this.userStats.totalEarned);
-      
+    
+      const provider = web3Manager.provider;
+      const marketingContract = contracts.contracts.marketing;
+    
+      if (!provider || !marketingContract) {
+        console.warn('⚠️ Marketing contract not available');
+        // Показываем нули если контракт недоступен
+        if (container) {
+          container.innerHTML = `
+            <div class="earnings-item"><span>Direct Bonus:</span><span>0.0000 BNB</span></div>
+            <div class="earnings-item"><span>Partner Bonus:</span><span>0.0000 BNB</span></div>
+            <div class="earnings-item"><span>Matrix Bonus:</span><span>0.0000 BNB</span></div>
+            <div class="earnings-item"><span>Leadership Bonus:</span><span>0.0000 BNB</span></div>
+          `;
+        }
+        return;
+      }
+    
+      const currentBlock = await provider.getBlockNumber();
+      const fromBlock = Math.max(0, currentBlock - 50000);
+    
+      console.log(`📊 Loading earnings from block ${fromBlock} to ${currentBlock}`);
+    
       let directBonus = 0;
       let partnerBonus = 0;
-      let matrixBonus = parseFloat(totalEarned);
+      let matrixBonus = 0;
       let leaderBonus = 0;
       
+      // 🔍 Загрузка PersonalBonusPaid (10%)
       try {
-        const provider = web3Manager.provider;
-        const globalwayContract = contracts.contracts.globalway;
+      const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
+        const personalEvents = await marketingContract.queryFilter(personalFilter, fromBlock, currentBlock);
         
-        if (provider && globalwayContract) {
-          const currentBlock = await provider.getBlockNumber();
-          const fromBlock = Math.max(0, currentBlock - 2000);
-          
-          try {
-            const levelActivatedFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
-            const levelEvents = await globalwayContract.queryFilter(levelActivatedFilter, fromBlock, currentBlock);
-            console.log(`✅ Found ${levelEvents.length} LevelActivated events`);
-          } catch (e) {
-            console.warn('⚠️ LevelActivated event not found:', e.message);
-          }
-          
-          try {
-            const userRegisteredFilter = globalwayContract.filters.UserRegistered(web3Manager.address);
-            const regEvents = await globalwayContract.queryFilter(userRegisteredFilter, fromBlock, currentBlock);
-            console.log(`✅ Found ${regEvents.length} UserRegistered events`);
-          } catch (e) {
-            console.warn('⚠️ UserRegistered event not found:', e.message);
-          }
-        }
-      } catch (eventsError) {
-        console.warn('⚠️ Could not load events:', eventsError.message);
+        personalEvents.forEach(event => {
+          const amount = parseFloat(ethers.utils.formatEther(event.args.amount));
+          directBonus += amount;
+        });
+      
+        console.log(`✅ Personal bonus: ${directBonus} BNB (${personalEvents.length} events)`);
+      } catch (e) {
+        console.warn('⚠️ PersonalBonusPaid not found:', e.message);
+      }
+    
+      // 🔍 Загрузка ReferralBonusPaid (2%)
+      try {
+        const referralFilter = marketingContract.filters.ReferralBonusPaid(null, web3Manager.address);
+        const referralEvents = await marketingContract.queryFilter(referralFilter, fromBlock, currentBlock);
+      
+        referralEvents.forEach(event => {
+          const amount = parseFloat(ethers.utils.formatEther(event.args.amount));
+          partnerBonus += amount;
+        });
+      
+        console.log(`✅ Referral bonus: ${partnerBonus} BNB (${referralEvents.length} events)`);
+      } catch (e) {
+        console.warn('⚠️ ReferralBonusPaid not found:', e.message);
+      }
+    
+      // 🔍 Загрузка MatrixBonusPaid (48%)
+      try {
+        const matrixFilter = marketingContract.filters.MatrixBonusPaid(null, web3Manager.address);
+        const matrixEvents = await marketingContract.queryFilter(matrixFilter, fromBlock, currentBlock);
+      
+        matrixEvents.forEach(event => {
+          const amount = parseFloat(ethers.utils.formatEther(event.args.amount));
+          matrixBonus += amount;
+        });
+      
+        console.log(`✅ Matrix bonus: ${matrixBonus} BNB (${matrixEvents.length} events)`);
+      } catch (e) {
+        console.warn('⚠️ MatrixBonusPaid not found:', e.message);
       }
       
-      const earnings = {
-        'Direct Bonus': directBonus.toFixed(4),
-        'Partner Bonus': partnerBonus.toFixed(4),
-        'Matrix Bonus': matrixBonus.toFixed(4),
-        'Leadership Bonus': leaderBonus.toFixed(4)
-      };
-      
+      // Отображение результатов
       if (container) {
+        const earnings = {
+          'Direct Bonus': directBonus.toFixed(6),
+          'Partner Bonus': partnerBonus.toFixed(6),
+          'Matrix Bonus': matrixBonus.toFixed(6),
+          'Leadership Bonus': leaderBonus.toFixed(6)
+        };
+      
         for (const [label, value] of Object.entries(earnings)) {
           const item = document.createElement('div');
           item.className = 'earnings-item';
@@ -496,76 +535,167 @@ class UIManager {
           container.appendChild(item);
         }
       }
-      
+    
+      const totalIncome = directBonus + partnerBonus + matrixBonus + leaderBonus;
       const totalIncomeEl = document.getElementById('totalIncome');
       if (totalIncomeEl) {
-        totalIncomeEl.textContent = `${Utils.formatBNB(totalEarned)} BNB`;
+        totalIncomeEl.textContent = `${Utils.formatBNB(totalIncome.toFixed(6))} BNB`;
       }
-        
+    
       const rankBadge = document.getElementById('currentRankBadge');
       if (rankBadge) {
         rankBadge.textContent = Utils.getRankName(this.userStats.leaderRank);
         rankBadge.className = `rank-badge rank-${this.userStats.leaderRank}`;
       }
-      
-      console.log('✅ Earnings loaded');
+    
+      console.log('✅ Earnings loaded:', {
+        direct: directBonus,
+        partner: partnerBonus,
+        matrix: matrixBonus,
+        total: totalIncome
+      });
+    
     } catch (error) {
-      console.error('Error loading earnings:', error);
+      console.error('❌ Error loading earnings:', error);
     }
   }
 
+  // 🔥 ИСПРАВЛЕНО: Загрузка всех событий в историю
   async loadHistory() {
     const tbody = document.getElementById('historyTable');
     if (!tbody) return;
-    
+  
+    tbody.innerHTML = '<tr><td colspan="6">Loading...</td></tr>';
+  
     try {
       const provider = web3Manager.provider;
+      const marketingContract = contracts.contracts.marketing;
       const globalwayContract = contracts.contracts.globalway;
-      
+    
       if (!provider || !globalwayContract) {
-        tbody.innerHTML = '<tr><td colspan="6">Contract not initialized</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">Contracts not initialized</td></tr>';
         return;
       }
       
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 4999);
-      
+      const fromBlock = Math.max(0, currentBlock - 50000);
+    
+      const allEvents = [];
+    
+      // 🔍 Загрузка LevelActivated (покупки)
       try {
-        const levelActivatedFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
-        const levelEvents = await globalwayContract.queryFilter(levelActivatedFilter, fromBlock, currentBlock);
-        
-        tbody.innerHTML = '';
-        
-        if (levelEvents.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6">No transactions yet</td></tr>';
-          return;
-        }
-        
-        for (let i = 0; i < Math.min(levelEvents.length, 10); i++) {
-          const event = levelEvents[i];
+        const levelFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
+        const levelEvents = await globalwayContract.queryFilter(levelFilter, fromBlock, currentBlock);
+      
+        for (const event of levelEvents) {
           const block = await provider.getBlock(event.blockNumber);
-          const timestamp = block.timestamp;
-          
-          const level = event.args.level;
-          const amount = ethers.utils.formatEther(event.args.amount);
-          
-          const row = tbody.insertRow();
-          row.innerHTML = `
-            <td>${Utils.formatDateTime(timestamp)}</td>
-            <td>Level Purchase</td>
-            <td>Level ${level}</td>
-            <td class="amount-out">-${Utils.formatBNB(amount)} BNB</td>
-            <td><a href="${CONFIG.NETWORK.explorer}/tx/${event.transactionHash}" target="_blank">View</a></td>
-          `;
+          allEvents.push({
+            timestamp: block.timestamp,
+            type: 'Level Purchase',
+            details: `Level ${event.args.level}`,
+            amount: `-${ethers.utils.formatEther(event.args.amount)}`,
+            hash: event.transactionHash,
+            class: 'amount-out'
+          });
         }
-        
-        console.log('✅ History loaded with LevelActivated events');
-      } catch (error) {
-        console.error('Error loading LevelActivated events:', error);
-        tbody.innerHTML = '<tr><td colspan="6">History will appear after activating levels</td></tr>';
+      
+        console.log(`✅ Loaded ${levelEvents.length} level purchases`);
+      } catch (e) {
+        console.warn('⚠️ LevelActivated events not found');
       }
+    
+      // 🔍 Загрузка входящих выплат
+      if (marketingContract) {
+        try {
+          const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
+          const personalEvents = await marketingContract.queryFilter(personalFilter, fromBlock, currentBlock);
+        
+          for (const event of personalEvents) {
+            const block = await provider.getBlock(event.blockNumber);
+            allEvents.push({
+              timestamp: block.timestamp,
+              type: 'Direct Bonus',
+              details: 'Personal referral',
+              amount: `+${ethers.utils.formatEther(event.args.amount)}`,
+              hash: event.transactionHash,
+              class: 'amount-in'
+            });
+          }
+        
+          console.log(`✅ Loaded ${personalEvents.length} personal bonuses`);
+        } catch (e) {
+          console.warn('⚠️ PersonalBonusPaid not found');
+        }
+      
+        try {
+          const referralFilter = marketingContract.filters.ReferralBonusPaid(null, web3Manager.address);
+          const referralEvents = await marketingContract.queryFilter(referralFilter, fromBlock, currentBlock);
+        
+          for (const event of referralEvents) {
+            const block = await provider.getBlock(event.blockNumber);
+            allEvents.push({
+              timestamp: block.timestamp,
+              type: 'Partner Bonus',
+              details: `Level ${event.args.level || '-'}`,
+              amount: `+${ethers.utils.formatEther(event.args.amount)}`,
+              hash: event.transactionHash,
+              class: 'amount-in'
+            });
+          }
+        
+          console.log(`✅ Loaded ${referralEvents.length} referral bonuses`);
+        } catch (e) {
+          console.warn('⚠️ ReferralBonusPaid not found');
+        }
+      
+        try {
+          const matrixFilter = marketingContract.filters.MatrixBonusPaid(null, web3Manager.address);
+          const matrixEvents = await marketingContract.queryFilter(matrixFilter, fromBlock, currentBlock);
+          
+          for (const event of matrixEvents) {
+            const block = await provider.getBlock(event.blockNumber);
+            allEvents.push({
+              timestamp: block.timestamp,
+              type: 'Matrix Bonus',
+              details: `Level ${event.args.level || '-'}`,
+              amount: `+${ethers.utils.formatEther(event.args.amount)}`,
+              hash: event.transactionHash,
+              class: 'amount-in'
+            });
+          }
+        
+          console.log(`✅ Loaded ${matrixEvents.length} matrix bonuses`);
+        } catch (e) {
+          console.warn('⚠️ MatrixBonusPaid not found');
+        }
+      }
+    
+      // Сортировка по времени
+      allEvents.sort((a, b) => b.timestamp - a.timestamp);
+    
+      tbody.innerHTML = '';
+    
+      if (allEvents.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No transactions yet</td></tr>';
+        return;
+      }
+    
+      // Показываем последние 50
+      allEvents.slice(0, 50).forEach(event => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${Utils.formatDateTime(event.timestamp)}</td>
+          <td>${event.type}</td>
+          <td>${event.details}</td>
+          <td class="${event.class}">${Utils.formatBNB(event.amount)} BNB</td>
+          <td><a href="${CONFIG.NETWORK.explorer}/tx/${event.hash}" target="_blank">View</a></td>
+        `;
+      });
+    
+      console.log(`✅ History loaded: ${allEvents.length} total events`);
+    
     } catch (error) {
-      console.error('Error loading history:', error);
+      console.error('❌ Error loading history:', error);
       tbody.innerHTML = '<tr><td colspan="6">Error loading history</td></tr>';
     }
   }
@@ -832,7 +962,6 @@ class UIManager {
     const maxPositionsInfoEl = document.getElementById('maxPositionsInfo');
     if (maxPositionsInfoEl) maxPositionsInfoEl.textContent = maxPositions;
     
-    // Сброс просмотра чужой матрицы при смене уровня
     this.viewingUserAddress = null;
     
     await this.loadMatrixVisualization();
@@ -840,7 +969,6 @@ class UIManager {
     await this.loadMatrixStats();
   }
 
-  // 🔥 ГЛАВНАЯ ИСПРАВЛЕННАЯ ФУНКЦИЯ МАТРИЦЫ
   async loadMatrixVisualization() {
     try {
       if (!this.userStats || !this.userStats.isRegistered) {
@@ -851,11 +979,9 @@ class UIManager {
         return;
       }
       
-      // Определяем чью матрицу показываем
       const targetAddress = this.viewingUserAddress || web3Manager.address;
       const isViewingSelf = targetAddress.toLowerCase() === web3Manager.address.toLowerCase();
       
-      // Проверяем активность уровня у целевого пользователя
       const isLevelActive = await contracts.isLevelActive(targetAddress, this.currentMatrixLevel);
       
       if (!isLevelActive) {
@@ -872,16 +998,13 @@ class UIManager {
       
       console.log(`✅ Loading matrix level ${this.currentMatrixLevel} for`, targetAddress);
       
-      // 🔥 КЛЮЧЕВОЕ: Получаем позицию целевого пользователя в матрице
       const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
       const userPosNum = userPosition.toNumber ? userPosition.toNumber() : Number(userPosition);
       
-      console.log(`📍 Target user position: ${userPosNum}`);
+      console.log(`🔍 Target user position: ${userPosNum}`);
       
-      // Получаем ID целевого пользователя
       const targetUserId = await contracts.getUserIdByAddress(targetAddress);
       
-      // Показываем целевого пользователя наверху (topPosition)
       const topPos = document.getElementById('topPosition');
       if (topPos) {
         this.updateMatrixPosition(topPos, {
@@ -890,7 +1013,6 @@ class UIManager {
           type: isViewingSelf ? 'user' : 'viewed'
         });
         
-        // Добавляем кнопку возврата если смотрим чужую матрицу
         if (!isViewingSelf) {
           const returnBtn = document.createElement('button');
           returnBtn.textContent = '🏠 My Matrix';
@@ -900,32 +1022,24 @@ class UIManager {
         }
       }
       
-      // 🔥 ПРАВИЛЬНАЯ ЛОГИКА: Рассчитываем позиции в бинарном дереве
-      // Для позиции N:
-      // - Левый потомок: 2*N
-      // - Правый потомок: 2*N + 1
-      
       const basePosition = userPosNum;
       
-      // Первая линия (positions 2 и 3 в UI = левый и правый потомки)
       const firstLine = [
-        basePosition * 2,      // левый потомок
-        basePosition * 2 + 1   // правый потомок
+        basePosition * 2,
+        basePosition * 2 + 1
       ];
       
-      // Вторая линия (positions 4-7 в UI)
       const secondLine = [
-        firstLine[0] * 2,      // левый-левый
-        firstLine[0] * 2 + 1,  // левый-правый
-        firstLine[1] * 2,      // правый-левый
-        firstLine[1] * 2 + 1   // правый-правый
+        firstLine[0] * 2,
+        firstLine[0] * 2 + 1,
+        firstLine[1] * 2,
+        firstLine[1] * 2 + 1
       ];
       
       const allPositions = [...firstLine, ...secondLine];
       
       console.log('📊 Loading positions:', allPositions);
       
-      // Загружаем данные для каждой позиции
       for (let i = 0; i < allPositions.length; i++) {
         const element = document.getElementById(`position${i + 1}`);
         if (!element) continue;
@@ -933,14 +1047,12 @@ class UIManager {
         const globalPos = allPositions[i];
         
         try {
-          // 🔥 Получаем данные из контракта по ГЛОБАЛЬНОЙ позиции
           const position = await contracts.getMatrixPosition(this.currentMatrixLevel, globalPos);
           
           if (position.user !== ethers.constants.AddressZero) {
             const positionUserId = await contracts.getUserIdByAddress(position.user);
             const type = await this.getPositionType(position.user);
             
-            // Делаем кликабельной для перехода к этому пользователю
             element.style.cursor = 'pointer';
             element.onclick = async () => {
               await this.viewUserMatrix(position.user);
@@ -982,18 +1094,14 @@ class UIManager {
     }
   }
 
-  // 🔥 НОВАЯ ФУНКЦИЯ: Просмотр матрицы другого пользователя
   async viewUserMatrix(userAddress) {
     try {
       console.log('👁️ Viewing matrix for:', userAddress);
       
-      // Сохраняем адрес для просмотра
       this.viewingUserAddress = userAddress;
       
-      // Перезагружаем визуализацию
       await this.loadMatrixVisualization();
       
-      // Показываем уведомление
       const userId = await contracts.getUserIdByAddress(userAddress);
       Utils.showNotification(`Viewing matrix of GW${userId}`, 'info');
       
@@ -1004,7 +1112,6 @@ class UIManager {
     }
   }
 
-  // 🔥 НОВАЯ ФУНКЦИЯ: Возврат к своей матрице
   async returnToMyMatrix() {
     console.log('🏠 Returning to my matrix');
     this.viewingUserAddress = null;
@@ -1187,7 +1294,6 @@ class UIManager {
             return;
           }
           
-          // Переходим к матрице найденного пользователя
           await this.viewUserMatrix(address);
           
         } catch (error) {
@@ -1591,153 +1697,153 @@ class UIManager {
     if (modalTitle) modalTitle.textContent = project.name;
     if (modalDescription) modalDescription.textContent = project.description;
     if (modalStatus) {
-        modalStatus.textContent = Utils.getProjectStatus(project.status);
-        modalStatus.className = `project-status status-${project.status}`;
-      }
-      if (modalRequirements) modalRequirements.textContent = `Level ${project.requiredLevel}+`;
-      if (modalPrefix) modalPrefix.textContent = `${project.prefix}-XXXXXXX`;
-      
-      const hasAccess = this.userStats?.activeLevels.length >= project.requiredLevel;
-      if (actionBtn) {
-        actionBtn.disabled = !hasAccess || project.status === 'planning';
-        actionBtn.onclick = () => this.openProject(project.id);
-      }
-      
-      modal.style.display = 'block';
+      modalStatus.textContent = Utils.getProjectStatus(project.status);
+      modalStatus.className = `project-status status-${project.status}`;
     }
-
-    openProject(projectId) {
-      const project = CONFIG.PROJECTS.find(p => p.id === projectId);
-      if (!project) return;
-      
-      const userId = this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0);
-      const fullId = `${project.prefix}${String(userId).padStart(7, '0')}`;
-      
-      Utils.showNotification(`Opening ${project.name} with ID: ${fullId}`, 'info');
+    if (modalRequirements) modalRequirements.textContent = `Level ${project.requiredLevel}+`;
+    if (modalPrefix) modalPrefix.textContent = `${project.prefix}-XXXXXXX`;
+    
+    const hasAccess = this.userStats?.activeLevels.length >= project.requiredLevel;
+    if (actionBtn) {
+      actionBtn.disabled = !hasAccess || project.status === 'planning';
+      actionBtn.onclick = () => this.openProject(project.id);
     }
+    
+    modal.style.display = 'block';
+  }
 
-    setupProjectProposal() {
-      const proposalForm = document.getElementById('proposalForm');
-      if (!proposalForm) return;
+  openProject(projectId) {
+    const project = CONFIG.PROJECTS.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const userId = this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0);
+    const fullId = `${project.prefix}${String(userId).padStart(7, '0')}`;
+    
+    Utils.showNotification(`Opening ${project.name} with ID: ${fullId}`, 'info');
+  }
+
+  setupProjectProposal() {
+    const proposalForm = document.getElementById('proposalForm');
+    if (!proposalForm) return;
+    
+    proposalForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
       
-      proposalForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const data = {
-          author: document.getElementById('proposalAuthor').value,
-          contact: document.getElementById('proposalContact').value,
-          sphere: document.getElementById('proposalSphere').value,
-          idea: document.getElementById('proposalIdea').value,
-          description: document.getElementById('proposalDescription').value
-        };
-        
-        console.log('Project proposal submitted:', data);
-        Utils.showNotification('Proposal submitted! Thank you.', 'success');
-        e.target.reset();
+      const data = {
+        author: document.getElementById('proposalAuthor').value,
+        contact: document.getElementById('proposalContact').value,
+        sphere: document.getElementById('proposalSphere').value,
+        idea: document.getElementById('proposalIdea').value,
+        description: document.getElementById('proposalDescription').value
+      };
+      
+      console.log('Project proposal submitted:', data);
+      Utils.showNotification('Proposal submitted! Thank you.', 'success');
+      e.target.reset();
+    });
+  }
+
+  loadProjectStats() {
+    const active = CONFIG.PROJECTS.filter(p => p.status === 'active').length;
+    const dev = CONFIG.PROJECTS.filter(p => p.status === 'development').length;
+    const coming = CONFIG.PROJECTS.filter(p => p.status === 'coming').length;
+    const planning = CONFIG.PROJECTS.filter(p => p.status === 'planning').length;
+    
+    const totalEl = document.getElementById('totalProjects');
+    const activeEl = document.getElementById('activeProjects');
+    const devEl = document.getElementById('devProjects');
+    const comingEl = document.getElementById('comingProjects');
+    const reviewEl = document.getElementById('reviewProjects');
+    
+    if (totalEl) totalEl.textContent = CONFIG.PROJECTS.length;
+    if (activeEl) activeEl.textContent = active;
+    if (devEl) devEl.textContent = dev;
+    if (comingEl) comingEl.textContent = coming;
+    if (reviewEl) reviewEl.textContent = planning;
+  }
+
+  setupProjectActions() {
+    const joinProgramBtn = document.getElementById('joinProgram');
+    if (joinProgramBtn) {
+      joinProgramBtn.addEventListener('click', () => {
+        Utils.showNotification('Developer program coming soon!', 'info');
       });
     }
-
-    loadProjectStats() {
-      const active = CONFIG.PROJECTS.filter(p => p.status === 'active').length;
-      const dev = CONFIG.PROJECTS.filter(p => p.status === 'development').length;
-      const coming = CONFIG.PROJECTS.filter(p => p.status === 'coming').length;
-      const planning = CONFIG.PROJECTS.filter(p => p.status === 'planning').length;
-      
-      const totalEl = document.getElementById('totalProjects');
-      const activeEl = document.getElementById('activeProjects');
-      const devEl = document.getElementById('devProjects');
-      const comingEl = document.getElementById('comingProjects');
-      const reviewEl = document.getElementById('reviewProjects');
-      
-      if (totalEl) totalEl.textContent = CONFIG.PROJECTS.length;
-      if (activeEl) activeEl.textContent = active;
-      if (devEl) devEl.textContent = dev;
-      if (comingEl) comingEl.textContent = coming;
-      if (reviewEl) reviewEl.textContent = planning;
-    }
-
-    setupProjectActions() {
-      const joinProgramBtn = document.getElementById('joinProgram');
-      if (joinProgramBtn) {
-        joinProgramBtn.addEventListener('click', () => {
-          Utils.showNotification('Developer program coming soon!', 'info');
-        });
-      }
-      
-      const viewDocsBtn = document.getElementById('viewDocs');
-      if (viewDocsBtn) {
-        viewDocsBtn.addEventListener('click', () => {
-          window.open('https://docs.globalway.io', '_blank');
-        });
-      }
-    }
-
-    // === ADMIN ===
-
-    async loadAdmin() {
-      if (window.adminManager) {
-        await adminManager.init();
-      }
-    }
-
-    // === MODALS ===
-
-    setupModals() {
-      document.querySelectorAll('.modal .close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', (e) => {
-          e.target.closest('.modal').style.display = 'none';
-        });
+    
+    const viewDocsBtn = document.getElementById('viewDocs');
+    if (viewDocsBtn) {
+      viewDocsBtn.addEventListener('click', () => {
+        window.open('https://docs.globalway.io', '_blank');
       });
-      
-      window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) {
-          e.target.style.display = 'none';
-        }
-      });
-      
-      const closeModalBtn = document.getElementById('closeModalBtn');
-      if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-          const positionModal = document.getElementById('positionModal');
-          if (positionModal) positionModal.style.display = 'none';
-        });
-      }
-    }
-
-    showRegistrationModal() {
-      const params = Utils.getUrlParams();
-      let refAddress = params.ref;
-      
-      if (!refAddress) {
-        refAddress = localStorage.getItem('referrer');
-      }
-      
-      if (!refAddress || !Utils.validateAddress(refAddress)) {
-        Utils.showNotification('Invalid referral link', 'error');
-        return;
-      }
-      
-      if (confirm(`Register with sponsor: ${Utils.formatAddress(refAddress)}?`)) {
-        this.register(refAddress);
-      }
-    }
-
-    async register(sponsorAddress) {
-      Utils.showLoader(true);
-      try {
-        const tx = await contracts.register(sponsorAddress);
-        Utils.showNotification('Registration successful!', 'success');
-        await Utils.sleep(2000);
-        await this.loadUserData();
-        await this.updateUI();
-        this.showPage('dashboard');
-      } catch (error) {
-        console.error('Registration error:', error);
-        Utils.showNotification('Registration failed: ' + error.message, 'error');
-      } finally {
-        Utils.showLoader(false);
-      }
     }
   }
 
-  const uiManager = new UIManager();
+  // === ADMIN ===
+
+  async loadAdmin() {
+    if (window.adminManager) {
+      await adminManager.init();
+    }
+  }
+
+  // === MODALS ===
+
+  setupModals() {
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+      closeBtn.addEventListener('click', (e) => {
+        e.target.closest('.modal').style.display = 'none';
+      });
+    });
+    
+    window.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        e.target.style.display = 'none';
+      }
+    });
+    
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener('click', () => {
+        const positionModal = document.getElementById('positionModal');
+        if (positionModal) positionModal.style.display = 'none';
+      });
+    }
+  }
+
+  showRegistrationModal() {
+    const params = Utils.getUrlParams();
+    let refAddress = params.ref;
+    
+    if (!refAddress) {
+      refAddress = localStorage.getItem('referrer');
+    }
+    
+    if (!refAddress || !Utils.validateAddress(refAddress)) {
+      Utils.showNotification('Invalid referral link', 'error');
+      return;
+    }
+    
+    if (confirm(`Register with sponsor: ${Utils.formatAddress(refAddress)}?`)) {
+      this.register(refAddress);
+    }
+  }
+
+  async register(sponsorAddress) {
+    Utils.showLoader(true);
+    try {
+      const tx = await contracts.register(sponsorAddress);
+      Utils.showNotification('Registration successful!', 'success');
+      await Utils.sleep(2000);
+      await this.loadUserData();
+      await this.updateUI();
+      this.showPage('dashboard');
+    } catch (error) {
+      console.error('Registration error:', error);
+      Utils.showNotification('Registration failed: ' + error.message, 'error');
+    } finally {
+      Utils.showLoader(false);
+    }
+  }
+}
+
+const uiManager = new UIManager();
