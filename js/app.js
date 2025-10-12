@@ -67,19 +67,30 @@ async init() {
 }
 
   setupEvents() {
+    // ✅ ИСПРАВЛЕНО: Добавлена поддержка touch событий для мобильных
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const eventType = isMobile ? 'touchend' : 'click';
+    
     const connectBtn = document.getElementById('connectBtn');
     if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.connectWallet());
+      connectBtn.addEventListener(eventType, (e) => {
+        if (isMobile) e.preventDefault();
+        this.connectWallet();
+      });
     }
     
     const openDappBtn = document.getElementById('openDapp');
     if (openDappBtn) {
-      openDappBtn.addEventListener('click', () => this.openDapp());
+      openDappBtn.addEventListener(eventType, (e) => {
+        if (isMobile) e.preventDefault();
+        this.openDapp();
+      });
     }
     
     const copyRefLinkBtn = document.getElementById('copyRefLink');
     if (copyRefLinkBtn) {
-      copyRefLinkBtn.addEventListener('click', () => {
+      copyRefLinkBtn.addEventListener(eventType, (e) => {
+        if (isMobile) e.preventDefault();
         const refLink = document.getElementById('refLink');
         if (refLink) {
           Utils.copyToClipboard(refLink.value);
@@ -89,11 +100,15 @@ async init() {
     
     const generateQRBtn = document.getElementById('generateQR');
     if (generateQRBtn) {
-      generateQRBtn.addEventListener('click', () => this.generateRefQR());
+      generateQRBtn.addEventListener(eventType, (e) => {
+        if (isMobile) e.preventDefault();
+        this.generateRefQR();
+      });
     }
     
     document.querySelectorAll('.planet').forEach(planet => {
-      planet.addEventListener('click', (e) => {
+      planet.addEventListener(eventType, (e) => {
+        if (isMobile) e.preventDefault();
         const planetType = e.currentTarget.dataset.planet;
         this.showPlanetInfo(planetType);
       });
