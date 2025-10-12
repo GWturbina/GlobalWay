@@ -18,7 +18,6 @@ class ContractsManager {
     console.log('⏳ Loading contract ABIs from contracts-config.json...');
 
     try {
-      // ✅ ИСПРАВЛЕНО: Абсолютный путь от корня (без './')
       const response = await fetch('/contracts/contracts-config.json');
   
       if (!response.ok) {
@@ -56,7 +55,6 @@ class ContractsManager {
 
     console.log('🔗 Initializing contracts...');
     
-    // ✅ ИСПРАВЛЕНО: Счётчик успешно инициализированных контрактов
     let successCount = 0;
     let totalCount = 0;
     
@@ -223,10 +221,8 @@ class ContractsManager {
         console.error('❌ Marketing ABI missing or invalid');
       }
 
-      // ✅ ИСПРАВЛЕНО: Итоговая статистика
       console.log(`📊 Contracts initialized: ${successCount}/${totalCount}`);
       
-      // Минимум требуется: GlobalWay, Token, Stats
       const criticalContracts = [
         this.contracts.globalway,
         this.contracts.token,
@@ -268,12 +264,58 @@ class ContractsManager {
     return tx.hash;
   }
 
+  // 🔥 ИСПРАВЛЕНО: buyLevel с проверкой событий Marketing
   async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
-    const tx = await this.contracts.globalway.buyLevel(level, { value: price });
-    await tx.wait();
-    return tx.hash;
+    
+    console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
+    
+    try {
+      const tx = await this.contracts.globalway.buyLevel(level, { value: price });
+      console.log('📤 Transaction sent:', tx.hash);
+      
+      const receipt = await tx.wait();
+      console.log('✅ Transaction confirmed');
+      
+      // 🔍 Проверяем события
+      const events = receipt.logs.map(log => {
+        try {
+          if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWay.toLowerCase()) {
+            return this.contracts.globalway.interface.parseLog(log);
+          }
+          if (this.contracts.marketing && log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
+            return this.contracts.marketing.interface.parseLog(log);
+          }
+        } catch (e) {
+          return null;
+        }
+      }).filter(e => e !== null);
+      
+      console.log('📊 Events triggered:', events.map(e => e.name));
+      
+      const hasMatrixBonus = events.some(e => e.name === 'MatrixBonusPaid');
+      const hasReferralBonus = events.some(e => e.name === 'ReferralBonusPaid');
+      
+      if (!hasMatrixBonus) {
+        console.warn('⚠️ MatrixBonusPaid event NOT found');
+      } else {
+        console.log('✅ Matrix bonus distributed (48%)');
+      }
+      
+      if (!hasReferralBonus) {
+        console.warn('⚠️ ReferralBonusPaid event NOT found');
+      } else {
+        console.log('✅ Referral bonus distributed (2%)');
+      }
+      
+      return tx.hash;
+      
+    } catch (error) {
+      console.error('❌ buyLevel failed:', error);
+      throw error;
+    }
   }
 
   async buyLevelsBulk(maxLevel) {
@@ -325,19 +367,16 @@ class ContractsManager {
     return activeLevels;
   }
 
-  // ✅ ИСПРАВЛЕНО: Нормализация данных матрицы
   async getMatrixPosition(level, position) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     try {
       const pos = await this.contracts.globalway.getMatrixPosition(level, position);
       
-      // Контракт может вернуть tuple [address, uint256] или объект {user, position}
       const normalizedData = {
         user: pos[0] || pos.user || ethers.constants.AddressZero,
         position: pos[1] !== undefined ? pos[1] : (pos.position !== undefined ? pos.position : 0)
       };
       
-      // Если адрес нулевой, возвращаем пустую позицию
       if (normalizedData.user === ethers.constants.AddressZero) {
         console.log(`Position ${position} at level ${level} is empty`);
       }
