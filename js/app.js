@@ -93,7 +93,7 @@ async init() {
         });
       });
     }, 500); // Задержка 500мс для загрузки DOM
-  }}
+  }
 
   setupCopyButtons() {
     document.querySelectorAll('[data-copy]').forEach(btn => {
