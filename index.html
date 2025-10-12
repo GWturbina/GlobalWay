@@ -337,14 +337,23 @@
     <script src="js/config.js"></script>
     <script src="js/i18n.js"></script>
 
-    <!-- our improved SafePal-aware web3 manager -->
-    <script src="js/web3.js"></script>
-
-    <!-- ✅ ИСПРАВЛЕНО: utils.js должен загружаться ПЕРЕД contracts.js -->
+    <!-- ✅ ИСПРАВЛЕНО: Правильный порядок загрузки -->
+    <!-- 1. СНАЧАЛА utils.js (используется всеми) -->
     <script src="js/utils.js"></script>
+    
+    <!-- 2. Web3 менеджер -->
+    <script src="js/web3.js"></script>
+    
+    <!-- 3. Контракты (используют Utils) -->
     <script src="js/contracts.js"></script>
-    <script src="js/admin.js"></script>
+    
+    <!-- 4. UI (используют Utils и contracts) -->
     <script src="js/ui.js"></script>
+    
+    <!-- 5. Админка (использует UI) -->
+    <script src="js/admin.js"></script>
+    
+    <!-- 6. Главное приложение (последним) -->
     <script src="js/app.js"></script>
 </body>
 </html>
