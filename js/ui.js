@@ -570,7 +570,7 @@ class UIManager {
       }
       
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 50000);
+      const fromBlock = 0; // ✅ Загружать все блоки
     
       const allEvents = [];
     
