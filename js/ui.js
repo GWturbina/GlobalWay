@@ -1927,5 +1927,5 @@ class UIManager {
     }
   }
 }
-
 const uiManager = new UIManager();
+window.UIManager = uiManager;
