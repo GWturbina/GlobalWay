@@ -59,44 +59,41 @@ async init() {
 }
 
   setupEvents() {
-    const connectBtn = document.getElementById('connectBtn');
-    if (connectBtn) {
-      connectBtn.addEventListener('click', () => {
-        this.connectWallet();
-      });
-    }
+    // Задержка для мобильных браузеров
+    setTimeout(() => {
+      const connectBtn = document.getElementById('connectBtn');
+      if (connectBtn) {
+        connectBtn.addEventListener('click', () => this.connectWallet());
+      }
+      
+      const openDappBtn = document.getElementById('openDapp');
+      if (openDappBtn) {
+        openDappBtn.addEventListener('click', () => this.openDapp());
+      }
     
-    const openDappBtn = document.getElementById('openDapp');
-    if (openDappBtn) {
-      openDappBtn.addEventListener('click', () => {
-        this.openDapp();
-      });
-    }
+      const copyRefLinkBtn = document.getElementById('copyRefLink');
+      if (copyRefLinkBtn) {
+        copyRefLinkBtn.addEventListener('click', () => {
+          const refLink = document.getElementById('refLink');
+          if (refLink) {
+            Utils.copyToClipboard(refLink.value);
+          }
+        });
+      }
     
-    const copyRefLinkBtn = document.getElementById('copyRefLink');
-    if (copyRefLinkBtn) {
-      copyRefLinkBtn.addEventListener('click', () => {
-        const refLink = document.getElementById('refLink');
-        if (refLink) {
-          Utils.copyToClipboard(refLink.value);
-        }
-      });
-    }
+      const generateQRBtn = document.getElementById('generateQR');
+      if (generateQRBtn) {
+        generateQRBtn.addEventListener('click', () => this.generateRefQR());
+      }
     
-    const generateQRBtn = document.getElementById('generateQR');
-    if (generateQRBtn) {
-      generateQRBtn.addEventListener('click', () => {
-        this.generateRefQR();
+      document.querySelectorAll('.planet').forEach(planet => {
+        planet.addEventListener('click', (e) => {
+          const planetType = e.currentTarget.dataset.planet;
+          this.showPlanetInfo(planetType);
+        });
       });
-    }
-    
-    document.querySelectorAll('.planet').forEach(planet => {
-      planet.addEventListener('click', (e) => {
-        const planetType = e.currentTarget.dataset.planet;
-        this.showPlanetInfo(planetType);
-      });
-    });
-  }
+    }, 500); // Задержка 500мс для загрузки DOM
+  }}
 
   setupCopyButtons() {
     document.querySelectorAll('[data-copy]').forEach(btn => {
