@@ -1,4 +1,3 @@
-// ui.js - ПОЛНОСТЬЮ ИСПРАВЛЕННАЯ ВЕРСИЯ С ПРАВИЛЬНОЙ ЛОГИКОЙ МАТРИЦЫ
 class UIManager {
   constructor() {
     this.currentPage = 'dashboard';
@@ -436,7 +435,6 @@ class UIManager {
     }
   }
 
-  // 🔥 ИСПРАВЛЕНО: Загрузка всех типов доходов
   async loadEarnings() {
     if (!this.userStats) return;
     
@@ -449,7 +447,6 @@ class UIManager {
     
       if (!provider || !marketingContract) {
         console.warn('⚠️ Marketing contract not available');
-        // Показываем нули если контракт недоступен
         if (container) {
           container.innerHTML = `
             <div class="earnings-item"><span>Direct Bonus:</span><span>0.0000 BNB</span></div>
@@ -471,7 +468,6 @@ class UIManager {
       let matrixBonus = 0;
       let leaderBonus = 0;
       
-      // 🔍 Загрузка PersonalBonusPaid (10%)
       try {
       const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
         const personalEvents = await marketingContract.queryFilter(personalFilter, fromBlock, currentBlock);
@@ -486,7 +482,6 @@ class UIManager {
         console.warn('⚠️ PersonalBonusPaid not found:', e.message);
       }
     
-      // 🔍 Загрузка ReferralBonusPaid (2%)
       try {
         const referralFilter = marketingContract.filters.ReferralBonusPaid(null, web3Manager.address);
         const referralEvents = await marketingContract.queryFilter(referralFilter, fromBlock, currentBlock);
@@ -501,7 +496,6 @@ class UIManager {
         console.warn('⚠️ ReferralBonusPaid not found:', e.message);
       }
     
-      // 🔍 Загрузка MatrixBonusPaid (48%)
       try {
         const matrixFilter = marketingContract.filters.MatrixBonusPaid(null, web3Manager.address);
         const matrixEvents = await marketingContract.queryFilter(matrixFilter, fromBlock, currentBlock);
@@ -516,7 +510,6 @@ class UIManager {
         console.warn('⚠️ MatrixBonusPaid not found:', e.message);
       }
       
-      // Отображение результатов
       if (container) {
         const earnings = {
           'Direct Bonus': directBonus.toFixed(6),
@@ -560,7 +553,6 @@ class UIManager {
     }
   }
 
-  // 🔥 ИСПРАВЛЕНО: Загрузка всех событий в историю
   async loadHistory() {
     const tbody = document.getElementById('historyTable');
     if (!tbody) return;
@@ -582,7 +574,6 @@ class UIManager {
     
       const allEvents = [];
     
-      // 🔍 Загрузка LevelActivated (покупки)
       try {
         const levelFilter = globalwayContract.filters.LevelActivated(web3Manager.address);
         const levelEvents = await globalwayContract.queryFilter(levelFilter, fromBlock, currentBlock);
@@ -604,7 +595,6 @@ class UIManager {
         console.warn('⚠️ LevelActivated events not found');
       }
     
-      // 🔍 Загрузка входящих выплат
       if (marketingContract) {
         try {
           const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
@@ -670,7 +660,6 @@ class UIManager {
         }
       }
     
-      // Сортировка по времени
       allEvents.sort((a, b) => b.timestamp - a.timestamp);
     
       tbody.innerHTML = '';
@@ -680,7 +669,6 @@ class UIManager {
         return;
       }
     
-      // Показываем последние 50
       allEvents.slice(0, 50).forEach(event => {
         const row = tbody.insertRow();
         row.innerHTML = `
@@ -820,7 +808,6 @@ class UIManager {
     tbody.innerHTML = '<tr><td colspan="8">Loading...</td></tr>';
     
     try {
-      // ✅ ИСПРАВЛЕНО: Рекурсивная загрузка партнеров по уровням
       const partnersAtLevel = await this.getPartnersAtLevel(web3Manager.address, level);
       
       if (partnersAtLevel.length === 0) {
@@ -862,23 +849,30 @@ class UIManager {
     }
   }
   
-  // ✅ НОВАЯ ФУНКЦИЯ: Рекурсивное получение партнеров на определенном уровне
   async getPartnersAtLevel(address, targetLevel) {
     if (targetLevel === 1) {
-      // Уровень 1 = прямые рефералы
       return await contracts.getUserReferrals(address);
     }
     
-    // Для уровней 2-12: собираем рефералов предыдущего уровня
-    const previousLevelPartners = await this.getPartnersAtLevel(address, targetLevel - 1);
-    const currentLevelPartners = [];
+    let currentLevelPartners = [address];
     
-    for (const partnerAddr of previousLevelPartners) {
-      try {
-        const referrals = await contracts.getUserReferrals(partnerAddr);
-        currentLevelPartners.push(...referrals);
-      } catch (error) {
-        console.error(`Error getting referrals for ${partnerAddr}:`, error);
+    for (let level = 1; level <= targetLevel; level++) {
+      const nextLevelPartners = [];
+      
+      for (const partnerAddr of currentLevelPartners) {
+        try {
+          const referrals = await contracts.getUserReferrals(partnerAddr);
+          nextLevelPartners.push(...referrals);
+        } catch (error) {
+          console.error(`Error getting referrals for ${partnerAddr}:`, error);
+        }
+      }
+      
+      currentLevelPartners = nextLevelPartners;
+      
+      if (currentLevelPartners.length > 1000) {
+        console.warn(`⚠️ Too many partners at level ${level}: ${currentLevelPartners.length}. Stopping.`);
+        break;
       }
     }
     
@@ -954,7 +948,7 @@ class UIManager {
     if (totalEarnedEl) totalEarnedEl.textContent = `${Utils.formatBNB(total)} BNB`;
   }
 
-  // === MATRIX - 🔥 ПОЛНОСТЬЮ ПЕРЕПИСАННАЯ ЛОГИКА ===
+  // === MATRIX ===
 
   async loadMatrix() {
     this.setupMatrixLevels();
@@ -1031,20 +1025,23 @@ class UIManager {
       
       console.log(`✅ Loading matrix level ${this.currentMatrixLevel} for`, targetAddress);
       
-      const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
-      const userPosNum = userPosition.toNumber ? userPosition.toNumber() : Number(userPosition);
+      const globalPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
+      const globalPosNum = globalPosition.toNumber ? globalPosition.toNumber() : Number(globalPosition);
       
-      console.log(`🔍 Target user position: ${userPosNum}`);
+      console.log(`📍 User global position: ${globalPosNum}`);
       
       const targetUserId = await contracts.getUserIdByAddress(targetAddress);
       
       const topPos = document.getElementById('topPosition');
       if (topPos) {
-        this.updateMatrixPosition(topPos, {
-          user: targetAddress,
-          id: targetUserId,
-          type: isViewingSelf ? 'user' : 'viewed'
-        });
+        topPos.innerHTML = `
+          <div class="position-avatar">${isViewingSelf ? '👤' : '👁️'}</div>
+          <div class="position-id">${Utils.formatUserId(targetUserId)}</div>
+          <div class="position-type">${isViewingSelf ? 'You' : 'Viewing'}</div>
+          <div style="font-size:10px;color:#888;margin-top:5px;">
+            Local: 1 | Global: ${globalPosNum}
+          </div>
+        `;
         
         if (!isViewingSelf) {
           const returnBtn = document.createElement('button');
@@ -1055,21 +1052,22 @@ class UIManager {
         }
       }
       
-      const basePosition = userPosNum;
+      const leftChild = globalPosNum * 2;
+      const rightChild = globalPosNum * 2 + 1;
       
-      const firstLine = [
-        basePosition * 2,
-        basePosition * 2 + 1
+      const leftLeftGrandchild = leftChild * 2;
+      const leftRightGrandchild = leftChild * 2 + 1;
+      const rightLeftGrandchild = rightChild * 2;
+      const rightRightGrandchild = rightChild * 2 + 1;
+      
+      const allPositions = [
+        leftChild,
+        rightChild,
+        leftLeftGrandchild,
+        leftRightGrandchild,
+        rightLeftGrandchild,
+        rightRightGrandchild
       ];
-      
-      const secondLine = [
-        firstLine[0] * 2,
-        firstLine[0] * 2 + 1,
-        firstLine[1] * 2,
-        firstLine[1] * 2 + 1
-      ];
-      
-      const allPositions = [...firstLine, ...secondLine];
       
       console.log('📊 Loading positions:', allPositions);
       
@@ -1091,32 +1089,49 @@ class UIManager {
               await this.viewUserMatrix(position.user);
             };
             
-            this.updateMatrixPosition(element, {
-              user: position.user,
-              id: positionUserId,
-              type: type
-            });
+            const localPos = i + 2;
             
-            console.log(`✅ Position ${i + 1} (global ${globalPos}): GW${positionUserId}`);
+            element.innerHTML = `
+              <div class="position-avatar">${type === 'user' ? '👤' : 
+                                            type === 'partner' ? '👥' :
+                                            type === 'charity' ? '❤️' :
+                                            type === 'technical' ? '⚙️' : '?'}</div>
+              <div class="position-id">${Utils.formatUserId(positionUserId)}</div>
+              <div class="position-type">${type}</div>
+              <div style="font-size:10px;color:#888;margin-top:5px;">
+                Local: ${localPos} | Global: ${globalPos}
+              </div>
+            `;
+            
+            element.classList.remove('available');
+            element.classList.add(type);
+            
+            console.log(`✅ Position ${i + 1} (local ${localPos}, global ${globalPos}): GW${positionUserId}`);
           } else {
-            this.updateMatrixPosition(element, {
-              user: ethers.constants.AddressZero,
-              id: 0,
-              type: 'available'
-            });
+            const localPos = i + 2;
             
+            element.innerHTML = `
+              <div class="position-avatar">⭕</div>
+              <div class="position-id">Empty</div>
+              <div class="position-type">available</div>
+              <div style="font-size:10px;color:#888;margin-top:5px;">
+                Local: ${localPos} | Global: ${globalPos}
+              </div>
+            `;
+            
+            element.classList.remove('partner', 'charity', 'technical', 'user');
+            element.classList.add('available');
             element.style.cursor = 'default';
             element.onclick = null;
             
-            console.log(`⭕ Position ${i + 1} (global ${globalPos}): Empty`);
+            console.log(`⭕ Position ${i + 1} (local ${localPos}, global ${globalPos}): Empty`);
           }
         } catch (error) {
           console.error(`❌ Error loading position ${i + 1} (global ${globalPos}):`, error);
-          this.updateMatrixPosition(element, {
-            user: ethers.constants.AddressZero,
-            id: 0,
-            type: 'available'
-          });
+          element.innerHTML = `
+            <div class="position-avatar">❌</div>
+            <div class="position-id">Error</div>
+          `;
         }
       }
       
@@ -1215,13 +1230,6 @@ class UIManager {
     tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
     
     try {
-      // ✅ ИСПРАВЛЕНО: Количество строк зависит от уровня
-      // Уровень 1: 2 строки (позиции 2-3)
-      // Уровень 2: 4 строки (позиции 4-7)
-      // Уровень 3: 8 строк (позиции 8-15)
-      // ...
-      // Уровень 12: 4096 строк
-      
       const targetAddress = this.viewingUserAddress || web3Manager.address;
       const isLevelActive = await contracts.isLevelActive(targetAddress, this.currentMatrixLevel);
       
@@ -1230,22 +1238,26 @@ class UIManager {
         return;
       }
       
-      // Получаем позицию пользователя
-      const userPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
-      const userPosNum = userPosition.toNumber ? userPosition.toNumber() : Number(userPosition);
+      const globalPosition = await contracts.getUserMatrixPosition(this.currentMatrixLevel, targetAddress);
+      const globalPosNum = globalPosition.toNumber ? globalPosition.toNumber() : Number(globalPosition);
       
-      // Рассчитываем диапазон позиций для этого уровня
-      const positionsInLevel = Math.pow(2, this.currentMatrixLevel);
-      const startPos = Math.pow(2, this.currentMatrixLevel); // Начальная позиция уровня
-      const endPos = startPos + positionsInLevel - 1;
+      const startLocalPos = Math.pow(2, this.currentMatrixLevel);
+      const endLocalPos = Math.pow(2, this.currentMatrixLevel + 1) - 1;
+      
+      console.log(`📊 Loading matrix table for level ${this.currentMatrixLevel}`);
+      console.log(`   Local positions: ${startLocalPos}-${endLocalPos}`);
+      console.log(`   User global position: ${globalPosNum}`);
       
       tbody.innerHTML = '';
-      let loadedCount = 0;
       
-      // Загружаем позиции для текущего уровня
-      for (let i = startPos; i <= endPos && loadedCount < positionsInLevel; i++) {
+      for (let localPos = startLocalPos; localPos <= endLocalPos; localPos++) {
+        const depth = Math.floor(Math.log2(localPos));
+        const offsetInLine = localPos - Math.pow(2, depth);
+        
+        const globalPos = globalPosNum * Math.pow(2, depth) + offsetInLine;
+        
         try {
-          const position = await contracts.getMatrixPosition(this.currentMatrixLevel, i);
+          const position = await contracts.getMatrixPosition(this.currentMatrixLevel, globalPos);
           
           if (position.user !== ethers.constants.AddressZero) {
             const userId = await contracts.getUserIdByAddress(position.user);
@@ -1253,30 +1265,30 @@ class UIManager {
             
             const row = tbody.insertRow();
             row.innerHTML = `
-              <td>${i}</td>
+              <td>${localPos}</td>
+              <td>${globalPos}</td>
               <td>${Utils.formatUserId(userId)}</td>
               <td>${Utils.formatAddress(position.user)}</td>
-              <td>-</td>
               <td>-</td>
               <td>${this.currentMatrixLevel}</td>
               <td><span class="type-badge ${type}">${type}</span></td>
             `;
           } else {
-            // Показываем пустую строку
             const row = tbody.insertRow();
             row.innerHTML = `
-              <td>${i}</td>
-              <td colspan="6" style="text-align:center;color:#888;">Empty position</td>
+              <td>${localPos}</td>
+              <td>${globalPos}</td>
+              <td colspan="5" style="text-align:center;color:#888;">Empty position</td>
             `;
           }
-          
-          loadedCount++;
-          
-          // Ограничение: не более 100 строк для производительности
-          if (loadedCount >= 100) break;
-          
         } catch (error) {
-          console.error(`Error loading matrix position ${i}:`, error);
+          console.error(`Error loading position ${localPos} (global ${globalPos}):`, error);
+        }
+        
+        if (localPos - startLocalPos >= 100) {
+          const row = tbody.insertRow();
+          row.innerHTML = `<td colspan="7" style="text-align:center;color:#ff9800;">Showing first 100 positions. Total: ${endLocalPos - startLocalPos + 1}</td>`;
+          break;
         }
       }
       
@@ -1284,7 +1296,7 @@ class UIManager {
         tbody.innerHTML = '<tr><td colspan="7">No positions yet</td></tr>';
       }
       
-      console.log(`✅ Matrix table loaded: ${loadedCount} positions at level ${this.currentMatrixLevel}`);
+      console.log(`✅ Matrix table loaded: ${tbody.rows.length} rows`);
       
     } catch (error) {
       console.error('Error loading matrix table:', error);
