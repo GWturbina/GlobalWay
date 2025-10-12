@@ -6,10 +6,8 @@ class AdminManager {
   }
 
   async init() {
-    const hasAccess = this.checkRights();
-    if (!hasAccess) {
-      console.log('❌ Admin init stopped: no access rights');
-      return;
+    if (!this.checkRights()) {
+      return; // Останавливаем если нет прав
     }
     await this.loadAdminStats();
     this.setupAdminActions();
@@ -30,19 +28,32 @@ checkRights() {
     if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
     if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
     
-    // ✅ ИСПРАВЛЕНО: НЕ скрываем элемент, просто показываем ошибку
-    if (!this.isBoard) {
+checkRights() {
+  this.isOwner = web3Manager.isOwner();
+  this.isFounder = web3Manager.isFounder();
+  this.isBoard = web3Manager.isAdmin();
+  
+  const rightsLevel = this.isOwner ? 'Owner' :
+                     this.isFounder ? 'Founder' :
+                     this.isBoard ? 'Board Member' : 'No Access';
+  
+  const adminCurrentAccountEl = document.getElementById('adminCurrentAccount');
+  const adminRightsLevelEl = document.getElementById('adminRightsLevel');
+  
+  if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
+  if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
+  
+  if (!this.isBoard) {
       console.error('❌ No admin access for:', web3Manager.address);
       console.log('Owner:', CONFIG.ADMIN.owner);
       console.log('Founders:', CONFIG.ADMIN.founders);
       console.log('Board:', CONFIG.ADMIN.board);
       
       Utils.showNotification('Access denied: Admin rights required', 'error');
-      
-      // Показываем сообщение об отсутствии прав прямо в админке
-      const adminPageEl = document.querySelector('.admin-page');
-      if (adminPageEl) {
-        adminPageEl.innerHTML = `
+    
+      const adminPage = document.getElementById('admin');
+      if (adminPage) {
+        adminPage.innerHTML = `
           <div style="text-align: center; padding: 50px;">
             <h2>🔒 Access Denied</h2>
             <p>You don't have admin rights.</p>
@@ -55,7 +66,8 @@ checkRights() {
     }
     
     console.log('✅ Admin access granted:', rightsLevel);
-} 
+    return true;
+  } 
 
   async loadAdminStats() {
     try {
