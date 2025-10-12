@@ -1,5 +1,5 @@
 // 🔥 ОЧИСТКА КЭША - ДОБАВЛЕНО В НАЧАЛО ФАЙЛА
-const APP_VERSION = '1.1.0'; // Увеличивайте при каждом обновлении
+const APP_VERSION = '1.1.1';
 const storedVersion = localStorage.getItem('app_version');
 
 if (storedVersion !== APP_VERSION) {
@@ -21,15 +21,12 @@ async init() {
   try {
     console.log('Initializing GlobalWay DApp...');
     
-    // 1. Загрузить ABI
     await contracts.loadABIs();
     console.log('✅ ABIs loaded');
     
-    // 2. Инициализировать Web3
     await web3Manager.init();
     console.log('✅ Web3 initialized');
     
-    // ✅ ИСПРАВЛЕНО: Инициализируем контракты СРАЗУ если кошелёк автоподключён
     if (web3Manager.connected && web3Manager.signer) {
       console.log('🔗 Auto-connected wallet detected, initializing contracts...');
       const contractsInitialized = contracts.init();
@@ -41,20 +38,15 @@ async init() {
       }
     }
     
-    // 4. Инициализировать UI
     await uiManager.init();
     console.log('✅ UI initialized');
     
-    // 5. Настроить события
     this.setupEvents();
     
-    // 6. Настроить копирование
     this.setupCopyButtons();
     
-    // 7. Обработать URL параметры
     await this.handleUrlParams();
     
-    // 8. Настроить язык
     this.setupLanguage();
     
     this.initialized = true;
@@ -67,30 +59,23 @@ async init() {
 }
 
   setupEvents() {
-    // ✅ ИСПРАВЛЕНО: Добавлена поддержка touch событий для мобильных
-    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const eventType = isMobile ? 'touchend' : 'click';
-    
     const connectBtn = document.getElementById('connectBtn');
     if (connectBtn) {
-      connectBtn.addEventListener(eventType, (e) => {
-        if (isMobile) e.preventDefault();
+      connectBtn.addEventListener('click', () => {
         this.connectWallet();
       });
     }
     
     const openDappBtn = document.getElementById('openDapp');
     if (openDappBtn) {
-      openDappBtn.addEventListener(eventType, (e) => {
-        if (isMobile) e.preventDefault();
+      openDappBtn.addEventListener('click', () => {
         this.openDapp();
       });
     }
     
     const copyRefLinkBtn = document.getElementById('copyRefLink');
     if (copyRefLinkBtn) {
-      copyRefLinkBtn.addEventListener(eventType, (e) => {
-        if (isMobile) e.preventDefault();
+      copyRefLinkBtn.addEventListener('click', () => {
         const refLink = document.getElementById('refLink');
         if (refLink) {
           Utils.copyToClipboard(refLink.value);
@@ -100,15 +85,13 @@ async init() {
     
     const generateQRBtn = document.getElementById('generateQR');
     if (generateQRBtn) {
-      generateQRBtn.addEventListener(eventType, (e) => {
-        if (isMobile) e.preventDefault();
+      generateQRBtn.addEventListener('click', () => {
         this.generateRefQR();
       });
     }
     
     document.querySelectorAll('.planet').forEach(planet => {
-      planet.addEventListener(eventType, (e) => {
-        if (isMobile) e.preventDefault();
+      planet.addEventListener('click', (e) => {
         const planetType = e.currentTarget.dataset.planet;
         this.showPlanetInfo(planetType);
       });
@@ -198,18 +181,15 @@ async init() {
     return key.split('.').reduce((o, k) => (o || {})[k], obj);
   }
 
-  // ✅ ИСПРАВЛЕНО: Улучшена проверка инициализации контрактов
  async connectWallet() {
   try {
     Utils.showLoader(true);
     
     console.log('🔌 Connecting wallet...');
     
-    // 1. Подключить кошелёк
     const address = await web3Manager.connect();
     console.log('✅ Wallet connected:', address);
     
-    // 2. ✅ ИСПРАВЛЕНО: Детальная проверка инициализации контрактов
     console.log('📦 Initializing contracts...');
     const contractsInitialized = contracts.init();
     
@@ -230,15 +210,12 @@ async init() {
     
     Utils.showNotification('Wallet connected!', 'success');
     
-    // 3. Проверить регистрацию
     const isRegistered = await contracts.isUserRegistered(address);
     console.log('📝 User registered:', isRegistered);
     
     if (!isRegistered) {
-      // Проверяем сохранённый referrer
       let referrer = localStorage.getItem('referrer');
       
-      // ✅ ИСПРАВЛЕНО: Проверяем инициализацию Stats контракта перед вызовом
       const referrerId = localStorage.getItem('referrerId');
       if (referrerId && !referrer) {
         try {
@@ -260,14 +237,12 @@ async init() {
         Utils.showNotification('You need a referral link to register', 'error');
       }
     } else {
-      // 🔥 ИСПРАВЛЕНО: Переключаем с Landing на DApp
       const landing = document.getElementById('landing');
       const dapp = document.getElementById('dapp');
       
       if (landing) landing.classList.remove('active');
       if (dapp) dapp.classList.add('active');
       
-      // Загружаем данные и показываем Dashboard
       await uiManager.updateUI();
       uiManager.showPage('dashboard');
       
