@@ -1562,7 +1562,7 @@ class UIManager {
       }
       
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 4999);
+      const fromBlock = 0; // Загружать ВСЕ блоки с начала
       
       const mintFilter = tokenContract.filters.TokensMinted(web3Manager.address);
       const mintEvents = await tokenContract.queryFilter(mintFilter, fromBlock, currentBlock);
