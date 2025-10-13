@@ -86,7 +86,7 @@ class UIManager {
         Utils.showLoader(false);
       }
     }
-
+  
   async updateUI() {
       if (!web3Manager.connected) {
         this.showConnectionAlert();
