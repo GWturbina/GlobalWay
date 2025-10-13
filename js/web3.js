@@ -20,22 +20,49 @@ class Web3Manager {
   detectSafePalBrowser() {
     try {
       const ua = navigator.userAgent || '';
-      if (ua.includes('SafePal') || ua.includes('safepal')) return true;
-      if (window.location.href && window.location.href.includes('safepal')) return true;
+      
+       // 🔥 НОВОЕ: Логирование для отладки
+      console.log('🔍 Detecting SafePal browser...');
+      console.log('User-Agent:', ua);
+      
+       if (ua.includes('SafePal') || ua.includes('safepal')) {
+        console.log('✅ SafePal detected via User-Agent');
+        return true;
+      }
+      
+      if (window.location.href && window.location.href.includes('safepal')) {
+        console.log('✅ SafePal detected via URL');
+        return true;
+      }
+      
       // Some SafePal versions inject as window.safepal OR set flags on window.ethereum
-      if (window.safepal) return true;
-      if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) return true;
+      if (window.safepal) {
+        console.log('✅ SafePal detected via window.safepal');
+        return true;
+      }
+      
+      if (window.ethereum && (window.ethereum.isSafePal || window.ethereum.isSafePalWallet)) {
+        console.log('✅ SafePal detected via window.ethereum flags');
+        return true;
+      }
+      
       // some providers expose multiple providers
       if (window.ethereum && Array.isArray(window.ethereum.providers)) {
         for (const p of window.ethereum.providers) {
-          if (p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)) return true;
+           if (p && (p.isSafePal || p.isSafePalWallet || p.isSafePalProvider)) {
+            console.log('✅ SafePal detected via ethereum.providers');
+            return true;
+          }
         }
       }
+      
+       console.log('⚠️ SafePal NOT detected');
+      
     } catch (e) {
-      console.warn('SafePal detect error', e);
-    }
-    return false;
-  }
+       console.warn('SafePal detect error', e);
+     }
+     return false;
+   }
 
   // Initialize: wait for injected providers and try auto-connect if possible
   async init() {
