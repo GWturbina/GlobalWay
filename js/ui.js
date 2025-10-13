@@ -371,7 +371,19 @@ class UIManager {
         }
         
         const maxLevel = parseInt(newBtn.dataset.levels);
-        const packageType = parseInt(newBtn.dataset.package);
+        
+        // 🔥 ИСПРАВЛЕНО: Определяем packageType на основе maxLevel
+        let packageType;
+        if (maxLevel === 3) packageType = 1;
+        else if (maxLevel === 4) packageType = 2;
+        else if (maxLevel === 7) packageType = 3;
+        else if (maxLevel === 10) packageType = 4;
+        else if (maxLevel === 12) packageType = 5;
+        else {
+          console.error('Invalid maxLevel:', maxLevel);
+          return;
+        }
+        
         await this.buyPackage(packageType, maxLevel);
       }, { once: false });
     });
