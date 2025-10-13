@@ -92,7 +92,7 @@ async init() {
           this.showPlanetInfo(planetType);
         });
       });
-    }, 500); // Задержка 500мс для загрузки DOM
+    }, 2000); 
   }
 
   setupCopyButtons() {
@@ -105,32 +105,33 @@ async init() {
   }
 
   async handleUrlParams() {
-    const params = Utils.getUrlParams();
+      const params = Utils.getUrlParams();
     
-    if (params.ref) {
-      let sponsorAddress;
+      if (params.ref) {
+        let sponsorAddress;
       
-      if (params.ref.startsWith('GW')) {
-        const userId = Utils.parseUserId(params.ref);
-        localStorage.setItem('referrerId', userId.toString());
-        console.log('✅ Referrer ID saved:', userId);
-      } else if (!isNaN(params.ref)) {
-        localStorage.setItem('referrerId', params.ref);
-        console.log('✅ Referrer ID saved:', params.ref);
-      } else if (Utils.validateAddress(params.ref)) {
-        localStorage.setItem('referrer', params.ref);
-        console.log('✅ Referrer address saved:', params.ref);
+        if (params.ref.startsWith('GW')) {
+          const userId = Utils.parseUserId(params.ref);
+          localStorage.setItem('referrerId', userId.toString());
+          console.log('✅ Referrer ID saved:', userId);
+        } else if (!isNaN(params.ref)) {
+          localStorage.setItem('referrerId', params.ref);
+          console.log('✅ Referrer ID saved:', params.ref);
+        } else if (Utils.validateAddress(params.ref)) {
+          localStorage.setItem('referrer', params.ref);
+          console.log('✅ Referrer address saved:', params.ref);
+        }
+      }
+  
+      if (params.page) {
+        // 🔥 ИСПРАВЛЕНО: Увеличена задержка для SafePal на мобильном
+        setTimeout(() => {
+          if (uiManager && typeof uiManager.showPage === 'function') {
+            uiManager.showPage(params.page);
+          }
+        }, 3000); // 3000мс вместо 500мс
       }
     }
-  
-    if (params.page) {
-      setTimeout(() => {
-        if (uiManager && typeof uiManager.showPage === 'function') {
-          uiManager.showPage(params.page);
-        }
-      }, 500);
-    }
-  }
 
   setupLanguage() {
     const langSelects = document.querySelectorAll('#langSelect, #langSelectHeader');
@@ -261,12 +262,24 @@ async init() {
     }
   }
 
-  openDapp() {
-    const landing = document.getElementById('landing');
-    const dapp = document.getElementById('dapp');
+  async openDapp() {
+    // 🔥 ИСПРАВЛЕНО: Сначала подключаем кошелек, потом показываем DApp
+    try {
+      if (!web3Manager.connected) {
+        console.log('🔌 Connecting wallet from landing...');
+        await this.connectWallet();
+      }
     
-    if (landing) landing.classList.remove('active');
-    if (dapp) dapp.classList.add('active');
+      const landing = document.getElementById('landing');
+      const dapp = document.getElementById('dapp');
+    
+      if (landing) landing.classList.remove('active');
+      if (dapp) dapp.classList.add('active');
+    
+    } catch (error) {
+      console.error('Failed to open DApp:', error);
+      Utils.showNotification('Please connect your wallet first', 'error');
+    }
   }
 
   showPlanetInfo(planetType) {
