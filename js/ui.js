@@ -283,7 +283,6 @@ async buyLevel(level) {
       return;
     }
 
-    // 🔥 ИСПРАВЛЕНО: Убрать optional chaining
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
     
     if (isActive) {
@@ -292,31 +291,28 @@ async buyLevel(level) {
     }
 
     const price = CONFIG.LEVEL_PRICES[level - 1];
-    if (!confirm(`Buy level ${level} for ${price} BNB?`)) return;
-
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Сразу устанавливаем флаг ДО confirm
     this.buyingLevel = true;
     
-    // 🔥 НОВОЕ: НЕ показываем loader сразу - пусть SafePal откроется
-    console.log('💳 Opening SafePal wallet...');
+    if (!confirm(`Buy level ${level} for ${price} BNB?`)) {
+      this.buyingLevel = false;
+      return;
+    }
 
     try {
-      console.log(`🔄 Buying level ${level}...`);
+      console.log(`💳 Opening SafePal for level ${level}...`);
       
-      // 🔥 НОВОЕ: Явная проверка что контракт существует
       if (!contracts.contracts.globalway) {
         throw new Error('GlobalWay contract not initialized');
       }
       
-      // 🔥 НОВОЕ: Небольшая задержка для SafePal
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Теперь вызываем транзакцию - SafePal откроет окно
+      // 🔥 КРИТИЧНО: Вызываем транзакцию СРАЗУ без задержек
       const tx = await contracts.buyLevel(level);
       
-      // 🔥 НОВОЕ: Показываем loader ТОЛЬКО после отправки транзакции
+      // Показываем loader ТОЛЬКО после успешной отправки
       Utils.showLoader(true);
       console.log('⏳ Waiting for confirmation...');
-      
       console.log('✅ Level purchased:', tx);
   
       await this.loadUserData();
@@ -328,11 +324,10 @@ async buyLevel(level) {
     } catch (error) {
       console.error('❌ Error buying level:', error);
       
-      // 🔥 НОВОЕ: Более детальное сообщение об ошибке
       let errorMsg = 'Transaction failed';
       if (error.message) {
-        if (error.message.includes('user rejected')) {
-          errorMsg = 'Transaction rejected by user';
+        if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+          errorMsg = 'Transaction rejected';
         } else if (error.message.includes('insufficient funds')) {
           errorMsg = 'Insufficient BNB balance';
         } else {
