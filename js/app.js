@@ -1,15 +1,32 @@
 // 🔥 ОЧИСТКА КЭША - ДОБАВЛЕНО В НАЧАЛО ФАЙЛА
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.2.0';
 const storedVersion = localStorage.getItem('app_version');
 
 if (storedVersion !== APP_VERSION) {
   console.log('🔄 New version detected, clearing cache...');
   console.log(`Old version: ${storedVersion}, New version: ${APP_VERSION}`);
   
+  // 🔥 НОВОЕ: Очистка Service Worker кеша
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(reg => {
+        console.log('🗑️ Unregistering Service Worker');
+        reg.unregister();
+      });
+    });
+  }
+  
+  // Очистка localStorage
   localStorage.clear();
   localStorage.setItem('app_version', APP_VERSION);
   
   console.log('✅ Cache cleared successfully');
+  
+  // 🔥 НОВОЕ: Перезагрузка страницы БЕЗ кеша
+  setTimeout(() => {
+    console.log('🔄 Reloading page without cache...');
+    window.location.reload(true);
+  }, 500);
 }
 
 class App {
