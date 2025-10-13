@@ -295,7 +295,9 @@ async buyLevel(level) {
     if (!confirm(`Buy level ${level} for ${price} BNB?`)) return;
 
     this.buyingLevel = true;
-    Utils.showLoader(true);
+    
+    // 🔥 НОВОЕ: НЕ показываем loader сразу - пусть SafePal откроется
+    console.log('💳 Opening SafePal wallet...');
 
     try {
       console.log(`🔄 Buying level ${level}...`);
@@ -305,7 +307,16 @@ async buyLevel(level) {
         throw new Error('GlobalWay contract not initialized');
       }
       
+      // 🔥 НОВОЕ: Небольшая задержка для SafePal
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Теперь вызываем транзакцию - SafePal откроет окно
       const tx = await contracts.buyLevel(level);
+      
+      // 🔥 НОВОЕ: Показываем loader ТОЛЬКО после отправки транзакции
+      Utils.showLoader(true);
+      console.log('⏳ Waiting for confirmation...');
+      
       console.log('✅ Level purchased:', tx);
   
       await this.loadUserData();
@@ -313,6 +324,7 @@ async buyLevel(level) {
       await this.loadDashboard();
       
       Utils.showNotification(`Level ${level} activated successfully!`, 'success');
+      
     } catch (error) {
       console.error('❌ Error buying level:', error);
       
