@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'globalway-v1.0.1';
+const CACHE_VERSION = 'globalway-v1.2.0';
 const CACHE_ASSETS = [
   './',
   './index.html',
