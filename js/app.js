@@ -228,31 +228,38 @@ async init() {
         }
       }
       
-      if (referrer && Utils.validateAddress(referrer)) {
-        uiManager.showRegistrationModal();
+  if (referrer && Utils.validateAddress(referrer)) {
+          uiManager.showRegistrationModal();
+        } else {
+          Utils.showNotification('You need a referral link to register', 'error');
+        }
       } else {
-        Utils.showNotification('You need a referral link to register', 'error');
+        const landing = document.getElementById('landing');
+        const dapp = document.getElementById('dapp');
+      
+        if (landing) landing.classList.remove('active');
+        if (dapp) dapp.classList.add('active');
+      
+        await uiManager.updateUI();
+      
+        // 🔥 ИСПРАВЛЕНИЕ: Проверяем админ права после updateUI
+        if (web3Manager.isAdmin()) {
+          document.body.classList.add('admin-access');
+          console.log('✅ Admin class added to body after wallet connect');
+        }
+      
+        uiManager.showPage('dashboard');
+      
+        Utils.showNotification('Welcome to GlobalWay!', 'success');
       }
-    } else {
-      const landing = document.getElementById('landing');
-      const dapp = document.getElementById('dapp');
-      
-      if (landing) landing.classList.remove('active');
-      if (dapp) dapp.classList.add('active');
-      
-      await uiManager.updateUI();
-      uiManager.showPage('dashboard');
-      
-      Utils.showNotification('Welcome to GlobalWay!', 'success');
-    }
     
-  } catch (error) {
-    console.error('Connect error:', error);
-    Utils.showNotification('Connection failed: ' + error.message, 'error');
-  } finally {
-    Utils.showLoader(false);
+    } catch (error) {
+      console.error('Connect error:', error);
+      Utils.showNotification('Connection failed: ' + error.message, 'error');
+    } finally {
+      Utils.showLoader(false);
+    }
   }
-}
 
   openDapp() {
     const landing = document.getElementById('landing');
