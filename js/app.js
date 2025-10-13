@@ -259,8 +259,12 @@ async init() {
         if (dapp) dapp.classList.add('active');
       
         await uiManager.updateUI();
+        
+        // 🔥 НОВОЕ: Явное обновление header после подключения
+        uiManager.updateHeader();
+        uiManager.updateCabinet();
       
-        // 🔥 ИСПРАВЛЕНИЕ: Проверяем админ права после updateUI
+        // Проверяем админ права
         if (web3Manager.isAdmin()) {
           document.body.classList.add('admin-access');
           console.log('✅ Admin class added to body after wallet connect');
