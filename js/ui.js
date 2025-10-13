@@ -277,13 +277,15 @@ class UIManager {
     await this.loadTokensSummary();
   }
 
-  async buyLevel(level) {
+async buyLevel(level) {
     if (this.buyingLevel) {
       console.log('⚠️ Purchase already in progress');
       return;
     }
 
-    const isActive = this.userStats?.activeLevels.includes(level);
+    // 🔥 ИСПРАВЛЕНО: Убрать optional chaining
+    const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
+    
     if (isActive) {
       Utils.showNotification('Level already purchased', 'error');
       return;
@@ -297,6 +299,12 @@ class UIManager {
 
     try {
       console.log(`🔄 Buying level ${level}...`);
+      
+      // 🔥 НОВОЕ: Явная проверка что контракт существует
+      if (!contracts.contracts.globalway) {
+        throw new Error('GlobalWay contract not initialized');
+      }
+      
       const tx = await contracts.buyLevel(level);
       console.log('✅ Level purchased:', tx);
   
@@ -307,7 +315,20 @@ class UIManager {
       Utils.showNotification(`Level ${level} activated successfully!`, 'success');
     } catch (error) {
       console.error('❌ Error buying level:', error);
-      Utils.showNotification('Transaction failed: ' + error.message, 'error');
+      
+      // 🔥 НОВОЕ: Более детальное сообщение об ошибке
+      let errorMsg = 'Transaction failed';
+      if (error.message) {
+        if (error.message.includes('user rejected')) {
+          errorMsg = 'Transaction rejected by user';
+        } else if (error.message.includes('insufficient funds')) {
+          errorMsg = 'Insufficient BNB balance';
+        } else {
+          errorMsg = error.message;
+        }
+      }
+      
+      Utils.showNotification(errorMsg, 'error');
     } finally {
       this.buyingLevel = false;
       Utils.showLoader(false);
@@ -363,7 +384,7 @@ setupBulkButtons() {
     
       newBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        e.stopPropagagation();
+        e.stopPropagation();
       
         if (this.buyingLevel) {
           console.log('Already buying');
