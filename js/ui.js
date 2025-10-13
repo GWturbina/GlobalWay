@@ -88,33 +88,35 @@ class UIManager {
   }
 
   async updateUI() {
-    if (!web3Manager.connected) {
-      this.showConnectionAlert();
-      return;
-    }
-
-    await this.loadUserData();
-    this.updateHeader();
-    this.updateCabinet();
+      if (!web3Manager.connected) {
+        this.showConnectionAlert();
+        return;
+      }
+      await this.loadUserData();
+      this.updateHeader();
+      this.updateCabinet();
   
-    if (web3Manager.isAdmin()) {
-      console.log('✅ Admin access granted');
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = '';
-        console.log('✅ Showing admin element:', el.className);
-      });
-
-      if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
-        this.adminAutoOpened = true;
-        console.log('🔄 Attempting to auto-open admin panel...');
-        
-        setTimeout(() => {
-          this.showPage('admin');
-          console.log('✅ Admin panel auto-opened');
-        }, 2000);
+      if (web3Manager.isAdmin()) {
+        console.log('✅ Admin access granted');
+      
+        // 🔥 ИСПРАВЛЕНИЕ: Добавляем класс к body
+        document.body.classList.add('admin-access');
+      
+        document.querySelectorAll('.admin-only').forEach(el => {
+          el.style.display = '';
+          console.log('✅ Showing admin element:', el.className);
+        });
+        if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
+          this.adminAutoOpened = true;
+          console.log('🔄 Attempting to auto-open admin panel...');
+          
+          setTimeout(() => {
+            this.showPage('admin');
+            console.log('✅ Admin panel auto-opened');
+          }, 2000);
+        }
       }
     }
-  }
 
   async loadUserData() {
     try {
