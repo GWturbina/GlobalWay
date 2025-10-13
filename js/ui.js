@@ -57,35 +57,35 @@ class UIManager {
   }
 
   async loadPageData(page) {
-    Utils.showLoader(true);
-    try {
-      switch(page) {
-        case 'dashboard':
-          await this.loadDashboard();
-          break;
-        case 'partners':
-          await this.loadPartners();
-          break;
-        case 'matrix':
-          await this.loadMatrix();
-          break;
-        case 'tokens':
-          await this.loadTokens();
-          break;
-        case 'projects':
-          await this.loadProjects();
-          break;
-        case 'admin':
+      Utils.showLoader(true);
+      try {
+        switch(page) {
+          case 'dashboard':
+            await this.loadDashboard();
+            break;
+          case 'partners':
+            await this.loadPartners();
+            break;
+          case 'matrix':
+            await this.loadMatrix();
+            break;
+          case 'tokens':
+            await this.loadTokens();
+            break;
+          case 'projects':
+            await this.loadProjects();
+            break;
+          case 'admin':
           await this.loadAdmin();
-          break;
+            break;
+        }
+      } catch (error) {
+        console.error('Error loading page:', error);
+        Utils.showNotification('Error loading data', 'error');
+      } finally {
+        Utils.showLoader(false);
       }
-    } catch (error) {
-      console.error('Error loading page:', error);
-      Utils.showNotification('Error loading data', 'error');
-    } finally {
-      Utils.showLoader(false);
     }
-  }
 
   async updateUI() {
       if (!web3Manager.connected) {
