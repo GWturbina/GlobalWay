@@ -34,66 +34,56 @@
          - Only triggers when not already inside SafePal browser
          - Uses a short timeout so normal desktop/tv webviews don't get redirected
     -->
-    <script>
-      (function() {
-        try {
-          const ua = navigator.userAgent || '';
-          const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
-          const isSafePalBrowser = ua.includes('SafePal') || ua.includes('safepal') || window.location.href.includes('safepal');
-          const url = new URL(window.location.href);
-          // Trigger deep-link if explicit ref or explicit param openInWallet=1
-          const shouldDeepLink = isMobile && !isSafePalBrowser && (url.searchParams.has('ref') || url.searchParams.get('openInWallet') === '1');
-
-          if (!shouldDeepLink) return;
-
-          // Build deep link to open this URL inside SafePal app's internal browser
-          const encoded = encodeURIComponent(window.location.href);
-          const isAndroid = /Android/i.test(ua);
-          const deepLink = isAndroid
-            ? `safepalwallet://open?url=${encoded}`
-            : `safepal://open?url=${encoded}`;
-
-          // Try to open deep link. If SafePal not installed, after timeout open app store.
-          let opened = false;
-          const now = Date.now();
-          const openLink = () => {
-            // For iOS use location assign; for Android assign as well
-            window.location.href = deepLink;
-            opened = true;
-          };
-
-          // Small delay to allow messenger webviews to settle (100ms)
-          setTimeout(() => {
-            openLink();
-          }, 120);
-
-          // If after 2.2s nothing happened, ask user to install SafePal
-          setTimeout(() => {
-            if (!opened) {
-              // fallback prompt
-              const storeUrl = /Android/i.test(ua)
-                ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
-                : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
-
-              // show native confirm only if not within an iframe
-              try {
-                const wantsInstall = confirm(
-                  'To continue please install or open SafePal Wallet.\n\nPress OK to open the store.'
-                );
-                if (wantsInstall) {
-                  window.open(storeUrl, '_blank');
-                }
-              } catch (e) {
-                // ignore
-              }
-            }
-          }, 2200);
-        } catch (e) {
-          // don't break the page
-          console.warn('SafePal deeplink helper error', e);
+<script>
+    (function() {
+      try {
+        const ua = navigator.userAgent || '';
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(ua);
+        const isSafePalBrowser = ua.includes('SafePal') || ua.includes('safepal') || window.location.href.includes('safepal');
+        const url = new URL(window.location.href);
+        
+        // 🔥 ИСПРАВЛЕНО: НЕ делать deep-link если УЖЕ в SafePal
+        if (isSafePalBrowser) {
+          console.log('✅ Already in SafePal browser, skip deep-link');
+          return;
         }
-      })();
-    </script>
+      
+        // Trigger deep-link ТОЛЬКО если explicit параметр openInWallet=1
+        const shouldDeepLink = isMobile && url.searchParams.get('openInWallet') === '1';
+
+        if (!shouldDeepLink) return;
+
+        const encoded = encodeURIComponent(window.location.href);
+        const isAndroid = /Android/i.test(ua);
+        const deepLink = isAndroid
+          ? `safepalwallet://open?url=${encoded}`
+          : `safepal://open?url=${encoded}`;
+
+        setTimeout(() => {
+          window.location.href = deepLink;
+        }, 120);
+
+        setTimeout(() => {
+          const storeUrl = /Android/i.test(ua)
+            ? 'https://play.google.com/store/apps/details?id=io.safepal.wallet'
+            : 'https://apps.apple.com/app/safepal-wallet/id1548297139';
+  
+          try {
+            const wantsInstall = confirm(
+              'To continue please install or open SafePal Wallet.\n\nPress OK to open the store.'
+            );
+            if (wantsInstall) {
+              window.open(storeUrl, '_blank');
+            }
+          } catch (e) {
+            // ignore
+          }
+        }, 2200);
+      } catch (e) {
+        console.warn('SafePal deeplink helper error', e);
+      }
+    })();
+  </script>
 </head>
 <body>
 <div id="debug" style="position:fixed;top:0;left:0;background:red;color:white;padding:10px;z-index:9999;font-size:12px;">
