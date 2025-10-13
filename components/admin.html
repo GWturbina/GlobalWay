@@ -1,857 +1,336 @@
-class AdminManager {
-  constructor() {
-    this.isOwner = false;
-    this.isFounder = false;
-    this.isBoard = false;
-  }
+<div class="admin-page">
+    <h2 data-translate="admin.title">🔧 Admin Panel</h2>
+    
+    <!-- Admin Rights Check -->
+    <section class="admin-rights">
+        <h3>Access Control</h3>
+        <div class="rights-item">
+            <label data-translate="admin.currentAccount">Current Account:</label>
+            <span id="adminCurrentAccount">-</span>
+        </div>
+        <div class="rights-item">
+            <label data-translate="admin.ownerRights">Rights Level:</label>
+            <span id="adminRightsLevel">Checking...</span>
+        </div>
+    </section>
 
-  async init() {
-    if (!this.checkRights()) {
-      return; // Останавливаем если нет прав
-    }
-    await this.loadAdminStats();
-    this.setupAdminActions();
-  }
-
-  checkRights() {
-      this.isOwner = web3Manager.isOwner();
-      this.isFounder = web3Manager.isFounder();
-      this.isBoard = web3Manager.isAdmin();
-    
-      const rightsLevel = this.isOwner ? 'Owner' :
-                         this.isFounder ? 'Founder' :
-                         this.isBoard ? 'Board Member' : 'No Access';
-    
-      const adminCurrentAccountEl = document.getElementById('adminCurrentAccount');
-      const adminRightsLevelEl = document.getElementById('adminRightsLevel');
-    
-      if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
-      if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
-    
-      if (!this.isBoard) {
-        console.error('❌ No admin access for:', web3Manager.address);
-        console.log('Owner:', CONFIG.ADMIN.owner);
-        console.log('Founders:', CONFIG.ADMIN.founders);
-        console.log('Board:', CONFIG.ADMIN.board);
-        
-        Utils.showNotification('Access denied: Admin rights required', 'error');
-    
-        const adminPage = document.getElementById('admin');
-        if (adminPage) {
-          adminPage.innerHTML = `
-            <div style="text-align: center; padding: 50px;">
-              <h2>🔒 Access Denied</h2>
-              <p>You don't have admin rights.</p>
-              <p>Your address: <code>${web3Manager.address}</code></p>
-              <p>Contact the system administrator.</p>
+    <!-- Admin Statistics -->
+    <section class="admin-stats">
+        <h3 data-translate="admin.stats">📊 Administrator Statistics</h3>
+        <div class="admin-stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalUsers">0</div>
+                <div class="stat-label" data-translate="admin.totalUsers">Total Users</div>
             </div>
-          `;
-        }
-        return false;
-      }
-    
-      console.log('✅ Admin access granted:', rightsLevel);
-    
-      // 🔥 ИСПРАВЛЕНИЕ: Добавляем класс к body
-      document.body.classList.add('admin-access');
-    
-      return true;
-    }
-  
-  if (!this.isBoard) {
-      console.error('❌ No admin access for:', web3Manager.address);
-      console.log('Owner:', CONFIG.ADMIN.owner);
-      console.log('Founders:', CONFIG.ADMIN.founders);
-      console.log('Board:', CONFIG.ADMIN.board);
-      
-      Utils.showNotification('Access denied: Admin rights required', 'error');
-    
-      const adminPage = document.getElementById('admin');
-      if (adminPage) {
-        adminPage.innerHTML = `
-          <div style="text-align: center; padding: 50px;">
-            <h2>🔒 Access Denied</h2>
-            <p>You don't have admin rights.</p>
-            <p>Your address: <code>${web3Manager.address}</code></p>
-            <p>Contact the system administrator.</p>
-          </div>
-        `;
-      }
-      return false;
-    }
-    
-    console.log('✅ Admin access granted:', rightsLevel);
-    return true;
-  } 
+            <div class="stat-card">
+                <div class="stat-value" id="adminActiveUsers">0</div>
+                <div class="stat-label" data-translate="admin.activeUsers">Active Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminContractBalance">0 BNB</div>
+                <div class="stat-label" data-translate="admin.contractBalance">Contract Balance</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="adminTotalVolume">0 BNB</div>
+                <div class="stat-label" data-translate="admin.totalVolume">Total Volume</div>
+            </div>
+        </div>
+    </section>
 
-  async loadAdminStats() {
-    try {
-      const overview = await contracts.getContractOverview();
-      
-      const adminTotalUsersEl = document.getElementById('adminTotalUsers');
-      const adminActiveUsersEl = document.getElementById('adminActiveUsers');
-      const adminContractBalanceEl = document.getElementById('adminContractBalance');
-      const adminTotalVolumeEl = document.getElementById('adminTotalVolume');
-      const totalIdsAssignedEl = document.getElementById('totalIdsAssigned');
-      
-      if (adminTotalUsersEl) adminTotalUsersEl.textContent = overview.totalUsers.toString();
-      if (adminActiveUsersEl) adminActiveUsersEl.textContent = '-';
-      if (adminContractBalanceEl) {
-        adminContractBalanceEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(overview.contractBalance))} BNB`;
-      }
-      if (adminTotalVolumeEl) {
-        adminTotalVolumeEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(overview.totalVolume))} BNB`;
-      }
-      if (totalIdsAssignedEl) totalIdsAssignedEl.textContent = overview.totalUsers.toString();
-    } catch (error) {
-      console.error('Error loading admin stats:', error);
-    }
-  }
+    <!-- Free Activation -->
+    <section class="free-activation">
+        <h3 data-translate="admin.freeActivation">🎁 Free User Activation</h3>
+        <div class="activation-form">
+            <div class="form-group">
+                <label data-translate="admin.userAddress">User Address:</label>
+                <input type="text" id="activationAddress" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="activationSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="activationLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="freeActivateBtn" class="btn-primary" data-translate="admin.activate">🚀 Activate User</button>
+        </div>
+    </section>
 
-  setupAdminActions() {
-    // Free Activation
-    const freeActivateBtn = document.getElementById('freeActivateBtn');
-    if (freeActivateBtn) {
-      freeActivateBtn.addEventListener('click', () => this.freeActivate());
-    }
-    
-    // Batch Activation
-    const batchActivateBtn = document.getElementById('batchActivateBtn');
-    if (batchActivateBtn) {
-      batchActivateBtn.addEventListener('click', () => this.batchActivate());
-    }
-    
-    // Contract Management
-    const pauseBtn = document.getElementById('pauseContractBtn');
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', () => this.pauseContract());
-    }
-    
-    const unpauseBtn = document.getElementById('unpauseContractBtn');
-    if (unpauseBtn) {
-      unpauseBtn.addEventListener('click', () => this.unpauseContract());
-    }
-    
-    // Project Integration
-    const connectBtn = document.getElementById('connectProjectBtn');
-    if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.connectProject());
-    }
-    
-    const disconnectBtn = document.getElementById('disconnectProjectBtn');
-    if (disconnectBtn) {
-      disconnectBtn.addEventListener('click', () => this.disconnectProject());
-    }
-    
-    // ID Management
-    const assignIdBtn = document.getElementById('assignIdBtn');
-    if (assignIdBtn) {
-      assignIdBtn.addEventListener('click', () => this.assignId());
-    }
-    
-    // User Lookup
-    const lookupBtn = document.getElementById('lookupBtn');
-    if (lookupBtn) {
-      lookupBtn.addEventListener('click', () => this.lookupUser());
-    }
-    
-    // Emergency Withdraw
-    const emergencyBtn = document.getElementById('emergencyWithdrawBtn');
-    if (emergencyBtn) {
-      emergencyBtn.addEventListener('click', () => this.emergencyWithdraw());
-    }
-    
-    // Process Inactive
-    const processInactiveBtn = document.getElementById('processInactiveBtn');
-    if (processInactiveBtn) {
-      processInactiveBtn.addEventListener('click', () => this.processInactive());
-    }
-    
-    // Delegation Management
-    const delegateBtn = document.getElementById('delegateRightsBtn');
-    if (delegateBtn) {
-      delegateBtn.addEventListener('click', () => this.delegateRights());
-    }
-    
-    // User Management
-    const blockUserBtn = document.getElementById('blockUserBtn');
-    if (blockUserBtn) {
-      blockUserBtn.addEventListener('click', () => this.blockUser());
-    }
-    
-    const replaceAddressBtn = document.getElementById('replaceAddressBtn');
-    if (replaceAddressBtn) {
-      replaceAddressBtn.addEventListener('click', () => this.replaceAddress());
-    }
-    
-    // Financial Management
-    const withdrawalBtn = document.getElementById('withdrawalBtn');
-    if (withdrawalBtn) {
-      withdrawalBtn.addEventListener('click', () => this.createWithdrawalProposal());
-    }
-    
-    // News Management
-    const publishNewsBtn = document.getElementById('publishNewsBtn');
-    if (publishNewsBtn) {
-      publishNewsBtn.addEventListener('click', () => this.publishNews());
-    }
-  }
+    <!-- Batch Activation -->
+    <section class="batch-activation">
+        <h3 data-translate="admin.batchActivation">⚡ Batch Team Activation</h3>
+        <div class="batch-form">
+            <div class="form-group">
+                <label data-translate="admin.teamMembers">Team Members (one per line):</label>
+                <textarea id="batchMembers" rows="5" placeholder="0x...&#10;0x...&#10;0x..."></textarea>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.sponsorAddress">Sponsor Address:</label>
+                <input type="text" id="batchSponsor" placeholder="0x..." required>
+            </div>
+            <div class="form-group">
+                <label data-translate="admin.maxLevel">Max Level:</label>
+                <select id="batchLevel">
+                    <option value="3" data-translate="admin.client">Client (1-3)</option>
+                    <option value="4" data-translate="admin.miniAdmin">Mini Admin (1-4)</option>
+                    <option value="7" data-translate="admin.admin">Admin (1-7)</option>
+                    <option value="10" data-translate="admin.superAdmin">Super Admin (1-10)</option>
+                    <option value="12" data-translate="admin.manager">Manager (1-12)</option>
+                </select>
+            </div>
+            <button id="batchActivateBtn" class="btn-primary" data-translate="admin.batchActivate">Batch Activate Team</button>
+        </div>
+    </section>
 
-  async freeActivate() {
-    if (!this.isFounder) {
-      Utils.showNotification('Only Owner/Founders can activate', 'error');
-      return;
-    }
-    
-    const addressInput = document.getElementById('activationAddress');
-    const sponsorInput = document.getElementById('activationSponsor');
-    const levelInput = document.getElementById('activationLevel');
-    
-    if (!addressInput || !sponsorInput || !levelInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const address = addressInput.value;
-    const sponsor = sponsorInput.value;
-    const maxLevel = parseInt(levelInput.value);
-    
-    if (!Utils.validateAddress(address) || !Utils.validateAddress(sponsor)) {
-      Utils.showNotification('Invalid addresses', 'error');
-      return;
-    }
-    
-    if (!confirm(`Activate ${Utils.formatAddress(address)} with ${maxLevel} levels?`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.activateFounderTeam(address, sponsor, maxLevel);
-      Utils.showNotification('User activated successfully!', 'success');
-      await this.loadAdminStats();
-      
-      addressInput.value = '';
-      sponsorInput.value = '';
-    } catch (error) {
-      console.error('Activation error:', error);
-      Utils.showNotification('Activation failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- User Management -->
+    <section class="user-management">
+        <h3 data-translate="admin.authManagement">🔐 User Management</h3>
+        
+        <!-- Block User -->
+        <div class="management-section">
+            <h4 data-translate="admin.blockUser">Block User</h4>
+            <div class="management-form">
+                <input type="text" id="blockUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <input type="text" id="tempAddress" placeholder="Temporary Address" data-translate="admin.tempAddress">
+                <textarea id="blockReason" placeholder="Block Reason" data-translate="admin.blockReason"></textarea>
+                <button id="blockUserBtn" class="btn-danger">🚫 Block User</button>
+            </div>
+        </div>
 
-  async batchActivate() {
-    if (!this.isFounder) {
-      Utils.showNotification('Only Owner/Founders can batch activate', 'error');
-      return;
-    }
-    
-    const membersTextarea = document.getElementById('batchMembers');
-    const sponsorInput = document.getElementById('batchSponsor');
-    const levelInput = document.getElementById('batchLevel');
-    
-    if (!membersTextarea || !sponsorInput || !levelInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const membersText = membersTextarea.value;
-    const sponsor = sponsorInput.value;
-    const maxLevel = parseInt(levelInput.value);
-    
-    const members = membersText.split('\n').map(a => a.trim()).filter(a => a);
-    
-    if (members.length === 0 || !Utils.validateAddress(sponsor)) {
-      Utils.showNotification('Invalid input', 'error');
-      return;
-    }
-    
-    if (!confirm(`Batch activate ${members.length} users?`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const sponsors = new Array(members.length).fill(sponsor);
-      const levels = new Array(members.length).fill(maxLevel);
-      
-      const tx = await contracts.batchActivateTeam(members, sponsors, levels);
-      Utils.showNotification('Batch activation successful!', 'success');
-      await this.loadAdminStats();
-      
-      membersTextarea.value = '';
-      sponsorInput.value = '';
-    } catch (error) {
-      console.error('Batch activation error:', error);
-      Utils.showNotification('Batch activation failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+        <!-- Replace Address -->
+        <div class="management-section">
+            <h4 data-translate="admin.replaceAddress">Replace User Address</h4>
+            <div class="management-form">
+                <input type="text" id="replaceOldAddress" placeholder="Current Address" data-translate="admin.userAddress">
+                <input type="text" id="replaceNewAddress" placeholder="New Address" data-translate="admin.newAddress">
+                <textarea id="replaceReason" placeholder="Reason for replacement" data-translate="admin.reason"></textarea>
+                <button id="replaceAddressBtn" class="btn-warning">🔄 Replace Address</button>
+            </div>
+        </div>
 
-  async pauseContract() {
-    if (!this.isOwner) {
-      Utils.showNotification('Only Owner can pause contract', 'error');
-      return;
-    }
-    
-    if (!confirm('PAUSE CONTRACT? This will stop all operations!')) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.pause();
-      Utils.showNotification('Contract paused', 'success');
-    } catch (error) {
-      console.error('Pause error:', error);
-      Utils.showNotification('Pause failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+        <!-- Process Inactive -->
+        <div class="management-section">
+            <h4 data-translate="admin.processInactive">Process Inactive User</h4>
+            <div class="management-form">
+                <input type="text" id="inactiveUserAddress" placeholder="User Address" data-translate="admin.userAddress">
+                <button id="processInactiveBtn" class="btn-warning" data-translate="admin.processInactiveAccount">⚠️ Process Inactive Account</button>
+            </div>
+        </div>
+    </section>
 
-  async unpauseContract() {
-    if (!this.isOwner) {
-      Utils.showNotification('Only Owner can unpause contract', 'error');
-      return;
-    }
-    
-    if (!confirm('UNPAUSE CONTRACT?')) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.unpause();
-      Utils.showNotification('Contract unpaused', 'success');
-    } catch (error) {
-      console.error('Unpause error:', error);
-      Utils.showNotification('Unpause failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- Contract Management -->
+    <section class="contract-management">
+        <h3 data-translate="admin.contractMgmt">🔧 Contract Management</h3>
+        <div class="contract-controls">
+            <div class="control-group">
+                <h4>Contract Status</h4>
+                <div class="status-controls">
+                    <button id="pauseContractBtn" class="btn-danger" data-translate="admin.pause">⏸️ Pause Contract</button>
+                    <button id="unpauseContractBtn" class="btn-success" data-translate="admin.unpause">▶️ Unpause Contract</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h4>Project Integration</h4>
+                <div class="project-controls">
+                    <input type="text" id="projectContractAddress" placeholder="Project Contract Address" data-translate="admin.projectContract">
+                    <input type="text" id="projectName" placeholder="Project Name" data-translate="admin.projectName">
+                    <div class="project-actions">
+                        <button id="connectProjectBtn" class="btn-success" data-translate="admin.connectProject">🔗 Connect Project</button>
+                        <button id="disconnectProjectBtn" class="btn-danger" data-translate="admin.disconnectProject">❌ Disconnect Project</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
-  async connectProject() {
-    if (!this.isOwner) {
-      Utils.showNotification('Only Owner can connect projects', 'error');
-      return;
-    }
-    
-    const projectAddressInput = document.getElementById('projectContractAddress');
-    const projectNameInput = document.getElementById('projectName');
-    
-    if (!projectAddressInput || !projectNameInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const projectAddress = projectAddressInput.value;
-    const projectName = projectNameInput.value;
-    
-    if (!Utils.validateAddress(projectAddress) || !projectName) {
-      Utils.showNotification('Invalid input', 'error');
-      return;
-    }
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.authorizeExternalProject(projectAddress, true);
-      Utils.showNotification(`Project ${projectName} connected!`, 'success');
-      
-      projectAddressInput.value = '';
-      projectNameInput.value = '';
-    } catch (error) {
-      console.error('Connect error:', error);
-      Utils.showNotification('Connection failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- Financial Management -->
+    <section class="financial-management">
+        <h3 data-translate="admin.financial">💰 Financial Management</h3>
+        
+        <!-- Pool Withdrawals -->
+        <div class="financial-section">
+            <h4 data-translate="admin.withdrawal">Withdrawal Management</h4>
+            <div class="withdrawal-form">
+                <select id="withdrawalPool" data-translate="admin.withdrawalPool">
+                    <option value="treasury">Treasury Pool</option>
+                    <option value="ops">Operations Pool</option>
+                    <option value="dev">Development Pool</option>
+                    <option value="charity">Charity Pool</option>
+                    <option value="tokenomics">Tokenomics Pool</option>
+                </select>
+                <input type="text" id="withdrawalAddress" placeholder="Withdrawal Address" data-translate="admin.withdrawalAddress">
+                <input type="number" id="withdrawalAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.withdrawalAmount">
+                <textarea id="withdrawalNote" placeholder="Note/Reason" data-translate="admin.withdrawalNote"></textarea>
+                <div class="voting-info">
+                    <small data-translate="admin.votingRequired">⚠️ Requires 8 votes for amounts over 5 BNB</small>
+                </div>
+                <button id="withdrawalBtn" class="btn-warning" data-translate="admin.withdraw">💸 Withdraw Funds</button>
+            </div>
+        </div>
 
-  async disconnectProject() {
-    if (!this.isOwner) {
-      Utils.showNotification('Only Owner can disconnect projects', 'error');
-      return;
-    }
-    
-    const projectAddressInput = document.getElementById('projectContractAddress');
-    
-    if (!projectAddressInput) {
-      Utils.showNotification('Form element not found', 'error');
-      return;
-    }
-    
-    const projectAddress = projectAddressInput.value;
-    
-    if (!Utils.validateAddress(projectAddress)) {
-      Utils.showNotification('Invalid address', 'error');
-      return;
-    }
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.authorizeExternalProject(projectAddress, false);
-      Utils.showNotification('Project disconnected', 'success');
-      
-      projectAddressInput.value = '';
-    } catch (error) {
-      console.error('Disconnect error:', error);
-      Utils.showNotification('Disconnection failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+        <!-- Emergency Withdrawal -->
+        <div class="financial-section emergency">
+            <h4 data-translate="admin.emergencyWithdraw">Emergency Withdrawal</h4>
+            <div class="emergency-form">
+                <input type="text" id="emergencyFromAddress" placeholder="From Address" data-translate="admin.fromAddress">
+                <input type="text" id="emergencyToAddress" placeholder="To Address" data-translate="admin.toAddress">
+                <input type="number" id="emergencyAmount" placeholder="Amount (BNB)" step="0.001" data-translate="admin.amount">
+                <textarea id="emergencyReason" placeholder="Emergency Reason" data-translate="admin.reason"></textarea>
+                <div class="danger-warning">
+                    <strong>⚠️ DANGER ZONE - Emergency Use Only</strong>
+                </div>
+                <button id="emergencyWithdrawBtn" class="btn-danger" data-translate="admin.emergencyWithdraw">🚨 Emergency Withdraw</button>
+            </div>
+        </div>
+    </section>
 
-  async assignId() {
-    if (!this.isOwner) {
-      Utils.showNotification('Only Owner can assign IDs', 'error');
-      return;
-    }
-    
-    const addressInput = document.getElementById('assignIdUserAddress');
-    
-    if (!addressInput) {
-      Utils.showNotification('Form element not found', 'error');
-      return;
-    }
-    
-    const address = addressInput.value;
-    
-    if (!Utils.validateAddress(address)) {
-      Utils.showNotification('Invalid address', 'error');
-      return;
-    }
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.assignIdByOwner(address);
-      Utils.showNotification('ID assigned successfully!', 'success');
-      await this.loadAdminStats();
-      
-      addressInput.value = '';
-    } catch (error) {
-      console.error('Assign ID error:', error);
-      Utils.showNotification('ID assignment failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- ID Management -->
+    <section class="id-management">
+        <h3>👥 ID Management</h3>
+        
+        <!-- Assign ID -->
+        <div class="management-section">
+            <h4>Assign ID to User</h4>
+            <div class="management-form">
+                <input type="text" id="assignIdUserAddress" placeholder="User Address">
+                <button id="assignIdBtn" class="btn-primary">🆔 Assign ID</button>
+            </div>
+        </div>
 
-  async lookupUser() {
-    const inputEl = document.getElementById('lookupInput');
-    
-    if (!inputEl) {
-      Utils.showNotification('Form element not found', 'error');
-      return;
-    }
-    
-    const input = inputEl.value.trim();
-    
-    let address;
-    if (input.startsWith('GW')) {
-      const userId = Utils.parseUserId(input);
-      try {
-        address = await contracts.getAddressByUserId(userId);
-      } catch (error) {
-        Utils.showNotification('User not found', 'error');
-        return;
-      }
-    } else if (Utils.validateAddress(input)) {
-      address = input;
-    } else {
-      Utils.showNotification('Invalid input', 'error');
-      return;
-    }
-    
-    Utils.showLoader(true);
-    try {
-      const userInfo = await contracts.getUserFullInfo(address);
-      
-      const resultAddressEl = document.getElementById('resultAddress');
-      const resultUserIdEl = document.getElementById('resultUserId');
-      const resultRegisteredEl = document.getElementById('resultRegistered');
-      const resultLevelsEl = document.getElementById('resultLevels');
-      const resultEarnedEl = document.getElementById('resultEarned');
-      const resultReferralsEl = document.getElementById('resultReferrals');
-      const lookupResultsEl = document.getElementById('lookupResults');
-      
-      if (resultAddressEl) resultAddressEl.textContent = Utils.formatAddress(address);
-      if (resultUserIdEl) resultUserIdEl.textContent = Utils.formatUserId(userInfo.userId.toNumber());
-      if (resultRegisteredEl) resultRegisteredEl.textContent = userInfo.isRegistered ? 'Yes' : 'No';
-      if (resultLevelsEl) resultLevelsEl.textContent = userInfo.activeLevels.length;
-      if (resultEarnedEl) {
-        resultEarnedEl.textContent = `${Utils.formatBNB(ethers.utils.formatEther(userInfo.totalEarned))} BNB`;
-      }
-      if (resultReferralsEl) resultReferralsEl.textContent = userInfo.referrals.length;
-      
-      if (lookupResultsEl) lookupResultsEl.style.display = 'block';
-    } catch (error) {
-      console.error('Lookup error:', error);
-      Utils.showNotification('Lookup failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+        <!-- ID Statistics -->
+        <div class="id-stats">
+            <div class="stat-item">
+                <label>Total IDs Assigned:</label>
+                <span id="totalIdsAssigned">0</span>
+            </div>
+            <div class="stat-item">
+                <label>Available IDs:</label>
+                <span id="availableIds">0</span>
+            </div>
+            <div class="stat-item">
+                <label>ID Range:</label>
+                <span id="idRange">1000000 - 9999999</span>
+            </div>
+        </div>
+    </section>
 
-  async emergencyWithdraw() {
-    if (!this.isFounder) {
-      Utils.showNotification('Only Owner/Founders can emergency withdraw', 'error');
-      return;
-    }
-    
-    if (!confirm('EMERGENCY WITHDRAW? This is irreversible!')) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.emergencyWithdraw();
-      Utils.showNotification('Emergency withdrawal completed', 'success');
-      await this.loadAdminStats();
-    } catch (error) {
-      console.error('Emergency withdraw error:', error);
-      Utils.showNotification('Withdrawal failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- Delegation Management -->
+    <section class="delegation-management">
+        <h3 data-translate="admin.delegation">👥 Delegation Management</h3>
+        <div class="delegation-form">
+            <input type="text" id="delegateAddress" placeholder="Partner Address" data-translate="admin.delegateAddress">
+            <div class="permissions-group">
+                <label data-translate="admin.permissions">Permissions:</label>
+                <div class="permission-checkboxes">
+                    <label><input type="checkbox" value="support"> Support</label>
+                    <label><input type="checkbox" value="news"> News</label>
+                    <label><input type="checkbox" value="history"> History</label>
+                    <label><input type="checkbox" value="mailings"> Mailings</label>
+                </div>
+            </div>
+            <textarea id="delegationNote" placeholder="Delegation Note" data-translate="admin.reason"></textarea>
+            <button id="delegateRightsBtn" class="btn-primary" data-translate="admin.delegateRights">✅ Delegate Rights</button>
+        </div>
+    </section>
 
-  async processInactive() {
-    if (!this.isBoard) {
-      Utils.showNotification('Board member rights required', 'error');
-      return;
-    }
-    
-    const addressInput = document.getElementById('inactiveUserAddress');
-    
-    if (!addressInput) {
-      Utils.showNotification('Form element not found', 'error');
-      return;
-    }
-    
-    const address = addressInput.value;
-    
-    if (!Utils.validateAddress(address)) {
-      Utils.showNotification('Invalid address', 'error');
-      return;
-    }
-    
-    if (!confirm(`Process inactive account: ${Utils.formatAddress(address)}?`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.processInactiveAccount(address);
-      Utils.showNotification('Account processed', 'success');
-      
-      addressInput.value = '';
-    } catch (error) {
-      console.error('Process inactive error:', error);
-      Utils.showNotification('Processing failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- News Management -->
+    <section class="news-management">
+        <h3 data-translate="admin.news">📰 News Management</h3>
+        <div class="news-form">
+            <input type="text" id="newsTitle" placeholder="News Title" data-translate="admin.newsTitle">
+            <textarea id="newsText" placeholder="News Content" data-translate="admin.newsText"></textarea>
+            <input type="url" id="newsLink" placeholder="Link (optional)" data-translate="admin.newsLink">
+            <input type="file" id="newsPhoto" accept="image/*" data-translate="admin.newsPhoto">
+            <button id="publishNewsBtn" class="btn-primary" data-translate="admin.publishNews">📢 Publish News</button>
+        </div>
+    </section>
 
-  // ✅ ИСПРАВЛЕНО: Улучшено сообщение об ошибке при отсутствии Governance
-  async delegateRights() {
-    if (!this.isOwner && !this.isFounder) {
-      Utils.showNotification('Only Owner/Founders can delegate rights', 'error');
-      return;
-    }
-    
-    // ✅ ИСПРАВЛЕНО: Более детальное сообщение
-    if (!contracts.contracts.governance) {
-      Utils.showNotification(
-        'Governance contract not available. Please reconnect your wallet and try again.', 
-        'error'
-      );
-      console.error('❌ Governance contract missing in contracts.contracts object');
-      console.log('Available contracts:', Object.keys(contracts.contracts));
-      return;
-    }
-    
-    const addressInput = document.getElementById('delegateAddress');
-    const noteInput = document.getElementById('delegationNote');
-    
-    if (!addressInput || !noteInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const address = addressInput.value;
-    const note = noteInput.value;
-    
-    if (!Utils.validateAddress(address)) {
-      Utils.showNotification('Invalid address', 'error');
-      return;
-    }
-    
-    const permissions = [];
-    document.querySelectorAll('.permission-checkboxes input:checked').forEach(checkbox => {
-      permissions.push(checkbox.value);
-    });
-    
-    if (permissions.length === 0) {
-      Utils.showNotification('Select at least one permission', 'error');
-      return;
-    }
-    
-    if (!confirm(`Delegate rights to ${Utils.formatAddress(address)}?\n\nPermissions: ${permissions.join(', ')}\n\nNote: ${note || 'None'}`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.contracts.governance.addBoardMember(address);
-      await tx.wait();
-      
-      Utils.showNotification('Rights delegated successfully!', 'success');
-      
-      if (!CONFIG.ADMIN.board.includes(address)) {
-        CONFIG.ADMIN.board.push(address);
-      }
-      
-      addressInput.value = '';
-      noteInput.value = '';
-      document.querySelectorAll('.permission-checkboxes input').forEach(cb => cb.checked = false);
-      
-      Utils.showNotification('⚠️ Please update config.js with the new board member address for permanent access', 'info');
-    } catch (error) {
-      console.error('Delegation error:', error);
-      Utils.showNotification('Delegation failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- User Lookup -->
+    <section class="user-lookup">
+        <h3>🔍 User Lookup</h3>
+        <div class="lookup-form">
+            <div class="form-group">
+                <label>Search by Address or ID:</label>
+                <input type="text" id="lookupInput" placeholder="0x... or GW1234567">
+                <button id="lookupBtn" class="btn-secondary">Search</button>
+            </div>
+            <div id="lookupResults" class="lookup-results" style="display: none;">
+                <div class="result-item">
+                    <label>Address:</label>
+                    <span id="resultAddress">-</span>
+                </div>
+                <div class="result-item">
+                    <label>User ID:</label>
+                    <span id="resultUserId">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Registration Status:</label>
+                    <span id="resultRegistered">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Active Levels:</label>
+                    <span id="resultLevels">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Total Earned:</label>
+                    <span id="resultEarned">-</span>
+                </div>
+                <div class="result-item">
+                    <label>Referrals:</label>
+                    <span id="resultReferrals">-</span>
+                </div>
+            </div>
+        </div>
+    </section>
 
-  // ✅ ИСПРАВЛЕНО: Улучшено сообщение об ошибке при отсутствии Governance
-  async blockUser() {
-    if (!this.isBoard) {
-      Utils.showNotification('Board member rights required', 'error');
-      return;
-    }
-    
-    // ✅ ИСПРАВЛЕНО: Более детальное сообщение
-    if (!contracts.contracts.governance) {
-      Utils.showNotification(
-        'Governance contract not available. Please reconnect your wallet and try again.', 
-        'error'
-      );
-      console.error('❌ Governance contract missing in contracts.contracts object');
-      console.log('Available contracts:', Object.keys(contracts.contracts));
-      return;
-    }
-    
-    const userAddressInput = document.getElementById('blockUserAddress');
-    const reasonInput = document.getElementById('blockReason');
-    
-    if (!userAddressInput || !reasonInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const userAddress = userAddressInput.value;
-    const reason = reasonInput.value;
-    
-    if (!Utils.validateAddress(userAddress)) {
-      Utils.showNotification('Invalid user address', 'error');
-      return;
-    }
-    
-    if (!reason || reason.trim().length < 10) {
-      Utils.showNotification('Please provide a detailed reason (min 10 characters)', 'error');
-      return;
-    }
-    
-    if (!confirm(`Block user ${Utils.formatAddress(userAddress)}?\n\nReason: ${reason}`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const tx = await contracts.contracts.governance.blockUser(userAddress, reason);
-      await tx.wait();
-      
-      Utils.showNotification('User blocked successfully!', 'success');
-      
-      userAddressInput.value = '';
-      reasonInput.value = '';
-    } catch (error) {
-      console.error('Block user error:', error);
-      Utils.showNotification('Block failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
+    <!-- Voting System -->
+    <section class="voting-system" id="votingSystem" style="display:none;">
+        <h3 data-translate="admin.voting">🗳️ Voting System</h3>
+        <div id="activeVotings" class="voting-list">
+            <!-- Generated active votings -->
+        </div>
+    </section>
 
-  async replaceAddress() {
-    if (!this.isOwner) {
-      Utils.showNotification('Only Owner can replace addresses', 'error');
-      return;
-    }
-    
-    const oldAddressInput = document.getElementById('replaceOldAddress');
-    const newAddressInput = document.getElementById('replaceNewAddress');
-    const reasonInput = document.getElementById('replaceReason');
-    
-    if (!oldAddressInput || !newAddressInput || !reasonInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const oldAddress = oldAddressInput.value;
-    const newAddress = newAddressInput.value;
-    const reason = reasonInput.value;
-    
-    if (!Utils.validateAddress(oldAddress) || !Utils.validateAddress(newAddress)) {
-      Utils.showNotification('Invalid addresses', 'error');
-      return;
-    }
-    
-    if (!reason || reason.trim().length < 10) {
-      Utils.showNotification('Please provide a detailed reason (min 10 characters)', 'error');
-      return;
-    }
-    
-    if (!confirm(`Replace address?\n\nOld: ${Utils.formatAddress(oldAddress)}\nNew: ${Utils.formatAddress(newAddress)}\n\nReason: ${reason}\n\n⚠️ This action requires manual intervention!`)) return;
-    
-    Utils.showNotification('Address replacement requires manual database update. Please contact technical support.', 'warning');
-    
-    console.log('Address replacement request:', {
-      oldAddress,
-      newAddress,
-      reason,
-      requestedBy: web3Manager.address,
-      timestamp: new Date().toISOString()
-    });
-  }
+    <!-- Danger Zone -->
+    <section class="danger-zone">
+        <h3 data-translate="admin.dangerZone">⚠️ DANGER ZONE</h3>
+        <div class="danger-actions">
+            <button id="transferMultisigBtn" class="btn-danger disabled" data-translate="admin.transferMultisig">
+                🔥 Transfer to Multisig (IRREVERSIBLE!)
+            </button>
+            <p><small>This action cannot be undone and will transfer contract ownership to multisig wallet.</small></p>
+        </div>
+    </section>
+</div>
 
-  // ✅ ИСПРАВЛЕНО: Улучшено сообщение об ошибке при отсутствии Governance
-  async createWithdrawalProposal() {
-    if (!this.isBoard) {
-      Utils.showNotification('Board member rights required', 'error');
-      return;
-    }
-    
-    // ✅ ИСПРАВЛЕНО: Более детальное сообщение
-    if (!contracts.contracts.governance) {
-      Utils.showNotification(
-        'Governance contract not available. Please reconnect your wallet and try again.', 
-        'error'
-      );
-      console.error('❌ Governance contract missing in contracts.contracts object');
-      console.log('Available contracts:', Object.keys(contracts.contracts));
-      return;
-    }
-    
-    const poolSelect = document.getElementById('withdrawalPool');
-    const addressInput = document.getElementById('withdrawalAddress');
-    const amountInput = document.getElementById('withdrawalAmount');
-    const noteInput = document.getElementById('withdrawalNote');
-    
-    if (!poolSelect || !addressInput || !amountInput || !noteInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const pool = poolSelect.value;
-    const address = addressInput.value;
-    const amount = amountInput.value;
-    const note = noteInput.value;
-    
-    if (!Utils.validateAddress(address)) {
-      Utils.showNotification('Invalid withdrawal address', 'error');
-      return;
-    }
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      Utils.showNotification('Invalid amount', 'error');
-      return;
-    }
-    
-    if (!note || note.trim().length < 10) {
-      Utils.showNotification('Please provide a detailed note (min 10 characters)', 'error');
-      return;
-    }
-    
-    const amountBNB = parseFloat(amount);
-    const requiresVoting = amountBNB > 5;
-    
-    if (!confirm(`Create withdrawal proposal?\n\nPool: ${pool}\nTo: ${Utils.formatAddress(address)}\nAmount: ${amount} BNB\n\n${requiresVoting ? '⚠️ Requires 8 votes!' : '✅ Can be executed immediately'}`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const amountWei = ethers.utils.parseEther(amount);
-      const tx = await contracts.contracts.governance.createWithdrawalProposal(
-        address,
-        amountWei,
-        pool,
-        note
-      );
-      await tx.wait();
-      
-      Utils.showNotification(requiresVoting ? 'Withdrawal proposal created! Awaiting votes.' : 'Withdrawal executed!', 'success');
-      
-      addressInput.value = '';
-      amountInput.value = '';
-      noteInput.value = '';
-    } catch (error) {
-      console.error('Withdrawal error:', error);
-      Utils.showNotification('Withdrawal failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
-
-  async publishNews() {
-    if (!this.isBoard) {
-      Utils.showNotification('Board member rights required', 'error');
-      return;
-    }
-    
-    const titleInput = document.getElementById('newsTitle');
-    const textInput = document.getElementById('newsText');
-    const linkInput = document.getElementById('newsLink');
-    const photoInput = document.getElementById('newsPhoto');
-    
-    if (!titleInput || !textInput) {
-      Utils.showNotification('Form elements not found', 'error');
-      return;
-    }
-    
-    const title = titleInput.value;
-    const text = textInput.value;
-    const link = linkInput ? linkInput.value : '';
-    
-    if (!title || title.trim().length < 5) {
-      Utils.showNotification('Title is too short (min 5 characters)', 'error');
-      return;
-    }
-    
-    if (!text || text.trim().length < 20) {
-      Utils.showNotification('News text is too short (min 20 characters)', 'error');
-      return;
-    }
-    
-    if (!confirm(`Publish news?\n\nTitle: ${title}\n\nThis will be visible to all users.`)) return;
-    
-    Utils.showLoader(true);
-    try {
-      const newsData = {
-        title: title.trim(),
-        text: text.trim(),
-        link: link.trim() || null,
-        photo: photoInput && photoInput.files[0] ? photoInput.files[0].name : null,
-        publishedBy: web3Manager.address,
-        publishedAt: new Date().toISOString()
-      };
-      
-      console.log('News published:', newsData);
-      
-      Utils.showNotification('News published successfully!', 'success');
-      
-      titleInput.value = '';
-      textInput.value = '';
-      if (linkInput) linkInput.value = '';
-      if (photoInput) photoInput.value = '';
-      
-      Utils.showNotification('⚠️ Note: News management requires backend integration', 'info');
-    } catch (error) {
-      console.error('Publish news error:', error);
-      Utils.showNotification('Publishing failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
-    }
-  }
-}
-
-const adminManager = new AdminManager();
+<!-- Voting Modal -->
+<div id="votingModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="votingTitle">Voting Required</h3>
+        <div class="voting-details">
+            <p id="votingDescription">This action requires voting approval from board members.</p>
+            <div class="voting-status">
+                <div class="votes-for">
+                    <label>Votes For: <span id="votesFor">0</span>/8</label>
+                </div>
+                <div class="votes-against">
+                    <label>Votes Against: <span id="votesAgainst">0</span>/8</label>
+                </div>
+            </div>
+            <div class="voting-actions">
+                <button id="voteForBtn" class="btn-success">✅ Vote For</button>
+                <button id="voteAgainstBtn" class="btn-danger">❌ Vote Against</button>
+                <button id="abstainBtn" class="btn-secondary">⚪ Abstain</button>
+            </div>
+        </div>
+    </div>
+</div>
