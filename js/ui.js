@@ -117,7 +117,7 @@ class UIManager {
         }
       }
     }
-
+    
   async loadUserData() {
     try {
       const addr = web3Manager && web3Manager.address ? web3Manager.address : null;
