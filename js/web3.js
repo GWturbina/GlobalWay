@@ -74,7 +74,7 @@ class Web3Manager {
 
     if (this.isMobile) {
       console.log('⏳ Mobile delay for better compatibility...');
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 🔥 ИСПРАВЛЕНО: 2000мс для SafePal
       }
 
       // Always wait a bit for SafePal injection (safer UX)
