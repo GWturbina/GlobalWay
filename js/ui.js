@@ -325,7 +325,7 @@ class UIManager {
       btn.className = 'level-btn';
       btn.dataset.level = i;
     
-      const isActive = this.userStats?.activeLevels.includes(i);
+      const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(i);
       
       btn.innerHTML = `
         <span class="level-num">${i}</span>
@@ -1929,5 +1929,11 @@ class UIManager {
     }
   }
 }
-const uiManager = new UIManager();
-window.UIManager = uiManager;
+// 🔥 ИСПРАВЛЕНО: Предотвращение двойного объявления
+if (typeof window.uiManager === 'undefined') {
+  window.uiManager = new UIManager();
+}
+// Для обратной совместимости
+if (typeof window.UIManager === 'undefined') {
+  window.UIManager = window.uiManager;
+}
