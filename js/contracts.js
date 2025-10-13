@@ -298,10 +298,10 @@ async buyLevel(level) {
         }
       }).filter(e => e !== null);
     
-      console.log('📊 Marketing events:', events.map(e => e.name));
+      console.log('📊 Marketing events:', events.filter(e => e).map(e => e.name));
     
-      const hasMatrix = events.some(e => e.name === 'MatrixBonusPaid');
-      const hasReferral = events.some(e => e.name === 'ReferralBonusPaid');
+      const hasMatrix = events.some(e => e && e.name === 'MatrixBonusPaid');
+      const hasReferral = events.some(e => e && e.name === 'ReferralBonusPaid');
     
       if (hasMatrix) console.log('✅ Matrix bonus distributed (48%)');
       else console.warn('⚠️ Matrix bonus NOT distributed');
