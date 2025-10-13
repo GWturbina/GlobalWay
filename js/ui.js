@@ -356,14 +356,14 @@ class UIManager {
     }
   }
 
-  setupBulkButtons() {
+setupBulkButtons() {
     document.querySelectorAll('.bulk-btn').forEach(btn => {
       const newBtn = btn.cloneNode(true);
       btn.parentNode.replaceChild(newBtn, btn);
     
       newBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        e.stopPropagation();
+        e.stopPropagagation();
       
         if (this.buyingLevel) {
           console.log('Already buying');
@@ -371,19 +371,15 @@ class UIManager {
         }
         
         const maxLevel = parseInt(newBtn.dataset.levels);
+        const packageType = parseInt(newBtn.dataset.package);
         
-        // 🔥 ИСПРАВЛЕНО: Определяем packageType на основе maxLevel
-        let packageType;
-        if (maxLevel === 3) packageType = 1;
-        else if (maxLevel === 4) packageType = 2;
-        else if (maxLevel === 7) packageType = 3;
-        else if (maxLevel === 10) packageType = 4;
-        else if (maxLevel === 12) packageType = 5;
-        else {
-          console.error('Invalid maxLevel:', maxLevel);
+        // 🔥 НОВОЕ: Проверка валидности данных
+        if (!maxLevel || !packageType) {
+          console.error('Invalid button data:', { maxLevel, packageType });
           return;
         }
         
+        console.log('📦 Buying package:', { packageType, maxLevel });
         await this.buyPackage(packageType, maxLevel);
       }, { once: false });
     });
