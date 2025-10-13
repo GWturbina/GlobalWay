@@ -176,4 +176,72 @@
         </div>
         <button class="btn-secondary" onclick="showPage('tokens')" data-translate="tokens.manage">Manage</button>
     </section>
+
+    <!-- Tokens Summary -->
+    <section class="tokens-summary">
+        <h3 data-translate="dashboard.tokens">Tokens</h3>
+        <div class="token-info-grid">
+            <div class="token-info-item">
+                <span data-translate="tokens.amount">Amount:</span>
+                <span id="tokenAmount">0 GWT</span>
+            </div>
+            <div class="token-info-item">
+                <span data-translate="tokens.price">Price:</span>
+                <span id="tokenPrice">$0.00</span>
+            </div>
+            <div class="token-info-item">
+                <span data-translate="tokens.value">Value:</span>
+                <span id="tokenValue">$0.00</span>
+            </div>
+        </div>
+        <button class="btn-secondary" onclick="showPage('tokens')" data-translate="tokens.manage">Manage</button>
+    </section>
+
+    <!-- 🔥 НОВОЕ: Debug Tools для тестирования -->
+    <section class="debug-tools" style="padding:20px;background:rgba(255,0,0,0.1);margin:20px 0;border-radius:8px;border:2px dashed #ff4444;">
+        <h4 style="color:#ff4444;margin-bottom:10px;">🔧 Debug Tools (только для тестирования)</h4>
+        <button onclick="clearCacheAndReload()" style="padding:12px 20px;background:#ff4444;color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600;font-size:14px;">
+            🗑️ Clear Cache & Reload
+        </button>
+        <p style="font-size:12px;color:#888;margin-top:8px;">Используй если кошелек не подключается или есть ошибки</p>
+    </section>
+
+    <script>
+    function clearCacheAndReload() {
+      if (confirm('Очистить весь кеш и перезагрузить?\n\nЭто удалит все сохраненные данные.')) {
+        console.log('🗑️ Clearing all cache...');
+        
+        // Очистка localStorage
+        localStorage.clear();
+        console.log('✅ localStorage cleared');
+        
+        // Очистка Service Worker
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(regs => {
+            regs.forEach(reg => {
+              reg.unregister();
+              console.log('✅ Service Worker unregistered');
+            });
+          });
+        }
+        
+        // Очистка кеша браузера
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              caches.delete(name);
+              console.log('✅ Cache deleted:', name);
+            });
+          });
+        }
+        
+        // Перезагрузка БЕЗ кеша через 500ms
+        setTimeout(() => {
+          console.log('🔄 Reloading without cache...');
+          window.location.reload(true);
+        }, 500);
+      }
+    }
+    </script>
+</div>
 </div>
