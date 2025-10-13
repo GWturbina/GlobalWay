@@ -269,15 +269,20 @@ class ContractsManager {
     return tx.hash;
   }
 
-  async buyLevel(level) {
+async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
   
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
   
+    // 🔥 НОВОЕ: Небольшая задержка для SafePal мобильного браузера
+    await new Promise(resolve => setTimeout(resolve, 100));
+  
+    console.log('📤 Sending transaction...');
     const tx = await this.contracts.globalway.buyLevel(level, { value: price });
     console.log('📤 Transaction sent:', tx.hash);
   
+    console.log('⏳ Waiting for confirmation...');
     const receipt = await tx.wait();
     console.log('✅ Transaction confirmed');
   
