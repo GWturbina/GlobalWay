@@ -351,11 +351,31 @@ async buyLevel(level) {
       return;
     }
     
+    // 🔥 НОВОЕ: Проверка что пользователь ЗАРЕГИСТРИРОВАН
+    if (!this.userStats || !this.userStats.isRegistered) {
+      Utils.showNotification('You must register first!', 'error');
+      console.error('❌ User not registered');
+      return;
+    }
+    
     // 🔥 ИСПРАВЛЕНО: Проверка контракта В САМОМ НАЧАЛЕ
     if (!contracts.contracts.globalway) {
       Utils.showNotification('Contracts not ready. Please refresh page.', 'error');
       console.error('❌ GlobalWay contract not initialized');
       return;
+    }
+    
+    // 🔥 НОВОЕ: Проверка что пользователь не заблокирован
+    try {
+      if (contracts.contracts.governance) {
+        const isBlocked = await contracts.contracts.governance.isUserBlocked(web3Manager.address);
+        if (isBlocked) {
+          Utils.showNotification('Your account is blocked. Contact support.', 'error');
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not check block status:', e);
     }
     
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
@@ -367,6 +387,20 @@ async buyLevel(level) {
     
     const price = CONFIG.LEVEL_PRICES[level - 1];
     
+    // 🔥 НОВОЕ: Проверка баланса
+    try {
+      const balance = await web3Manager.getBalance();
+      const priceNum = parseFloat(price);
+      const balanceNum = parseFloat(balance);
+      
+      if (balanceNum < priceNum + 0.001) { // +0.001 для газа
+        Utils.showNotification(`Insufficient balance. Need ${priceNum + 0.001} BNB, have ${balanceNum} BNB`, 'error');
+        return;
+      }
+    } catch (e) {
+      console.warn('Could not check balance:', e);
+    }
+    
     if (!confirm(`Buy level ${level} for ${price} BNB?`)) {
       return;
     }
@@ -376,6 +410,7 @@ async buyLevel(level) {
     
     try {
       console.log(`💳 Buying level ${level} for ${price} BNB...`);
+      console.log(`📊 User stats:`, this.userStats);
       
       // 🔥 ИСПРАВЛЕНО: Показываем loader ДО транзакции
       Utils.showLoader(true);
@@ -398,8 +433,11 @@ async buyLevel(level) {
       console.log('✅ Transaction sent:', tx);
       console.log('⏳ Waiting for blockchain confirmation...');
       
+      // Показываем уведомление что транзакция отправлена
+      Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
+      
       // 🔥 НОВОЕ: Даём время на подтверждение
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Обновляем данные
       await this.loadUserData();
@@ -410,6 +448,11 @@ async buyLevel(level) {
       
     } catch (error) {
       console.error('❌ Error buying level:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        data: error.data
+      });
       
       let errorMsg = 'Transaction failed';
       if (error.message) {
@@ -417,6 +460,10 @@ async buyLevel(level) {
           errorMsg = 'Transaction cancelled';
         } else if (error.message.includes('insufficient funds')) {
           errorMsg = 'Insufficient BNB balance';
+        } else if (error.message.includes('User not registered')) {
+          errorMsg = 'You must register first!';
+        } else if (error.message.includes('Level already active')) {
+          errorMsg = 'Level already purchased';
         } else {
           errorMsg = error.message;
         }
