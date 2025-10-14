@@ -1,3 +1,6 @@
+/* jshint esversion: 11 */
+/* global Utils, web3Manager, contracts, ethers, app, CONFIG, adminManager, Promise */
+
 class UIManager {
   constructor() {
     this.currentPage = 'dashboard';
