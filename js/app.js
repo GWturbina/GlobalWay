@@ -196,7 +196,7 @@ async init() {
     return key.split('.').reduce((o, k) => (o || {})[k], obj);
   }
 
- async connectWallet() {
+async connectWallet() {
   try {
     Utils.showLoader(true);
     
@@ -246,42 +246,46 @@ async init() {
         }
       }
       
-  if (referrer && Utils.validateAddress(referrer)) {
-          uiManager.showRegistrationModal();
-        } else {
-          Utils.showNotification('You need a referral link to register', 'error');
-        }
+      if (referrer && Utils.validateAddress(referrer)) {
+        uiManager.showRegistrationModal();
       } else {
-        const landing = document.getElementById('landing');
-        const dapp = document.getElementById('dapp');
-      
-        if (landing) landing.classList.remove('active');
-        if (dapp) dapp.classList.add('active');
-      
-        await uiManager.updateUI();
-        
-        // 🔥 НОВОЕ: Явное обновление header после подключения
-        uiManager.updateHeader();
-        uiManager.updateCabinet();
-      
-        // Проверяем админ права
-        if (web3Manager.isAdmin()) {
-          document.body.classList.add('admin-access');
-          console.log('✅ Admin class added to body after wallet connect');
-        }
-      
-        uiManager.showPage('dashboard');
-      
-        Utils.showNotification('Welcome to GlobalWay!', 'success');
+        Utils.showNotification('You need a referral link to register', 'error');
       }
-    
-    } catch (error) {
-      console.error('Connect error:', error);
-      Utils.showNotification('Connection failed: ' + error.message, 'error');
-    } finally {
-      Utils.showLoader(false);
+    } else {
+      const landing = document.getElementById('landing');
+      const dapp = document.getElementById('dapp');
+      
+      if (landing) landing.classList.remove('active');
+      if (dapp) dapp.classList.add('active');
+      
+      // 🔥 ИСПРАВЛЕНО: Полное обновление UI и загрузка данных
+      await uiManager.loadUserData();
+      await uiManager.updateUI();
+      
+      // Явное обновление header и cabinet
+      uiManager.updateHeader();
+      uiManager.updateCabinet();
+      
+      // Проверяем админ права
+      if (web3Manager.isAdmin()) {
+        document.body.classList.add('admin-access');
+        console.log('✅ Admin class added to body after wallet connect');
+      }
+      
+      // 🔥 ИСПРАВЛЕНО: Загружаем данные dashboard ПОСЛЕ всех обновлений
+      uiManager.showPage('dashboard');
+      await uiManager.loadPageData('dashboard');
+      
+      Utils.showNotification('Welcome to GlobalWay!', 'success');
     }
+    
+  } catch (error) {
+    console.error('Connect error:', error);
+    Utils.showNotification('Connection failed: ' + error.message, 'error');
+  } finally {
+    Utils.showLoader(false);
   }
+}
 
   async openDapp() {
     // 🔥 ИСПРАВЛЕНО: Сначала подключаем кошелек, потом показываем DApp
