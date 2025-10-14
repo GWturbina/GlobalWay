@@ -283,6 +283,13 @@ async buyLevel(level) {
       return;
     }
 
+    // 🔥 ИСПРАВЛЕНО: Проверка контракта В САМОМ НАЧАЛЕ
+    if (!contracts.contracts.globalway) {
+      Utils.showNotification('Contracts not ready. Please refresh page.', 'error');
+      console.error('❌ GlobalWay contract not initialized');
+      return;
+    }
+
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
     
     if (isActive) {
@@ -292,29 +299,26 @@ async buyLevel(level) {
 
     const price = CONFIG.LEVEL_PRICES[level - 1];
     
-    // 🔥 ИСПРАВЛЕНИЕ: Сразу устанавливаем флаг ДО confirm
-    this.buyingLevel = true;
-    
     if (!confirm(`Buy level ${level} for ${price} BNB?`)) {
-      this.buyingLevel = false;
       return;
     }
 
+    // 🔥 ИСПРАВЛЕНО: Флаг ПОСЛЕ confirm
+    this.buyingLevel = true;
+    
     try {
-      console.log(`💳 Opening SafePal for level ${level}...`);
+      console.log(`💳 Buying level ${level} for ${price} BNB...`);
       
-      if (!contracts.contracts.globalway) {
-        throw new Error('GlobalWay contract not initialized');
-      }
+      // 🔥 ИСПРАВЛЕНО: Показываем loader ДО транзакции
+      Utils.showLoader(true);
       
-      // 🔥 КРИТИЧНО: Вызываем транзакцию СРАЗУ без задержек
+      // Вызываем транзакцию
       const tx = await contracts.buyLevel(level);
       
-      // Показываем loader ТОЛЬКО после успешной отправки
-      Utils.showLoader(true);
-      console.log('⏳ Waiting for confirmation...');
-      console.log('✅ Level purchased:', tx);
-  
+      console.log('✅ Transaction sent:', tx);
+      console.log('⏳ Waiting for blockchain confirmation...');
+      
+      // Обновляем данные
       await this.loadUserData();
       await this.updateUI();
       await this.loadDashboard();
@@ -327,7 +331,7 @@ async buyLevel(level) {
       let errorMsg = 'Transaction failed';
       if (error.message) {
         if (error.message.includes('user rejected') || error.message.includes('User denied')) {
-          errorMsg = 'Transaction rejected';
+          errorMsg = 'Transaction cancelled';
         } else if (error.message.includes('insufficient funds')) {
           errorMsg = 'Insufficient BNB balance';
         } else {
