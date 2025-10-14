@@ -287,7 +287,7 @@ async buyLevel(level) {
     try {
       tx = await this.contracts.globalway.buyLevel(level, { 
         value: price,
-        gasLimit: 500000 // 🔥 НОВОЕ: явный лимит газа
+        gasLimit: 800000 // 🔥 НОВОЕ: явный лимит газа
       });
       console.log('📤 Transaction sent:', tx.hash);
     } catch (error) {
