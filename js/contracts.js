@@ -279,21 +279,17 @@ async buyLevel(level) {
     // 🔥 НОВОЕ: Увеличена задержка для SafePal мобильного браузера
     await new Promise(resolve => setTimeout(resolve, 500));
   
-    console.log('📤 Sending transaction with params:', {
-      level,
-      price: CONFIG.LEVEL_PRICES[level - 1],
-      gasLimit: 800000 // 🔥 УВЕЛИЧЕН gasLimit!
-    });
+    console.log('📤 Sending transaction...');
+    console.log('💡 SafePal will open for confirmation...');
     
-    // 🔥 НОВОЕ: Отправляем транзакцию с УВЕЛИЧЕННЫМ gasLimit
+    // 🔥 НОВОЕ: Отправляем транзакцию БЕЗ ожидания
     let tx;
     try {
       tx = await this.contracts.globalway.buyLevel(level, { 
         value: price,
-        gasLimit: 800000 // 🔥 БЫЛО 500000, СТАЛО 800000
+        gasLimit: 500000 // 🔥 НОВОЕ: явный лимит газа
       });
       console.log('📤 Transaction sent:', tx.hash);
-      console.log('🔗 View on explorer:', `${CONFIG.NETWORK.explorer}/tx/${tx.hash}`);
     } catch (error) {
       console.error('❌ Transaction send failed:', error);
       throw error;
@@ -312,7 +308,6 @@ async buyLevel(level) {
       ]);
       
       console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
-      console.log('⛽ Gas used:', receipt.gasUsed.toString());
       
       // Проверяем события Marketing контракта
       if (this.contracts.marketing) {
@@ -386,7 +381,7 @@ async buyLevel(level) {
 
   async getActiveLevels(address) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    
+    async buyLevel(level)
     const activeLevels = [];
     for (let i = 1; i <= 12; i++) {
       try {
