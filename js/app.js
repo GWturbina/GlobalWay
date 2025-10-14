@@ -205,14 +205,17 @@ async init() {
     const address = await web3Manager.connect();
     console.log('✅ Wallet connected:', address);
     
+    // 🔥 НОВОЕ: Ждём полного коннекта (особенно для SafePal на мобильном)
     await new Promise(resolve => setTimeout(resolve, 1500));
     
+    // 🔥 НОВОЕ: Проверяем что коннект действительно установлен
     if (!web3Manager.connected || !web3Manager.signer) {
       throw new Error('Wallet connected but signer not ready. Please try again.');
     }
     
     console.log('📦 Initializing contracts...');
     
+    // 🔥 НОВОЕ: Маленькая задержка перед инициализацией контрактов
     await new Promise(resolve => setTimeout(resolve, 500));
     
     const contractsInitialized = contracts.init();
@@ -229,6 +232,7 @@ async init() {
       throw new Error('Contract initialization failed. Check console for details.');
     }
     
+    // 🔥 НОВОЕ: Проверяем что критические контракты инициализированы
     if (!contracts.contracts.globalway || !contracts.contracts.token) {
       throw new Error('Critical contracts not initialized');
     }
@@ -237,10 +241,6 @@ async init() {
     console.log('📊 Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
     
     Utils.showNotification('Wallet connected!', 'success');
-    
-    // 🔥 НОВОЕ: ВСЕГДА обновляем header после подключения (до проверки регистрации!)
-    uiManager.updateHeader();
-    console.log('✅ Header updated with wallet address');
     
     const isRegistered = await contracts.isUserRegistered(address);
     console.log('📝 User registered:', isRegistered);
@@ -263,23 +263,11 @@ async init() {
         }
       }
       
-      // 🔥 НОВОЕ: Переходим в DApp даже если не зарегистрирован
-      const landing = document.getElementById('landing');
-      const dapp = document.getElementById('dapp');
-      
-      if (landing) landing.classList.remove('active');
-      if (dapp) dapp.classList.add('active');
-      
-      // 🔥 НОВОЕ: Показываем dashboard с кнопками
-      uiManager.showPage('dashboard');
-      
-      // 🔥 НОВОЕ: Показываем уведомление о покупке первого уровня
       if (referrer && Utils.validateAddress(referrer)) {
-        Utils.showNotification('Buy Level 1 to complete registration!', 'info');
+        uiManager.showRegistrationModal();
       } else {
         Utils.showNotification('You need a referral link to register', 'error');
       }
-      
     } else {
       const landing = document.getElementById('landing');
       const dapp = document.getElementById('dapp');
@@ -287,11 +275,13 @@ async init() {
       if (landing) landing.classList.remove('active');
       if (dapp) dapp.classList.add('active');
       
+      // 🔥 НОВОЕ: Задержка перед загрузкой UI (даём время SafePal)
       await new Promise(resolve => setTimeout(resolve, 800));
       
       await uiManager.loadUserData();
       await uiManager.updateUI();
       
+      // 🔥 НОВОЕ: Принудительное обновление header (для кнопки Connect)
       await new Promise(resolve => setTimeout(resolve, 300));
       uiManager.updateHeader();
       uiManager.updateCabinet();
