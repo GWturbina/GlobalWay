@@ -271,46 +271,78 @@ class ContractsManager {
 
 async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
   
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
   
-    // 🔥 НОВОЕ: Небольшая задержка для SafePal мобильного браузера
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // 🔥 НОВОЕ: Увеличена задержка для SafePal мобильного браузера
+    await new Promise(resolve => setTimeout(resolve, 500));
   
     console.log('📤 Sending transaction...');
-    const tx = await this.contracts.globalway.buyLevel(level, { value: price });
-    console.log('📤 Transaction sent:', tx.hash);
-  
-    console.log('⏳ Waiting for confirmation...');
-    const receipt = await tx.wait();
-    console.log('✅ Transaction confirmed');
-  
-    // Проверяем события Marketing контракта
-    if (this.contracts.marketing) {
-      const events = receipt.logs.map(log => {
-        try {
-          if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
-            return this.contracts.marketing.interface.parseLog(log);
-          }
-        } catch (e) {
-          return null;
-        }
-      }).filter(e => e !== null);
+    console.log('💡 SafePal will open for confirmation...');
     
-      console.log('📊 Marketing events:', events.filter(e => e).map(e => e.name));
-    
-      const hasMatrix = events.some(e => e && e.name === 'MatrixBonusPaid');
-      const hasReferral = events.some(e => e && e.name === 'ReferralBonusPaid');
-    
-      if (hasMatrix) console.log('✅ Matrix bonus distributed (48%)');
-      else console.warn('⚠️ Matrix bonus NOT distributed');
-    
-      if (hasReferral) console.log('✅ Referral bonus distributed (2%)');
-      else console.warn('⚠️ Referral bonus NOT distributed');
+    // 🔥 НОВОЕ: Отправляем транзакцию БЕЗ ожидания
+    let tx;
+    try {
+      tx = await this.contracts.globalway.buyLevel(level, { 
+        value: price,
+        gasLimit: 500000 // 🔥 НОВОЕ: явный лимит газа
+      });
+      console.log('📤 Transaction sent:', tx.hash);
+    } catch (error) {
+      console.error('❌ Transaction send failed:', error);
+      throw error;
     }
-  
-    return tx.hash;
+    
+    // 🔥 НОВОЕ: Возвращаем промис для tx.wait() - но НЕ блокируем UI
+    console.log('⏳ Transaction pending, waiting for confirmation...');
+    
+    // Ждём подтверждение с таймаутом
+    try {
+      const receipt = await Promise.race([
+        tx.wait(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction timeout')), 120000) // 2 минуты
+        )
+      ]);
+      
+      console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+      
+      // Проверяем события Marketing контракта
+      if (this.contracts.marketing) {
+        const events = receipt.logs.map(log => {
+          try {
+            if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
+              return this.contracts.marketing.interface.parseLog(log);
+            }
+          } catch (e) {
+            return null;
+          }
+        }).filter(e => e !== null);
+      
+        console.log('📊 Marketing events:', events.filter(e => e).map(e => e.name));
+      
+        const hasMatrix = events.some(e => e && e.name === 'MatrixBonusPaid');
+        const hasReferral = events.some(e => e && e.name === 'ReferralBonusPaid');
+      
+        if (hasMatrix) console.log('✅ Matrix bonus distributed (48%)');
+        else console.warn('⚠️ Matrix bonus NOT distributed');
+      
+        if (hasReferral) console.log('✅ Referral bonus distributed (2%)');
+        else console.warn('⚠️ Referral bonus NOT distributed');
+      }
+      
+      return tx.hash;
+      
+    } catch (waitError) {
+      if (waitError.message === 'Transaction timeout') {
+        console.warn('⚠️ Transaction confirmation timeout, but it may still process');
+        // Возвращаем хеш даже при таймауте - транзакция может пройти
+        return tx.hash;
+      }
+      throw waitError;
+    }
   }
 
   async buyLevelsBulk(maxLevel) {
