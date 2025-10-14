@@ -181,7 +181,7 @@ class Web3Manager {
   }
 
   // Connect specifically using SafePal provider
-  async connectSafePal() {
+async connectSafePal() {
     try {
       // select the correct provider: prefer window.safepal, then check ethereum.providers
       let rawProvider = null;
@@ -217,6 +217,9 @@ class Web3Manager {
 
       this.signer = this.provider.getSigner();
       this.address = await this.signer.getAddress();
+
+      // 🔥 ИСПРАВЛЕНО: Устанавливаем connected СРАЗУ после получения адреса
+      this.connected = true;
 
       console.log('✅ SafePal connected:', this.address);
     } catch (error) {
