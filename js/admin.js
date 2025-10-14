@@ -14,58 +14,28 @@ class AdminManager {
   }
 
   checkRights() {
-      this.isOwner = web3Manager.isOwner();
-      this.isFounder = web3Manager.isFounder();
-      this.isBoard = web3Manager.isAdmin();
-    
-      const rightsLevel = this.isOwner ? 'Owner' :
-                         this.isFounder ? 'Founder' :
-                         this.isBoard ? 'Board Member' : 'No Access';
-    
-      const adminCurrentAccountEl = document.getElementById('adminCurrentAccount');
-      const adminRightsLevelEl = document.getElementById('adminRightsLevel');
-    
-      if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
-      if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
-    
-      if (!this.isBoard) {
-        console.error('❌ No admin access for:', web3Manager.address);
-        console.log('Owner:', CONFIG.ADMIN.owner);
-        console.log('Founders:', CONFIG.ADMIN.founders);
-        console.log('Board:', CONFIG.ADMIN.board);
-        
-        Utils.showNotification('Access denied: Admin rights required', 'error');
-    
-        const adminPage = document.getElementById('admin');
-        if (adminPage) {
-          adminPage.innerHTML = `
-            <div style="text-align: center; padding: 50px;">
-              <h2>🔒 Access Denied</h2>
-              <p>You don't have admin rights.</p>
-              <p>Your address: <code>${web3Manager.address}</code></p>
-              <p>Contact the system administrator.</p>
-            </div>
-          `;
-        }
-        return false;
-      }
-    
-      console.log('✅ Admin access granted:', rightsLevel);
-    
-      // 🔥 ИСПРАВЛЕНИЕ: Добавляем класс к body
-      document.body.classList.add('admin-access');
-    
-      return true;
-    }
-  
-  if (!this.isBoard) {
+    this.isOwner = web3Manager.isOwner();
+    this.isFounder = web3Manager.isFounder();
+    this.isBoard = web3Manager.isAdmin();
+
+    const rightsLevel = this.isOwner ? 'Owner' :
+                       this.isFounder ? 'Founder' :
+                       this.isBoard ? 'Board Member' : 'No Access';
+
+    const adminCurrentAccountEl = document.getElementById('adminCurrentAccount');
+    const adminRightsLevelEl = document.getElementById('adminRightsLevel');
+
+    if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
+    if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
+
+    if (!this.isBoard) {
       console.error('❌ No admin access for:', web3Manager.address);
       console.log('Owner:', CONFIG.ADMIN.owner);
       console.log('Founders:', CONFIG.ADMIN.founders);
       console.log('Board:', CONFIG.ADMIN.board);
-      
+
       Utils.showNotification('Access denied: Admin rights required', 'error');
-    
+
       const adminPage = document.getElementById('admin');
       if (adminPage) {
         adminPage.innerHTML = `
@@ -79,21 +49,25 @@ class AdminManager {
       }
       return false;
     }
-    
+
     console.log('✅ Admin access granted:', rightsLevel);
+
+    // Добавляем класс к body
+    document.body.classList.add('admin-access');
+
     return true;
-  } 
+  }
 
   async loadAdminStats() {
     try {
       const overview = await contracts.getContractOverview();
-      
+
       const adminTotalUsersEl = document.getElementById('adminTotalUsers');
       const adminActiveUsersEl = document.getElementById('adminActiveUsers');
       const adminContractBalanceEl = document.getElementById('adminContractBalance');
       const adminTotalVolumeEl = document.getElementById('adminTotalVolume');
       const totalIdsAssignedEl = document.getElementById('totalIdsAssigned');
-      
+
       if (adminTotalUsersEl) adminTotalUsersEl.textContent = overview.totalUsers.toString();
       if (adminActiveUsersEl) adminActiveUsersEl.textContent = '-';
       if (adminContractBalanceEl) {
@@ -114,12 +88,13 @@ class AdminManager {
     if (freeActivateBtn) {
       freeActivateBtn.addEventListener('click', () => this.freeActivate());
     }
-    
+
     // Batch Activation
     const batchActivateBtn = document.getElementById('batchActivateBtn');
     if (batchActivateBtn) {
       batchActivateBtn.addEventListener('click', () => this.batchActivate());
     }
+  }
     
     // Contract Management
     const pauseBtn = document.getElementById('pauseContractBtn');
