@@ -1,3 +1,5 @@
+/* jshint esversion: 8 */
+/* global CONFIG, Promise, ethers */
 // js/web3.js
 // Improved Web3Manager with robust SafePal detection and deep-link fallback
 // Requirements: ethers (already loaded in index.html), CONFIG object available from js/config.js
