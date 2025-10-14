@@ -141,7 +141,7 @@ async updateUI() {
       }
     }
     
-async loadUserData() {
+  async loadUserData() {
     try {
       const addr = web3Manager && web3Manager.address ? web3Manager.address : null;
       if (!addr) {
@@ -350,35 +350,55 @@ async loadDashboard() {
   }
 
 async buyLevel(level) {
+    console.log('🎯 buyLevel called for level:', level);
+    
     if (this.buyingLevel) {
       console.log('⚠️ Purchase already in progress');
+      alert('❌ DEBUG: Purchase already in progress');
       return;
     }
+    
+    console.log('✅ Step 1: Not buying yet');
     
     // Проверка подключения кошелька
     if (!web3Manager.connected || !web3Manager.signer) {
       console.error('❌ Wallet not connected');
+      alert('❌ DEBUG: Wallet not connected\nconnected: ' + web3Manager.connected + '\nsigner: ' + !!web3Manager.signer);
       Utils.showNotification('Wallet not connected. Please connect first.', 'error');
       return;
     }
     
+    console.log('✅ Step 2: Wallet connected');
+    
+    // Проверка регистрации
+    if (!this.userStats || !this.userStats.isRegistered) {
+      console.error('❌ User not registered');
+      alert('❌ DEBUG: User not registered\nuserStats: ' + !!this.userStats + '\nisRegistered: ' + this.userStats?.isRegistered);
+      Utils.showNotification('You must register first!', 'error');
+      return;
+    }
+    
+    console.log('✅ Step 3: User registered');
+    
     // Проверка контракта
     if (!contracts.contracts.globalway) {
       console.error('❌ GlobalWay contract not initialized');
+      alert('❌ DEBUG: Contract not initialized');
       Utils.showNotification('Contracts not ready. Please refresh page.', 'error');
       return;
     }
     
-    // 🔥 ДЛЯ LEVEL 1: Контракт сам проверит и зарегистрирует пользователя!
-    // Для остальных уровней - проверяем что уровень не куплен
-    if (level > 1) {
-      const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
-      
-      if (isActive) {
-        Utils.showNotification('Level already purchased', 'error');
-        return;
-      }
+    console.log('✅ Step 4: Contract ready');
+    
+    const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
+    
+    if (isActive) {
+      alert('❌ DEBUG: Level already active');
+      Utils.showNotification('Level already purchased', 'error');
+      return;
     }
+    
+    console.log('✅ Step 6: Level not active yet');
     
     const price = CONFIG.LEVEL_PRICES[level - 1];
     
@@ -388,17 +408,27 @@ async buyLevel(level) {
       const priceNum = parseFloat(price);
       const balanceNum = parseFloat(balance);
       
-      if (balanceNum < priceNum + 0.002) { // +0.002 для газа
-        Utils.showNotification(`Insufficient balance. Need ${priceNum + 0.002} BNB, have ${balanceNum} BNB`, 'error');
+      console.log('💰 Balance check:', { balance: balanceNum, needed: priceNum + 0.001 });
+      
+      if (balanceNum < priceNum + 0.001) {
+        alert(`❌ DEBUG: Insufficient balance\nNeed: ${priceNum + 0.001} BNB\nHave: ${balanceNum} BNB`);
+        Utils.showNotification(`Insufficient balance. Need ${priceNum + 0.001} BNB, have ${balanceNum} BNB`, 'error');
         return;
       }
     } catch (e) {
       console.warn('Could not check balance:', e);
+      alert('⚠️ DEBUG: Balance check failed: ' + e.message);
     }
     
+    console.log('✅ Step 7: Balance OK');
+    
     if (!confirm(`Buy level ${level} for ${price} BNB?`)) {
+      console.log('❌ User cancelled confirmation');
       return;
     }
+    
+    console.log('✅ Step 8: User confirmed');
+    alert('✅ DEBUG: About to send transaction!\nLevel: ' + level + '\nPrice: ' + price + ' BNB');
     
     this.buyingLevel = true;
     
@@ -407,20 +437,25 @@ async buyLevel(level) {
       
       Utils.showLoader(true);
       
+      if (!contracts.contracts.globalway || !web3Manager.signer) {
+        throw new Error('Contracts or signer lost during transaction. Please reconnect.');
+      }
+      
       if (web3Manager.isMobile) {
         console.log('📱 Mobile delay before transaction...');
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      console.log('📤 Sending transaction to blockchain...');
+      console.log('📤 Calling contracts.buyLevel()...');
       const tx = await contracts.buyLevel(level);
       
       console.log('✅ Transaction sent:', tx);
+      alert('✅ Transaction sent! Hash: ' + tx);
+      
       Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
       
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // 🔥 Для level 1 - пользователь теперь зарегистрирован!
       await this.loadUserData();
       await this.updateUI();
       await this.loadDashboard();
@@ -429,6 +464,7 @@ async buyLevel(level) {
       
     } catch (error) {
       console.error('❌ Error buying level:', error);
+      alert('❌ DEBUG: Transaction error\n' + error.message);
       
       let errorMsg = 'Transaction failed';
       if (error.message) {
@@ -436,6 +472,10 @@ async buyLevel(level) {
           errorMsg = 'Transaction cancelled';
         } else if (error.message.includes('insufficient funds')) {
           errorMsg = 'Insufficient BNB balance';
+        } else if (error.message.includes('User not registered')) {
+          errorMsg = 'You must register first!';
+        } else if (error.message.includes('Level already active')) {
+          errorMsg = 'Level already purchased';
         } else {
           errorMsg = error.message;
         }
@@ -447,6 +487,7 @@ async buyLevel(level) {
       Utils.showLoader(false);
     }
   }
+
   setupLevelButtons() {
     const container = document.getElementById('individualLevels');
     if (!container) {
@@ -545,14 +586,6 @@ setupBulkButtons() {
       }, { once: false });
     });
   }
-
-  async loadQuarterlyInfo() {
-    if (!this.userStats || !this.userStats.isRegistered) {
-      console.log('⚠️ User not registered, skipping quarterly info');
-      const quarterlyEl = document.getElementById('quarterlyActivity');
-      if (quarterlyEl) quarterlyEl.style.display = 'none';
-      return;
-    }
 
     try {
       const quarterlyInfo = await contracts.getUserQuarterlyInfo(web3Manager.address);
