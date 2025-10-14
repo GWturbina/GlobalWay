@@ -205,7 +205,19 @@ async connectWallet() {
     const address = await web3Manager.connect();
     console.log('✅ Wallet connected:', address);
     
+    // 🔥 НОВОЕ: Ждём полного коннекта (особенно для SafePal на мобильном)
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // 🔥 НОВОЕ: Проверяем что коннект действительно установлен
+    if (!web3Manager.connected || !web3Manager.signer) {
+      throw new Error('Wallet connected but signer not ready. Please try again.');
+    }
+    
     console.log('📦 Initializing contracts...');
+    
+    // 🔥 НОВОЕ: Маленькая задержка перед инициализацией контрактов
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     const contractsInitialized = contracts.init();
     
     if (!contractsInitialized) {
@@ -218,6 +230,11 @@ async connectWallet() {
       console.log('Available ABIs:', Object.keys(contracts.abis).filter(k => contracts.abis[k]));
       console.log('Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
       throw new Error('Contract initialization failed. Check console for details.');
+    }
+    
+    // 🔥 НОВОЕ: Проверяем что критические контракты инициализированы
+    if (!contracts.contracts.globalway || !contracts.contracts.token) {
+      throw new Error('Critical contracts not initialized');
     }
     
     console.log('✅ All contracts initialized successfully');
@@ -258,21 +275,22 @@ async connectWallet() {
       if (landing) landing.classList.remove('active');
       if (dapp) dapp.classList.add('active');
       
-      // 🔥 ИСПРАВЛЕНО: Полное обновление UI и загрузка данных
+      // 🔥 НОВОЕ: Задержка перед загрузкой UI (даём время SafePal)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       await uiManager.loadUserData();
       await uiManager.updateUI();
       
-      // Явное обновление header и cabinet
+      // 🔥 НОВОЕ: Принудительное обновление header (для кнопки Connect)
+      await new Promise(resolve => setTimeout(resolve, 300));
       uiManager.updateHeader();
       uiManager.updateCabinet();
       
-      // Проверяем админ права
       if (web3Manager.isAdmin()) {
         document.body.classList.add('admin-access');
         console.log('✅ Admin class added to body after wallet connect');
       }
       
-      // 🔥 ИСПРАВЛЕНО: Загружаем данные dashboard ПОСЛЕ всех обновлений
       uiManager.showPage('dashboard');
       await uiManager.loadPageData('dashboard');
       
