@@ -94,7 +94,6 @@ class AdminManager {
     if (batchActivateBtn) {
       batchActivateBtn.addEventListener('click', () => this.batchActivate());
     }
-  }
     
     // Contract Management
     const pauseBtn = document.getElementById('pauseContractBtn');
