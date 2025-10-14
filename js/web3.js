@@ -195,7 +195,7 @@ class Web3Manager {
   }
 
   // Connect specifically using SafePal provider
-  async connectSafePal() {
+async connectSafePal() {
     try {
       // 🔥 ТОЛЬКО SafePal провайдеры, никакого MetaMask!
       let rawProvider = null;
