@@ -93,33 +93,41 @@ class Web3Manager {
   }
 
   // Public connect method — uses SafePal when available, fallbacks otherwise
-  async connect() {
+async connect() {
     try {
       console.log('🔌 Starting wallet connection...');
       console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
       console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
-
-    if (this.isMobile) {
-      console.log('⏳ Mobile delay for better compatibility...');
-      await new Promise(resolve => setTimeout(resolve, 2000)); // 🔥 ИСПРАВЛЕНО: 2000мс для SafePal
+      
+      if (this.isMobile) {
+        console.log('⏳ Mobile delay for better compatibility...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
-
+      
       // Always wait a bit for SafePal injection (safer UX)
       await this.waitForSafePal(5000);
       console.log('🔍 window.safepal:', !!window.safepal);
       console.log('🔍 window.ethereum:', !!window.ethereum);
-
+      
       // Priority 1: SafePal (explicit object or marked ethereum provider)
       if (this.hasSafePalProvider()) {
         console.log('✅ SafePal provider prioritized for connection');
         await this.connectSafePal();
+        
+        // 🔥 НОВОЕ: Дополнительная проверка что signer готов
+        if (!this.signer || !this.address) {
+          throw new Error('SafePal connected but signer not ready');
+        }
       }
       // Priority 2: mobile but not SafePal browser -> attempt deep link to open in SafePal app
       else if (this.isMobile && !this.isSafePalBrowser) {
         console.log('📱 Mobile but not SafePal browser. Triggering SafePal deep-link...');
-        await this.openSafePalApp();
-        // deep link will move user to app; stop further attempts
-        return;
+        
+        // 🔥 ИСПРАВЛЕНО: Не прерываем выполнение, а показываем инструкцию
+        this.openSafePalApp();
+        
+        // 🔥 НОВОЕ: Показываем пользователю что делать
+        throw new Error('Please complete connection in SafePal app and return to this page');
       }
       // Priority 3: fallback to generic ethereum provider (MetaMask or other)
       else if (window.ethereum) {
@@ -128,12 +136,21 @@ class Web3Manager {
       } else {
         throw new Error('❌ No wallet detected!\n\nDesktop: install SafePal extension or open in SafePal app.\nMobile: open link in SafePal Wallet.');
       }
-
+      
+      // 🔥 НОВОЕ: Проверяем что все действительно готово перед продолжением
+      if (!this.provider || !this.signer || !this.address) {
+        throw new Error('Wallet connection incomplete. Missing provider, signer or address.');
+      }
+      
       await this.checkNetwork();
       await this.saveConnection();
+      
+      // 🔥 НОВОЕ: Устанавливаем connected только после всех проверок
       this.connected = true;
+      
       console.log('✅ Connected:', this.address);
       return this.address;
+      
     } catch (error) {
       console.error('❌ Connection error:', error);
       if (!/User rejected|User denied/i.test(error.message || '')) {
@@ -143,7 +160,6 @@ class Web3Manager {
       throw error;
     }
   }
-
   // Wait for SafePal provider to be injected (retries until timeout)
   async waitForSafePal(maxWaitTime = 3000) {
     const start = Date.now();
