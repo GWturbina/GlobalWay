@@ -93,7 +93,7 @@ class UIManager {
         return;
       }
       
-      // 🔥 НОВОЕ: Задержка для SafePal на мобильном
+      //  НОВОЕ: Задержка для SafePal на мобильном
       if (web3Manager.isMobile) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
