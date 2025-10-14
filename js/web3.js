@@ -73,7 +73,7 @@ class Web3Manager {
     // If in SafePal browser, wait a bit longer for injection
     if (this.isSafePalBrowser) {
       console.log('⏳ Waiting for SafePal injection (5s max)...');
-      await this.waitForSafePal(5000);
+      await this.waitForSafePal(10000);
       // try to detect provider now
       if (this.hasSafePalProvider()) {
         console.log('✅ SafePal provider detected during init');
@@ -159,7 +159,7 @@ class Web3Manager {
   }
 
   // Wait for SafePal provider to be injected (retries until timeout)
-  async waitForSafePal(maxWaitTime = 3000) {
+  async waitForSafePal(maxWaitTime = 10000) {
     const start = Date.now();
     const interval = 120;
     while (Date.now() - start < maxWaitTime) {
@@ -297,7 +297,7 @@ async connectSafePal() {
       console.log('🔄 Auto-connecting...');
       // Give SafePal a bit of time if flagged
       if (this.isSafePalBrowser) {
-        await this.waitForSafePal(5000);
+        await this.waitForSafePal(10000);
       } else {
         await new Promise(resolve => setTimeout(resolve, 400));
       }
