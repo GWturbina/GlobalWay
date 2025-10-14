@@ -141,7 +141,7 @@ async updateUI() {
       }
     }
     
-  async loadUserData() {
+async loadUserData() {
     try {
       const addr = web3Manager && web3Manager.address ? web3Manager.address : null;
       if (!addr) {
@@ -156,26 +156,36 @@ async updateUI() {
         };
         return;
       }
-
+      
+      // 🔥 НОВОЕ: Сначала проверяем регистрацию НАПРЯМУЮ
+      let isRegistered = false;
+      try {
+        isRegistered = await contracts.isUserRegistered(addr);
+        console.log('✅ isUserRegistered (direct check):', isRegistered);
+      } catch (regError) {
+        console.error('Error checking registration:', regError);
+      }
+      
       let info;
       try {
         info = await contracts.getUserFullInfo(addr);
+        console.log('📊 getUserFullInfo result:', info);
       } catch (networkError) {
         console.error('Network error loading user data:', networkError);
         Utils.showNotification('Network error. Please check your connection to opBNB.', 'error');
         this.userStats = { 
           activeLevels: [], 
           leaderRank: 0,
-          isRegistered: false,
+          isRegistered: isRegistered, // 🔥 ИСПОЛЬЗУЕМ ПРЯМУЮ ПРОВЕРКУ
           personalInvites: 0,
           totalEarned: ethers.BigNumber.from(0),
           referrals: []
         };
         return;
       }
-
+      
       this.userStats = {
-        isRegistered: Boolean(info.isRegistered),
+        isRegistered: isRegistered, // 🔥 ИСПРАВЛЕНО: используем прямую проверку вместо info.isRegistered
         sponsor: info.sponsor || ethers.constants.AddressZero,
         registrationTime: info.registrationTime,
         lastActivity: info.lastActivity,
@@ -190,14 +200,14 @@ async updateUI() {
         referrals: info.referrals || [],
         isInvestor: Boolean(info.isInvestor)
       };
-
+      
       if (Array.isArray(info.activeLevels)) {
         this.userStats.activeLevels = info.activeLevels.map(l => {
           if (l && typeof l.toNumber === 'function') return l.toNumber();
           return Number(l);
         });
       }
-
+      
       try {
         if (contracts.contracts.leaderPool) {
           const rank = await contracts.contracts.leaderPool.getUserRank(addr);
@@ -210,9 +220,10 @@ async updateUI() {
         console.warn('⚠️ LeaderPool not available:', e.message);
         this.userStats.leaderRank = 0;
       }
-
+      
       console.log('✅ User data loaded:', this.userStats);
-
+      console.log('🔑 isRegistered final value:', this.userStats.isRegistered);
+      
     } catch (error) {
       console.error('Error loading user data:', error);
       this.userStats = { 
