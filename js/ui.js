@@ -613,7 +613,7 @@ setupBulkButtons() {
       }
     
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 50000);
+      const fromBlock = Math.max(0, currentBlock - 50000); // ✅ Ограничение opBNB
     
       console.log(`📊 Loading earnings from block ${fromBlock} to ${currentBlock}`);
     
@@ -1716,7 +1716,7 @@ setupBulkButtons() {
       }
       
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = 0; // Загружать ВСЕ блоки с начала
+      const fromBlock = Math.max(0, currentBlock - 50000); // ✅ Ограничение opBNB
       
       const mintFilter = tokenContract.filters.TokensMinted(web3Manager.address);
       const mintEvents = await tokenContract.queryFilter(mintFilter, fromBlock, currentBlock);
