@@ -87,14 +87,36 @@ class UIManager {
       }
     }
   
-  async updateUI() {
+async updateUI() {
       if (!web3Manager.connected) {
         this.showConnectionAlert();
         return;
       }
+      
+      // 🔥 НОВОЕ: Задержка для SafePal на мобильном
+      if (web3Manager.isMobile) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       await this.loadUserData();
+      
+      // 🔥 НОВОЕ: Проверяем что данные загружены
+      if (!this.userStats) {
+        console.warn('⚠️ User stats not loaded, retrying...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await this.loadUserData();
+      }
+      
+      // 🔥 НОВОЕ: Принудительное обновление header и cabinet
+      await new Promise(resolve => setTimeout(resolve, 200));
       this.updateHeader();
       this.updateCabinet();
+      
+      // 🔥 НОВОЕ: Ещё одно обновление header через секунду (для кнопки Connect)
+      setTimeout(() => {
+        this.updateHeader();
+        console.log('🔄 Header force-updated after 1s');
+      }, 1000);
   
       if (web3Manager.isAdmin()) {
         console.log('✅ Admin access granted');
@@ -106,6 +128,7 @@ class UIManager {
           el.style.display = '';
           console.log('✅ Showing admin element:', el.className);
         });
+        
         if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
           this.adminAutoOpened = true;
           console.log('🔄 Attempting to auto-open admin panel...');
@@ -225,17 +248,33 @@ class UIManager {
     if (alert) alert.style.display = 'block';
   }
 
-  updateHeader() {
+updateHeader() {
     const status = document.getElementById('connectionStatus');
     const connectBtn = document.getElementById('connectBtn');
     
-    if (web3Manager.connected && connectBtn) {
+    console.log('🔄 updateHeader called, connected:', web3Manager.connected, 'address:', web3Manager.address);
+    
+    // 🔥 НОВОЕ: Проверяем что адрес реально есть
+    if (web3Manager.connected && web3Manager.address && connectBtn) {
       connectBtn.textContent = Utils.formatAddress(web3Manager.address);
       if (status) status.classList.add('connected');
+      console.log('✅ Header updated with address:', web3Manager.address);
+    } else {
+      console.warn('⚠️ Cannot update header - not connected or no address');
+      if (connectBtn) {
+        connectBtn.textContent = 'Connect Wallet';
+      }
+      if (status) status.classList.remove('connected');
     }
   }
-
+  
   updateCabinet() {
+    // 🔥 НОВОЕ: Проверяем коннект перед обновлением
+    if (!web3Manager.connected || !web3Manager.address) {
+      console.warn('⚠️ Cannot update cabinet - wallet not connected');
+      return;
+    }
+    
     const userAddressEl = document.getElementById('userAddress');
     if (userAddressEl) {
       userAddressEl.textContent = Utils.formatAddress(web3Manager.address);
@@ -282,27 +321,34 @@ async buyLevel(level) {
       console.log('⚠️ Purchase already in progress');
       return;
     }
-
+    
+    // 🔥 НОВОЕ: Проверка подключения кошелька
+    if (!web3Manager.connected || !web3Manager.signer) {
+      Utils.showNotification('Wallet not connected. Please connect first.', 'error');
+      console.error('❌ Wallet not connected');
+      return;
+    }
+    
     // 🔥 ИСПРАВЛЕНО: Проверка контракта В САМОМ НАЧАЛЕ
     if (!contracts.contracts.globalway) {
       Utils.showNotification('Contracts not ready. Please refresh page.', 'error');
       console.error('❌ GlobalWay contract not initialized');
       return;
     }
-
+    
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
     
     if (isActive) {
       Utils.showNotification('Level already purchased', 'error');
       return;
     }
-
+    
     const price = CONFIG.LEVEL_PRICES[level - 1];
     
     if (!confirm(`Buy level ${level} for ${price} BNB?`)) {
       return;
     }
-
+    
     // 🔥 ИСПРАВЛЕНО: Флаг ПОСЛЕ confirm
     this.buyingLevel = true;
     
@@ -312,11 +358,26 @@ async buyLevel(level) {
       // 🔥 ИСПРАВЛЕНО: Показываем loader ДО транзакции
       Utils.showLoader(true);
       
+      // 🔥 НОВОЕ: Перепроверяем контракты перед транзакцией
+      if (!contracts.contracts.globalway || !web3Manager.signer) {
+        throw new Error('Contracts or signer lost during transaction. Please reconnect.');
+      }
+      
+      // 🔥 НОВОЕ: Небольшая задержка для SafePal на мобильном
+      if (web3Manager.isMobile) {
+        console.log('📱 Mobile delay before transaction...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
       // Вызываем транзакцию
+      console.log('📤 Sending transaction to blockchain...');
       const tx = await contracts.buyLevel(level);
       
       console.log('✅ Transaction sent:', tx);
       console.log('⏳ Waiting for blockchain confirmation...');
+      
+      // 🔥 НОВОЕ: Даём время на подтверждение
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Обновляем данные
       await this.loadUserData();
