@@ -87,7 +87,7 @@ class UIManager {
       }
     }
   
-async updateUI() {
+  async updateUI() {
       if (!web3Manager.connected) {
         this.showConnectionAlert();
         return;
@@ -156,36 +156,26 @@ async updateUI() {
         };
         return;
       }
-      
-      // 🔥 НОВОЕ: Сначала проверяем регистрацию НАПРЯМУЮ
-      let isRegistered = false;
-      try {
-        isRegistered = await contracts.isUserRegistered(addr);
-        console.log('✅ isUserRegistered (direct check):', isRegistered);
-      } catch (regError) {
-        console.error('Error checking registration:', regError);
-      }
-      
+
       let info;
       try {
         info = await contracts.getUserFullInfo(addr);
-        console.log('📊 getUserFullInfo result:', info);
       } catch (networkError) {
         console.error('Network error loading user data:', networkError);
         Utils.showNotification('Network error. Please check your connection to opBNB.', 'error');
         this.userStats = { 
           activeLevels: [], 
           leaderRank: 0,
-          isRegistered: isRegistered, // 🔥 ИСПОЛЬЗУЕМ ПРЯМУЮ ПРОВЕРКУ
+          isRegistered: false,
           personalInvites: 0,
           totalEarned: ethers.BigNumber.from(0),
           referrals: []
         };
         return;
       }
-      
+
       this.userStats = {
-        isRegistered: isRegistered, // 🔥 ИСПРАВЛЕНО: используем прямую проверку вместо info.isRegistered
+        isRegistered: Boolean(info.isRegistered),
         sponsor: info.sponsor || ethers.constants.AddressZero,
         registrationTime: info.registrationTime,
         lastActivity: info.lastActivity,
@@ -200,14 +190,14 @@ async updateUI() {
         referrals: info.referrals || [],
         isInvestor: Boolean(info.isInvestor)
       };
-      
+
       if (Array.isArray(info.activeLevels)) {
         this.userStats.activeLevels = info.activeLevels.map(l => {
           if (l && typeof l.toNumber === 'function') return l.toNumber();
           return Number(l);
         });
       }
-      
+
       try {
         if (contracts.contracts.leaderPool) {
           const rank = await contracts.contracts.leaderPool.getUserRank(addr);
@@ -220,10 +210,9 @@ async updateUI() {
         console.warn('⚠️ LeaderPool not available:', e.message);
         this.userStats.leaderRank = 0;
       }
-      
+
       console.log('✅ User data loaded:', this.userStats);
-      console.log('🔑 isRegistered final value:', this.userStats.isRegistered);
-      
+
     } catch (error) {
       console.error('Error loading user data:', error);
       this.userStats = { 
@@ -259,7 +248,7 @@ async updateUI() {
     if (alert) alert.style.display = 'block';
   }
 
-updateHeader() {
+  updateHeader() {
     const status = document.getElementById('connectionStatus');
     const connectBtn = document.getElementById('connectBtn');
     
@@ -317,7 +306,8 @@ updateHeader() {
   }
 
   // === DASHBOARD ===
-async loadDashboard() {
+
+  async loadDashboard() {
     // 🔥 НОВОЕ: Проверяем что userStats загружен
     if (!this.userStats) {
       console.warn('⚠️ userStats not loaded, waiting...');
@@ -350,112 +340,69 @@ async loadDashboard() {
   }
 
 async buyLevel(level) {
-    console.log('🎯 buyLevel called for level:', level);
-    
     if (this.buyingLevel) {
       console.log('⚠️ Purchase already in progress');
-      alert('❌ DEBUG: Purchase already in progress');
       return;
     }
     
-    console.log('✅ Step 1: Not buying yet');
-    
-    // Проверка подключения кошелька
+    // 🔥 НОВОЕ: Проверка подключения кошелька
     if (!web3Manager.connected || !web3Manager.signer) {
-      console.error('❌ Wallet not connected');
-      alert('❌ DEBUG: Wallet not connected\nconnected: ' + web3Manager.connected + '\nsigner: ' + !!web3Manager.signer);
       Utils.showNotification('Wallet not connected. Please connect first.', 'error');
+      console.error('❌ Wallet not connected');
       return;
     }
     
-    console.log('✅ Step 2: Wallet connected');
-    
-    // Проверка регистрации
-    if (!this.userStats || !this.userStats.isRegistered) {
-      console.error('❌ User not registered');
-      alert('❌ DEBUG: User not registered\nuserStats: ' + !!this.userStats + '\nisRegistered: ' + this.userStats?.isRegistered);
-      Utils.showNotification('You must register first!', 'error');
-      return;
-    }
-    
-    console.log('✅ Step 3: User registered');
-    
-    // Проверка контракта
+    // 🔥 ИСПРАВЛЕНО: Проверка контракта В САМОМ НАЧАЛЕ
     if (!contracts.contracts.globalway) {
-      console.error('❌ GlobalWay contract not initialized');
-      alert('❌ DEBUG: Contract not initialized');
       Utils.showNotification('Contracts not ready. Please refresh page.', 'error');
+      console.error('❌ GlobalWay contract not initialized');
       return;
     }
-    
-    console.log('✅ Step 4: Contract ready');
     
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
     
     if (isActive) {
-      alert('❌ DEBUG: Level already active');
       Utils.showNotification('Level already purchased', 'error');
       return;
     }
     
-    console.log('✅ Step 6: Level not active yet');
-    
     const price = CONFIG.LEVEL_PRICES[level - 1];
     
-    // Проверка баланса
-    try {
-      const balance = await web3Manager.getBalance();
-      const priceNum = parseFloat(price);
-      const balanceNum = parseFloat(balance);
-      
-      console.log('💰 Balance check:', { balance: balanceNum, needed: priceNum + 0.001 });
-      
-      if (balanceNum < priceNum + 0.001) {
-        alert(`❌ DEBUG: Insufficient balance\nNeed: ${priceNum + 0.001} BNB\nHave: ${balanceNum} BNB`);
-        Utils.showNotification(`Insufficient balance. Need ${priceNum + 0.001} BNB, have ${balanceNum} BNB`, 'error');
-        return;
-      }
-    } catch (e) {
-      console.warn('Could not check balance:', e);
-      alert('⚠️ DEBUG: Balance check failed: ' + e.message);
-    }
-    
-    console.log('✅ Step 7: Balance OK');
-    
     if (!confirm(`Buy level ${level} for ${price} BNB?`)) {
-      console.log('❌ User cancelled confirmation');
       return;
     }
     
-    console.log('✅ Step 8: User confirmed');
-    alert('✅ DEBUG: About to send transaction!\nLevel: ' + level + '\nPrice: ' + price + ' BNB');
-    
+    // 🔥 ИСПРАВЛЕНО: Флаг ПОСЛЕ confirm
     this.buyingLevel = true;
     
     try {
       console.log(`💳 Buying level ${level} for ${price} BNB...`);
       
+      // 🔥 ИСПРАВЛЕНО: Показываем loader ДО транзакции
       Utils.showLoader(true);
       
+      // 🔥 НОВОЕ: Перепроверяем контракты перед транзакцией
       if (!contracts.contracts.globalway || !web3Manager.signer) {
         throw new Error('Contracts or signer lost during transaction. Please reconnect.');
       }
       
+      // 🔥 НОВОЕ: Небольшая задержка для SafePal на мобильном
       if (web3Manager.isMobile) {
         console.log('📱 Mobile delay before transaction...');
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      console.log('📤 Calling contracts.buyLevel()...');
+      // Вызываем транзакцию
+      console.log('📤 Sending transaction to blockchain...');
       const tx = await contracts.buyLevel(level);
       
       console.log('✅ Transaction sent:', tx);
-      alert('✅ Transaction sent! Hash: ' + tx);
+      console.log('⏳ Waiting for blockchain confirmation...');
       
-      Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
+      // 🔥 НОВОЕ: Даём время на подтверждение
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Обновляем данные
       await this.loadUserData();
       await this.updateUI();
       await this.loadDashboard();
@@ -464,7 +411,6 @@ async buyLevel(level) {
       
     } catch (error) {
       console.error('❌ Error buying level:', error);
-      alert('❌ DEBUG: Transaction error\n' + error.message);
       
       let errorMsg = 'Transaction failed';
       if (error.message) {
@@ -472,10 +418,6 @@ async buyLevel(level) {
           errorMsg = 'Transaction cancelled';
         } else if (error.message.includes('insufficient funds')) {
           errorMsg = 'Insufficient BNB balance';
-        } else if (error.message.includes('User not registered')) {
-          errorMsg = 'You must register first!';
-        } else if (error.message.includes('Level already active')) {
-          errorMsg = 'Level already purchased';
         } else {
           errorMsg = error.message;
         }
@@ -586,6 +528,14 @@ setupBulkButtons() {
       }, { once: false });
     });
   }
+
+  async loadQuarterlyInfo() {
+    if (!this.userStats || !this.userStats.isRegistered) {
+      console.log('⚠️ User not registered, skipping quarterly info');
+      const quarterlyEl = document.getElementById('quarterlyActivity');
+      if (quarterlyEl) quarterlyEl.style.display = 'none';
+      return;
+    }
 
     try {
       const quarterlyInfo = await contracts.getUserQuarterlyInfo(web3Manager.address);
