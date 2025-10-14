@@ -827,6 +827,5 @@ class AdminManager {
       Utils.showLoader(false);
     }
   }
-}
 
 const adminManager = new AdminManager();
