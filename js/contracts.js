@@ -1,3 +1,6 @@
+/* jshint esversion: 11 */
+/* global web3Manager, ethers, CONFIG, Promise */
+
 class ContractsManager {
   constructor() {
     this.contracts = {};
