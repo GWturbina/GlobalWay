@@ -306,14 +306,36 @@ updateHeader() {
   }
 
   // === DASHBOARD ===
-
-  async loadDashboard() {
+async loadDashboard() {
+    // 🔥 НОВОЕ: Проверяем что userStats загружен
+    if (!this.userStats) {
+      console.warn('⚠️ userStats not loaded, waiting...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (!this.userStats) {
+        console.error('❌ userStats still not loaded!');
+        await this.loadUserData(); // Загружаем принудительно
+      }
+    }
+    
+    // 🔥 НОВОЕ: Задержка перед отрисовкой кнопок
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    console.log('🎮 Setting up level buttons with userStats:', this.userStats);
     this.setupLevelButtons();
+    
+    console.log('📦 Setting up bulk buttons');
     this.setupBulkButtons();
+    
     await this.loadQuarterlyInfo();
     await this.loadEarnings();
     await this.loadHistory();
     await this.loadTokensSummary();
+    
+    // 🔥 НОВОЕ: Принудительная перерисовка кнопок через секунду (для надёжности)
+    setTimeout(() => {
+      console.log('🔄 Force re-rendering level buttons');
+      this.setupLevelButtons();
+    }, 1000);
   }
 
 async buyLevel(level) {
@@ -409,10 +431,20 @@ async buyLevel(level) {
 
   setupLevelButtons() {
     const container = document.getElementById('individualLevels');
-    if (!container) return;
+    if (!container) {
+      console.warn('⚠️ Container #individualLevels not found');
+      return;
+    }
+    
+    // 🔥 НОВОЕ: Проверяем что userStats загружен
+    if (!this.userStats) {
+      console.warn('⚠️ userStats not loaded yet, buttons will be created without active levels');
+    } else {
+      console.log('✅ Creating level buttons with activeLevels:', this.userStats.activeLevels);
+    }
     
     container.innerHTML = '';
-
+    
     for (let i = 1; i <= 12; i++) {
       const btn = document.createElement('button');
       btn.className = 'level-btn';
@@ -438,15 +470,33 @@ async buyLevel(level) {
         `;
         btn.setAttribute('disabled', 'true');
       } else {
-        btn.addEventListener('click', () => {
-          if (!this.buyingLevel) {
-            this.buyLevel(i);
+        // 🔥 НОВОЕ: Защита от множественных кликов
+        btn.addEventListener('click', async () => {
+          if (this.buyingLevel) {
+            console.log('⚠️ Purchase already in progress, ignoring click');
+            return;
+          }
+          
+          // 🔥 НОВОЕ: Визуально дизейблим кнопку сразу
+          btn.disabled = true;
+          btn.style.opacity = '0.6';
+          
+          try {
+            await this.buyLevel(i);
+          } finally {
+            // 🔥 НОВОЕ: Возвращаем кнопку если транзакция не прошла
+            if (!this.userStats?.activeLevels?.includes(i)) {
+              btn.disabled = false;
+              btn.style.opacity = '1';
+            }
           }
         });
       }
     
       container.appendChild(btn);
     }
+    
+    console.log(`✅ Created ${container.children.length} level buttons`);
   }
 
 setupBulkButtons() {
