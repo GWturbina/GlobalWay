@@ -196,7 +196,7 @@ async init() {
     return key.split('.').reduce((o, k) => (o || {})[k], obj);
   }
 
-async connectWallet() {
+ async connectWallet() {
   try {
     Utils.showLoader(true);
     
