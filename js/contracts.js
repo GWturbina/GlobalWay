@@ -276,76 +276,128 @@ async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
-  
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
-  
-    // 🔥 НОВОЕ: Увеличена задержка для SafePal мобильного браузера
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
+
+    // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
+    const delay = isMobile ? 3000 : 1000;
+    console.log(`⏳ Waiting ${delay}ms for wallet readiness...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
   
     console.log('📤 Sending transaction...');
     console.log('💡 SafePal will open for confirmation...');
     
-    // 🔥 НОВОЕ: Отправляем транзакцию БЕЗ ожидания
+    // 🔥 ИСПРАВЛЕНИЕ: Добавляем retry механизм
     let tx;
-    try {
-      tx = await this.contracts.globalway.buyLevel(level, { 
-        value: price,
-       // Убран gasLimit - пусть кошелёк сам оценит газ
-      });
-      console.log('📤 Transaction sent:', tx.hash);
-    } catch (error) {
-      console.error('❌ Transaction send failed:', error);
-      throw error;
+    let lastError;
+    const maxRetries = 2;
+    
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+        try {
+            console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Явные параметры для мобильных
+            const txParams = {
+                value: price
+            };
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Добавляем gasLimit для мобильных
+            if (isMobile) {
+                txParams.gasLimit = 300000; // Безопасный лимит для мобильных
+                console.log('📱 Using mobile-optimized gas limit');
+            }
+            
+            tx = await this.contracts.globalway.buyLevel(level, txParams);
+            console.log('✅ Transaction sent:', tx.hash);
+            break; // Успех, выходим из цикла retry
+            
+        } catch (error) {
+            lastError = error;
+            console.error(`❌ Attempt ${attempt} failed:`, error.message);
+            
+            if (attempt <= maxRetries) {
+                // 🔥 ИСПРАВЛЕНИЕ: Экспоненциальная задержка между попытками
+                const retryDelay = 2000 * attempt;
+                console.log(`🔄 Retrying in ${retryDelay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            } else {
+                console.error('❌ All transaction attempts failed');
+                
+                // 🔥 ИСПРАВЛЕНИЕ: Более понятные сообщения об ошибках
+                let userMessage = 'Transaction failed';
+                if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+                    userMessage = 'Transaction cancelled in wallet';
+                } else if (error.message.includes('insufficient funds')) {
+                    userMessage = 'Insufficient BNB balance';
+                } else if (error.message.includes('network') || error.message.includes('chain')) {
+                    userMessage = 'Network error. Please check your connection';
+                } else if (isMobile) {
+                    userMessage = 'Mobile wallet connection failed. Please try again';
+                }
+                
+                throw new Error(userMessage);
+            }
+        }
     }
     
-    // 🔥 НОВОЕ: Возвращаем промис для tx.wait() - но НЕ блокируем UI
+    // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
     console.log('⏳ Transaction pending, waiting for confirmation...');
     
-    // Ждём подтверждение с таймаутом
     try {
-      const receipt = await Promise.race([
-        tx.wait(),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Transaction timeout')), 120000) // 2 минуты
-        )
-      ]);
-      
-      console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
-      
-      // Проверяем события Marketing контракта
-      if (this.contracts.marketing) {
-        const events = receipt.logs.map(log => {
-          try {
-            if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
-              return this.contracts.marketing.interface.parseLog(log);
+        const receipt = await Promise.race([
+            tx.wait(),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Transaction timeout - it may still process')), 180000) // 3 минуты
+            )
+        ]);
+        
+        console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+        console.log('🎉 Level purchase successful!');
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Более надежная проверка событий
+        if (this.contracts.marketing && receipt.logs) {
+            try {
+                let matrixEvents = 0;
+                let referralEvents = 0;
+                
+                receipt.logs.forEach(log => {
+                    try {
+                        if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
+                            const parsedLog = this.contracts.marketing.interface.parseLog(log);
+                            if (parsedLog) {
+                                if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
+                                if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
+                            }
+                        }
+                    } catch (e) {
+                        // Игнорируем ошибки парсинга
+                    }
+                });
+                
+                console.log(`📊 Marketing events - Matrix: ${matrixEvents}, Referral: ${referralEvents}`);
+                
+                if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
+                if (referralEvents > 0) console.log('✅ Referral bonus distributed');
+                
+            } catch (eventError) {
+                console.warn('⚠️ Could not parse marketing events:', eventError.message);
             }
-          } catch (e) {
-            return null;
-          }
-        }).filter(e => e !== null);
-      
-        console.log('📊 Marketing events:', events.filter(e => e).map(e => e.name));
-      
-        const hasMatrix = events.some(e => e && e.name === 'MatrixBonusPaid');
-        const hasReferral = events.some(e => e && e.name === 'ReferralBonusPaid');
-      
-        if (hasMatrix) console.log('✅ Matrix bonus distributed (48%)');
-        else console.warn('⚠️ Matrix bonus NOT distributed');
-      
-        if (hasReferral) console.log('✅ Referral bonus distributed (2%)');
-        else console.warn('⚠️ Referral bonus NOT distributed');
-      }
-      
-      return tx;  // ✅ ИЗМЕНЕНО: вернуть tx объект вместо tx.hash
-      
+        }
+        
+        return tx;
+        
     } catch (waitError) {
-      if (waitError.message === 'Transaction timeout') {
-        console.warn('⚠️ Transaction confirmation timeout, but it may still process');
-        return tx;  // ✅ ИЗМЕНЕНО: вернуть tx объект вместо tx.hash
-      }
-      throw waitError;
+        if (waitError.message.includes('timeout')) {
+            console.warn('⚠️ Transaction confirmation timeout, but it may still process');
+            console.log('📊 Transaction hash:', tx.hash);
+            return tx;
+        }
+        console.error('❌ Transaction confirmation failed:', waitError);
+        throw waitError;
     }
-  }
+}
 
   async buyLevelsBulk(maxLevel) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
