@@ -278,51 +278,130 @@ async buyLevel(level) {
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
-    console.log('Buying level ' + level);
-    console.log('Mobile device: ' + isMobile);
+    console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
+    console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
 
-    try {
-        console.log('Step 1: Checking wallet connection');
-        if (!web3Manager.signer) {
-            throw new Error('Wallet not connected');
-        }
-
-        console.log('Step 2: Creating transaction');
-        // 🔥 САМЫЙ ПРОСТОЙ ВАРИАНТ - без gas настроек
-        const transaction = {
-            value: price
-        };
-
-        console.log('Step 3: Calling contract method');
-        // 🔥 ВАЖНО: Используем callStatic сначала для проверки
+    // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
+    const delay = isMobile ? 3000 : 1000;
+    console.log(`⏳ Waiting ${delay}ms for wallet readiness...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+  
+    console.log('📤 Sending transaction...');
+    console.log('💡 SafePal will open for confirmation...');
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Добавляем retry механизм
+    let tx;
+    let lastError;
+    const maxRetries = 2;
+    
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
         try {
-            await this.contracts.globalway.callStatic.buyLevel(level, transaction);
-            console.log('Call static successful - contract should work');
-        } catch (staticError) {
-            console.warn('Call static warning: ', staticError.message);
-        }
+            console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
+            
+            // 🔥 ИСПРАВЛЕНИЕ: Явные параметры газа для всех устройств
+            const txParams = {
+                value: price
+            };
 
-        console.log('Step 4: Sending real transaction');
-        const tx = await this.contracts.globalway.buyLevel(level, transaction);
+            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Явные лимиты газа
+            if (isMobile) {
+                // Для SafePal Mobile - более высокие лимиты
+                txParams.gasLimit = 500000; // Увеличено до 500K
+                txParams.gasPrice = ethers.utils.parseUnits('5', 'gwei'); // Явная цена газа
+                console.log('📱 Using mobile-optimized gas settings');
+            } else {
+                // Для десктоп - стандартные настройки
+                txParams.gasLimit = 300000;
+                console.log('💻 Using desktop gas settings');
+            }
+            
+            tx = await this.contracts.globalway.buyLevel(level, txParams);
+            console.log('✅ Transaction sent:', tx.hash);
+            break; // Успех, выходим из цикла retry
+            
+        } catch (error) {
+            lastError = error;
+            console.error(`❌ Attempt ${attempt} failed:`, error.message);
+            
+            if (attempt <= maxRetries) {
+                // 🔥 ИСПРАВЛЕНИЕ: Экспоненциальная задержка между попытками
+                const retryDelay = 2000 * attempt;
+                console.log(`🔄 Retrying in ${retryDelay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelay));
+            } else {
+                console.error('❌ All transaction attempts failed');
+                
+                // 🔥 ИСПРАВЛЕНИЕ: Более понятные сообщения об ошибках
+                let userMessage = 'Transaction failed';
+                if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+                    userMessage = 'Transaction cancelled in wallet';
+                } else if (error.message.includes('insufficient funds')) {
+                    userMessage = 'Insufficient BNB balance';
+                } else if (error.message.includes('network') || error.message.includes('chain')) {
+                    userMessage = 'Network error. Please check your connection';
+                } else if (isMobile) {
+                    userMessage = 'Mobile wallet connection failed. Please try again';
+                }
+                
+                throw new Error(userMessage);
+            }
+        }
+    }
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
+    console.log('⏳ Transaction pending, waiting for confirmation...');
+    
+    try {
+        const receipt = await Promise.race([
+            tx.wait(),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Transaction timeout - it may still process')), 180000) // 3 минуты
+            )
+        ]);
         
-        console.log('Transaction hash: ' + tx.hash);
-        console.log('Transaction sent successfully!');
+        console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+        console.log('🎉 Level purchase successful!');
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Более надежная проверка событий
+        if (this.contracts.marketing && receipt.logs) {
+            try {
+                let matrixEvents = 0;
+                let referralEvents = 0;
+                
+                receipt.logs.forEach(log => {
+                    try {
+                        if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
+                            const parsedLog = this.contracts.marketing.interface.parseLog(log);
+                            if (parsedLog) {
+                                if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
+                                if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
+                            }
+                        }
+                    } catch (e) {
+                        // Игнорируем ошибки парсинга
+                    }
+                });
+                
+                console.log(`📊 Marketing events - Matrix: ${matrixEvents}, Referral: ${referralEvents}`);
+                
+                if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
+                if (referralEvents > 0) console.log('✅ Referral bonus distributed');
+                
+            } catch (eventError) {
+                console.warn('⚠️ Could not parse marketing events:', eventError.message);
+            }
+        }
         
         return tx;
-
-    } catch (error) {
-        console.error('Transaction error: ', error);
         
-        // 🔥 ОСОБАЯ ОБРАБОТКА ДЛЯ SAFEPAL MOBILE
-        if (error.code === 4001) {
-            throw new Error('User rejected the transaction');
-        } else if (error.message.includes('user rejected')) {
-            throw new Error('You cancelled the transaction in SafePal');
-        } else if (error.message.includes('not connected')) {
-            throw new Error('Please connect your wallet first');
-        } else {
-            throw new Error('Transaction failed: ' + error.message);
+    } catch (waitError) {
+        if (waitError.message.includes('timeout')) {
+            console.warn('⚠️ Transaction confirmation timeout, but it may still process');
+            console.log('📊 Transaction hash:', tx.hash);
+            return tx;
         }
+        console.error('❌ Transaction confirmation failed:', waitError);
+        throw waitError;
     }
 }
 
