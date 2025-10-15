@@ -281,6 +281,23 @@ class ContractsManager {
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
     console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
 
+    // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверка баланса ПЕРЕД транзакцией
+    try {
+      const balance = await web3Manager.provider.getBalance(web3Manager.address);
+      const estimatedGasCost = ethers.utils.parseEther('0.001'); // Оценочная стоимость газа
+      const totalNeeded = price.add(estimatedGasCost);
+      
+      console.log(`💰 Balance: ${ethers.utils.formatEther(balance)} BNB`);
+      console.log(`💸 Needed: ${ethers.utils.formatEther(totalNeeded)} BNB (level + gas)`);
+      
+      if (balance.lt(totalNeeded)) {
+        throw new Error(`Insufficient balance. Need at least ${ethers.utils.formatEther(totalNeeded)} BNB`);
+      }
+    } catch (balanceError) {
+      console.error('❌ Balance check failed:', balanceError);
+      throw balanceError;
+    }
+
     // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
     const delay = isMobile ? 3000 : 1000;
     console.log(`⏳ Waiting ${delay}ms for wallet readiness...`);
@@ -298,16 +315,19 @@ class ContractsManager {
         try {
             console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
             
-            // 🔥 АЛЬТЕРНАТИВНОЕ РЕШЕНИЕ: Минимальные безопасные параметры
+            // 🔥 РАДИКАЛЬНОЕ РЕШЕНИЕ: НИКАКИХ gas настроек для SafePal Mobile
+            // Пусть SafePal САМ рассчитывает газ - наши настройки только мешают
             const txParams = {
                 value: price
             };
 
+            // 🔥 ВАЖНО: Для мобильных НЕ указываем gasLimit и gasPrice
             if (isMobile) {
-                // 🔥 САМЫЕ БЕЗОПАСНЫЕ НАСТРОЙКИ ДЛЯ SAFEPAL
-                txParams.gasLimit = 200000; // Минимальный безопасный лимит
-                // НЕ указываем gasPrice - пусть SafePal сам выбирает
-                console.log('📱 Using minimal safe gas for SafePal');
+                console.log('📱 Using SafePal auto gas estimation (no custom settings)');
+            } else {
+                // Для десктоп можно оставить
+                txParams.gasLimit = 250000;
+                console.log('💻 Using desktop gas limit');
             }
             
             tx = await this.contracts.globalway.buyLevel(level, txParams);
@@ -331,11 +351,13 @@ class ContractsManager {
                 if (error.message.includes('user rejected') || error.message.includes('User denied')) {
                     userMessage = 'Transaction cancelled in wallet';
                 } else if (error.message.includes('insufficient funds')) {
-                    userMessage = 'Insufficient BNB balance';
+                    userMessage = 'Insufficient BNB balance for transaction + gas';
                 } else if (error.message.includes('network') || error.message.includes('chain')) {
                     userMessage = 'Network error. Please check your connection';
+                } else if (error.message.includes('gas') || error.message.includes('underpriced')) {
+                    userMessage = 'Gas estimation failed. Please try again';
                 } else if (isMobile) {
-                    userMessage = 'Mobile wallet connection failed. Please try again';
+                    userMessage = 'SafePal transaction failed. Please ensure you have enough BNB for gas';
                 }
                 
                 throw new Error(userMessage);
