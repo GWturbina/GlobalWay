@@ -281,72 +281,47 @@ async buyLevel(level) {
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
     console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
 
-    // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
-    const delay = isMobile ? 3000 : 1000;
-    console.log(`⏳ Waiting ${delay}ms for wallet readiness...`);
-    await new Promise(resolve => setTimeout(resolve, delay));
-  
-    console.log('📤 Sending transaction...');
-    console.log('💡 SafePal will open for confirmation...');
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Добавляем retry механизм
-    let tx;
-    let lastError;
-    const maxRetries = 2;
-    
-    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-        try {
-            console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
-            
-            // 🔥 ИСПРАВЛЕНИЕ: Явные параметры газа для всех устройств
-            const txParams = {
-                value: price
-            };
+    try {
+        console.log('1. 🎯 Preparing transaction...');
+        
+        // 🔥 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ
+        console.log('2. 🔍 Contract address:', CONFIG.CONTRACTS.GlobalWay);
+        console.log('3. 👤 User address:', web3Manager.address);
+        console.log('4. 💰 Price:', price.toString());
+        console.log('5. 📝 Level:', level);
 
-            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Явные лимиты газа
-            if (isMobile) {
-                // Для SafePal Mobile - более высокие лимиты
-                txParams.gasLimit = 500000; // Увеличено до 500K
-                txParams.gasPrice = ethers.utils.parseUnits('5', 'gwei'); // Явная цена газа
-                console.log('📱 Using mobile-optimized gas settings');
-            } else {
-                // Для десктоп - стандартные настройки
-                txParams.gasLimit = 300000;
-                console.log('💻 Using desktop gas settings');
-            }
-            
-            tx = await this.contracts.globalway.buyLevel(level, txParams);
-            console.log('✅ Transaction sent:', tx.hash);
-            break; // Успех, выходим из цикла retry
-            
-        } catch (error) {
-            lastError = error;
-            console.error(`❌ Attempt ${attempt} failed:`, error.message);
-            
-            if (attempt <= maxRetries) {
-                // 🔥 ИСПРАВЛЕНИЕ: Экспоненциальная задержка между попытками
-                const retryDelay = 2000 * attempt;
-                console.log(`🔄 Retrying in ${retryDelay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-            } else {
-                console.error('❌ All transaction attempts failed');
-                
-                // 🔥 ИСПРАВЛЕНИЕ: Более понятные сообщения об ошибках
-                let userMessage = 'Transaction failed';
-                if (error.message.includes('user rejected') || error.message.includes('User denied')) {
-                    userMessage = 'Transaction cancelled in wallet';
-                } else if (error.message.includes('insufficient funds')) {
-                    userMessage = 'Insufficient BNB balance';
-                } else if (error.message.includes('network') || error.message.includes('chain')) {
-                    userMessage = 'Network error. Please check your connection';
-                } else if (isMobile) {
-                    userMessage = 'Mobile wallet connection failed. Please try again';
-                }
-                
-                throw new Error(userMessage);
-            }
+        console.log('6. 📤 Sending transaction...');
+        
+        const tx = await this.contracts.globalway.buyLevel(level, { 
+            value: price 
+        });
+        
+        console.log('7. ✅ Transaction sent:', tx.hash);
+        console.log('8. ⏳ Waiting for confirmation...');
+
+        // 🔥 ПОПРОБУЕМ БЕЗ wait() - просто отправляем
+        console.log('9. 🚀 Transaction submitted to network');
+        return tx;
+
+    } catch (error) {
+        console.error('❌ TRANSACTION FAILED:', error);
+        console.error('🔍 Error details:', {
+            code: error.code,
+            message: error.message,
+            reason: error.reason,
+            data: error.data
+        });
+        
+        // 🔥 СПЕЦИФИЧНАЯ ОБРАБОТКА ДЛЯ SAFEPAL
+        if (error.message.includes('revert') || error.message.includes('execution reverted')) {
+            throw new Error('Smart contract rejected the transaction');
+        } else if (error.message.includes('gas')) {
+            throw new Error('Gas estimation failed - contract may be paused');
+        } else {
+            throw new Error(`Transaction failed: ${error.message}`);
         }
     }
+}
     
     // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
     console.log('⏳ Transaction pending, waiting for confirmation...');
