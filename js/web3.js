@@ -95,67 +95,133 @@ class Web3Manager {
   }
 
   // Public connect method — uses SafePal when available, fallbacks otherwise
-  async connect() {
+async connect() {
     try {
       console.log('🔌 Starting wallet connection...');
       console.log('📱 Device:', this.isMobile ? 'Mobile' : 'Desktop');
       console.log('🦊 SafePal Browser:', this.isSafePalBrowser);
       
+      // 🔥 ИСПРАВЛЕНИЕ: Умные задержки для разных устройств
       if (this.isMobile) {
-        console.log('⏳ Mobile delay for better compatibility...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('⏳ Extended mobile delay for better compatibility...');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Увеличено до 3 секунд
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Always wait a bit for SafePal injection (safer UX)
-      await this.waitForSafePal(5000);
+      // 🔥 ИСПРАВЛЕНИЕ: Увеличенное время ожидания SafePal injection
+      console.log('🔍 Waiting for SafePal provider injection...');
+      const safePalFound = await this.waitForSafePal(8000); // Увеличено до 8 секунд
+      console.log('🔍 SafePal provider found:', safePalFound);
       console.log('🔍 window.safepal:', !!window.safepal);
       console.log('🔍 window.ethereum:', !!window.ethereum);
       
-      // Priority 1: SafePal (explicit object or marked ethereum provider)
+      // 🔥 ИСПРАВЛЕНИЕ: Priority 1 - SafePal с улучшенной обработкой
       if (this.hasSafePalProvider()) {
-        console.log('✅ SafePal provider prioritized for connection');
+        console.log('✅ SafePal provider detected, connecting...');
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Дополнительная задержка перед подключением
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await this.connectSafePal();
         
-        // 🔥 НОВОЕ: Дополнительная проверка что signer готов
+        // 🔥 ИСПРАВЛЕНИЕ: Более тщательная проверка готовности signer
         if (!this.signer || !this.address) {
-          throw new Error('SafePal connected but signer not ready');
+          console.error('❌ SafePal connected but signer/address missing');
+          throw new Error('SafePal connection incomplete. Please try again.');
+        }
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Дополнительная проверка для мобильных
+        if (this.isMobile) {
+          console.log('📱 Mobile SafePal - additional verification...');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Проверяем что адрес действительно доступен
+          try {
+            const testAddress = await this.signer.getAddress();
+            if (!testAddress || testAddress !== this.address) {
+              throw new Error('Address verification failed');
+            }
+          } catch (verifyError) {
+            console.error('❌ Address verification failed:', verifyError);
+            throw new Error('Mobile wallet verification failed. Please reconnect.');
+          }
         }
       }
-      // Priority 2: mobile but not SafePal browser -> attempt deep link to open in SafePal app
+      // 🔥 ИСПРАВЛЕНИЕ: Priority 2 - Mobile deep link с улучшенным UX
       else if (this.isMobile && !this.isSafePalBrowser) {
         console.log('📱 Mobile but not SafePal browser. Triggering SafePal deep-link...');
         
-        // 🔥 ИСПРАВЛЕНО: Не прерываем выполнение, а показываем инструкцию
-        this.openSafePalApp();
+        // 🔥 ИСПРАВЛЕНИЕ: Показываем инструкцию перед deep link
+        const userConfirmed = confirm(
+          'To connect your wallet:\n\n1. SafePal app will open\n2. Approve connection\n3. Return to this page\n4. Click Connect again\n\nPress OK to continue'
+        );
         
-        // 🔥 НОВОЕ: Показываем пользователю что делать
-        throw new Error('Please complete connection in SafePal app and return to this page');
+        if (!userConfirmed) {
+          throw new Error('Connection cancelled by user');
+        }
+        
+        await this.openSafePalApp();
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Более понятное сообщение
+        throw new Error('Please complete connection in SafePal app and return to this page. Then click Connect again.');
       }
-      // 🔥 УДАЛЕНО: Priority 3 (MetaMask) больше не поддерживается - только SafePal!
+      // 🔥 ИСПРАВЛЕНИЕ: Priority 3 - Fallback с лучшим сообщением
       else {
-        throw new Error('❌ No SafePal wallet detected!\n\nDesktop: install SafePal extension\nMobile: open this link in SafePal Wallet app');
+        const message = this.isMobile 
+          ? '❌ SafePal app not detected!\n\nPlease install SafePal Wallet from App Store/Play Store and open this link in the app.'
+          : '❌ SafePal wallet not detected!\n\nDesktop: Install SafePal browser extension\nMobile: Open this link in SafePal Wallet app';
+        
+        throw new Error(message);
       }
       
-      // 🔥 НОВОЕ: Проверяем что все действительно готово перед продолжением
+      // 🔥 ИСПРАВЛЕНИЕ: Расширенная проверка готовности подключения
       if (!this.provider || !this.signer || !this.address) {
-        throw new Error('Wallet connection incomplete. Missing provider, signer or address.');
+        console.error('❌ Connection state incomplete:', {
+          provider: !!this.provider,
+          signer: !!this.signer, 
+          address: !!this.address
+        });
+        throw new Error('Wallet connection incomplete. Please refresh and try again.');
       }
       
+      // 🔥 ИСПРАВЛЕНИЕ: Проверка сети с улучшенной обработкой ошибок
       await this.checkNetwork();
+      
+      // 🔥 ИСПРАВЛЕНИЕ: Сохранение подключения с проверкой
       await this.saveConnection();
       
-      // 🔥 НОВОЕ: Устанавливаем connected только после всех проверок
+      // 🔥 ИСПРАВЛЕНИЕ: Финальная проверка перед установкой connected
+      const finalAddress = await this.signer.getAddress();
+      if (finalAddress !== this.address) {
+        throw new Error('Address mismatch after connection');
+      }
+      
       this.connected = true;
       
-      console.log('✅ Connected:', this.address);
+      console.log('✅ Successfully connected:', this.address);
       return this.address;
       
     } catch (error) {
       console.error('❌ Connection error:', error);
-      if (!/User rejected|User denied/i.test(error.message || '')) {
-        // show friendly message
-        alert(error.message || 'Connection failed. Please try again.');
+      
+      // 🔥 ИСПРАВЛЕНИЕ: Сбрасываем состояние при ошибке
+      this.connected = false;
+      this.signer = null;
+      this.address = null;
+      
+      // 🔥 ИСПРАВЛЕНИЕ: Более умная обработка ошибок
+      if (!/User rejected|User denied|Cancelled|user closed/i.test(error.message || '')) {
+        // Показываем дружелюбное сообщение только для нетривиальных ошибок
+        const errorMsg = error.message || 'Connection failed. Please try again.';
+        
+        // 🔥 ИСПРАВЛЕНИЕ: Используем alert только для критических ошибок
+        if (error.message.includes('SafePal') || error.message.includes('wallet') || error.message.includes('connection')) {
+          alert(errorMsg);
+        } else {
+          console.warn('Non-critical connection error:', errorMsg);
+        }
       }
+      
       throw error;
     }
   }
