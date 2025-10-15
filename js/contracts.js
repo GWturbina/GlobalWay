@@ -322,63 +322,6 @@ async buyLevel(level) {
         }
     }
 }
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
-    console.log('⏳ Transaction pending, waiting for confirmation...');
-    
-    try {
-        const receipt = await Promise.race([
-            tx.wait(),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Transaction timeout - it may still process')), 180000) // 3 минуты
-            )
-        ]);
-        
-        console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
-        console.log('🎉 Level purchase successful!');
-        
-        // 🔥 ИСПРАВЛЕНИЕ: Более надежная проверка событий
-        if (this.contracts.marketing && receipt.logs) {
-            try {
-                let matrixEvents = 0;
-                let referralEvents = 0;
-                
-                receipt.logs.forEach(log => {
-                    try {
-                        if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
-                            const parsedLog = this.contracts.marketing.interface.parseLog(log);
-                            if (parsedLog) {
-                                if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
-                                if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
-                            }
-                        }
-                    } catch (e) {
-                        // Игнорируем ошибки парсинга
-                    }
-                });
-                
-                console.log(`📊 Marketing events - Matrix: ${matrixEvents}, Referral: ${referralEvents}`);
-                
-                if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
-                if (referralEvents > 0) console.log('✅ Referral bonus distributed');
-                
-            } catch (eventError) {
-                console.warn('⚠️ Could not parse marketing events:', eventError.message);
-            }
-        }
-        
-        return tx;
-        
-    } catch (waitError) {
-        if (waitError.message.includes('timeout')) {
-            console.warn('⚠️ Transaction confirmation timeout, but it may still process');
-            console.log('📊 Transaction hash:', tx.hash);
-            return tx;
-        }
-        console.error('❌ Transaction confirmation failed:', waitError);
-        throw waitError;
-    }
-}
 
   async buyLevelsBulk(maxLevel) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
