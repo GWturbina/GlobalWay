@@ -278,47 +278,50 @@ async buyLevel(level) {
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
-    console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
-    console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
+    console.log('Buying level ' + level);
+    console.log('Mobile device: ' + isMobile);
 
     try {
-        console.log('1. 🎯 Preparing transaction...');
-        
-        // 🔥 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ
-        console.log('2. 🔍 Contract address:', CONFIG.CONTRACTS.GlobalWay);
-        console.log('3. 👤 User address:', web3Manager.address);
-        console.log('4. 💰 Price:', price.toString());
-        console.log('5. 📝 Level:', level);
+        console.log('Step 1: Checking wallet connection');
+        if (!web3Manager.signer) {
+            throw new Error('Wallet not connected');
+        }
 
-        console.log('6. 📤 Sending transaction...');
-        
-        const tx = await this.contracts.globalway.buyLevel(level, { 
-            value: price 
-        });
-        
-        console.log('7. ✅ Transaction sent:', tx.hash);
-        console.log('8. ⏳ Waiting for confirmation...');
+        console.log('Step 2: Creating transaction');
+        // 🔥 САМЫЙ ПРОСТОЙ ВАРИАНТ - без gas настроек
+        const transaction = {
+            value: price
+        };
 
-        // 🔥 ПОПРОБУЕМ БЕЗ wait() - просто отправляем
-        console.log('9. 🚀 Transaction submitted to network');
+        console.log('Step 3: Calling contract method');
+        // 🔥 ВАЖНО: Используем callStatic сначала для проверки
+        try {
+            await this.contracts.globalway.callStatic.buyLevel(level, transaction);
+            console.log('Call static successful - contract should work');
+        } catch (staticError) {
+            console.warn('Call static warning: ', staticError.message);
+        }
+
+        console.log('Step 4: Sending real transaction');
+        const tx = await this.contracts.globalway.buyLevel(level, transaction);
+        
+        console.log('Transaction hash: ' + tx.hash);
+        console.log('Transaction sent successfully!');
+        
         return tx;
 
     } catch (error) {
-        console.error('❌ TRANSACTION FAILED:', error);
-        console.error('🔍 Error details:', {
-            code: error.code,
-            message: error.message,
-            reason: error.reason,
-            data: error.data
-        });
+        console.error('Transaction error: ', error);
         
-        // 🔥 СПЕЦИФИЧНАЯ ОБРАБОТКА ДЛЯ SAFEPAL
-        if (error.message.includes('revert') || error.message.includes('execution reverted')) {
-            throw new Error('Smart contract rejected the transaction');
-        } else if (error.message.includes('gas')) {
-            throw new Error('Gas estimation failed - contract may be paused');
+        // 🔥 ОСОБАЯ ОБРАБОТКА ДЛЯ SAFEPAL MOBILE
+        if (error.code === 4001) {
+            throw new Error('User rejected the transaction');
+        } else if (error.message.includes('user rejected')) {
+            throw new Error('You cancelled the transaction in SafePal');
+        } else if (error.message.includes('not connected')) {
+            throw new Error('Please connect your wallet first');
         } else {
-            throw new Error(`Transaction failed: ${error.message}`);
+            throw new Error('Transaction failed: ' + error.message);
         }
     }
 }
