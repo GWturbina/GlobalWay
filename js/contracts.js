@@ -255,172 +255,44 @@ class ContractsManager {
 
   // === GLOBALWAY ===
   
-  async isUserRegistered(address) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    try {
-      return await this.contracts.globalway.isUserRegistered(address);
-    } catch (error) {
-      console.error('Error checking registration:', error);
-      return false;
-    }
-  }
-
-  async register(sponsorAddress) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    const tx = await this.contracts.globalway.register(sponsorAddress);
-    await tx.wait();
-    return tx.hash;
-  }
-
   async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
-    console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
 
-    // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверка баланса ПЕРЕД транзакцией
+    // 🔥 САМЫЙ ПРОСТОЙ ВАРИАНТ: как в работающих dApps
     try {
-      const balance = await web3Manager.provider.getBalance(web3Manager.address);
-      const estimatedGasCost = ethers.utils.parseEther('0.001'); // Оценочная стоимость газа
-      const totalNeeded = price.add(estimatedGasCost);
-      
-      console.log(`💰 Balance: ${ethers.utils.formatEther(balance)} BNB`);
-      console.log(`💸 Needed: ${ethers.utils.formatEther(totalNeeded)} BNB (level + gas)`);
-      
-      if (balance.lt(totalNeeded)) {
-        throw new Error(`Insufficient balance. Need at least ${ethers.utils.formatEther(totalNeeded)} BNB`);
-      }
-    } catch (balanceError) {
-      console.error('❌ Balance check failed:', balanceError);
-      throw balanceError;
-    }
-
-    // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
-    const delay = isMobile ? 3000 : 1000;
-    console.log(`⏳ Waiting ${delay}ms for wallet readiness...`);
-    await new Promise(resolve => setTimeout(resolve, delay));
-  
-    console.log('📤 Sending transaction...');
-    console.log('💡 SafePal will open for confirmation...');
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Добавляем retry механизм
-    let tx;
-    let lastError;
-    const maxRetries = 2;
-    
-    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
-        try {
-            console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
-            
-            // 🔥 РАДИКАЛЬНОЕ РЕШЕНИЕ: НИКАКИХ gas настроек для SafePal Mobile
-            // Пусть SafePal САМ рассчитывает газ - наши настройки только мешают
-            const txParams = {
-                value: price
-            };
-
-            // 🔥 ВАЖНО: Для мобильных НЕ указываем gasLimit и gasPrice
-            if (isMobile) {
-                console.log('📱 Using SafePal auto gas estimation (no custom settings)');
-            } else {
-                // Для десктоп можно оставить
-                txParams.gasLimit = 250000;
-                console.log('💻 Using desktop gas limit');
-            }
-            
-            tx = await this.contracts.globalway.buyLevel(level, txParams);
-            console.log('✅ Transaction sent:', tx.hash);
-            break; // Успех, выходим из цикла retry
-            
-        } catch (error) {
-            lastError = error;
-            console.error(`❌ Attempt ${attempt} failed:`, error.message);
-            
-            if (attempt <= maxRetries) {
-                // 🔥 ИСПРАВЛЕНИЕ: Экспоненциальная задержка между попытками
-                const retryDelay = 2000 * attempt;
-                console.log(`🔄 Retrying in ${retryDelay}ms...`);
-                await new Promise(resolve => setTimeout(resolve, retryDelay));
-            } else {
-                console.error('❌ All transaction attempts failed');
-                
-                // 🔥 ИСПРАВЛЕНИЕ: Более понятные сообщения об ошибках
-                let userMessage = 'Transaction failed';
-                if (error.message.includes('user rejected') || error.message.includes('User denied')) {
-                    userMessage = 'Transaction cancelled in wallet';
-                } else if (error.message.includes('insufficient funds')) {
-                    userMessage = 'Insufficient BNB balance for transaction + gas';
-                } else if (error.message.includes('network') || error.message.includes('chain')) {
-                    userMessage = 'Network error. Please check your connection';
-                } else if (error.message.includes('gas') || error.message.includes('underpriced')) {
-                    userMessage = 'Gas estimation failed. Please try again';
-                } else if (isMobile) {
-                    userMessage = 'SafePal transaction failed. Please ensure you have enough BNB for gas';
-                }
-                
-                throw new Error(userMessage);
-            }
-        }
-    }
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
-    console.log('⏳ Transaction pending, waiting for confirmation...');
-    
-    try {
-        const receipt = await Promise.race([
-            tx.wait(),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Transaction timeout - it may still process')), 180000) // 3 минуты
-            )
-        ]);
+        console.log('📤 Sending transaction...');
         
+        // 🔥 ВАЖНО: БЕЗ каких-либо gas настроек - как в работающих dApps
+        const tx = await this.contracts.globalway.buyLevel(level, {
+            value: price
+            // 🔥 НИКАКОГО gasLimit, gasPrice - пусть кошелёк сам всё рассчитывает
+        });
+        
+        console.log('✅ Transaction sent:', tx.hash);
+        
+        // Ждём подтверждения
+        const receipt = await tx.wait();
         console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
-        console.log('🎉 Level purchase successful!');
-        
-        // 🔥 ИСПРАВЛЕНИЕ: Более надежная проверка событий
-        if (this.contracts.marketing && receipt.logs) {
-            try {
-                let matrixEvents = 0;
-                let referralEvents = 0;
-                
-                receipt.logs.forEach(log => {
-                    try {
-                        if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
-                            const parsedLog = this.contracts.marketing.interface.parseLog(log);
-                            if (parsedLog) {
-                                if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
-                                if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
-                            }
-                        }
-                    } catch (e) {
-                        // Игнорируем ошибки парсинга
-                    }
-                });
-                
-                console.log(`📊 Marketing events - Matrix: ${matrixEvents}, Referral: ${referralEvents}`);
-                
-                if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
-                if (referralEvents > 0) console.log('✅ Referral bonus distributed');
-                
-            } catch (eventError) {
-                console.warn('⚠️ Could not parse marketing events:', eventError.message);
-            }
-        }
         
         return tx;
         
-    } catch (waitError) {
-        if (waitError.message.includes('timeout')) {
-            console.warn('⚠️ Transaction confirmation timeout, but it may still process');
-            console.log('📊 Transaction hash:', tx.hash);
-            return tx;
+    } catch (error) {
+        console.error('❌ Transaction failed:', error);
+        
+        // 🔥 Улучшенные ошибки
+        if (error.code === 'ACTION_REJECTED') {
+            throw new Error('Transaction rejected by user');
+        } else if (error.message.includes('insufficient funds')) {
+            throw new Error('Insufficient BNB balance');
+        } else {
+            throw error;
         }
-        console.error('❌ Transaction confirmation failed:', waitError);
-        throw waitError;
     }
-}
+  }
 
   async buyLevelsBulk(maxLevel) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
