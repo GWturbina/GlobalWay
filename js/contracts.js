@@ -272,7 +272,7 @@ class ContractsManager {
     return tx.hash;
   }
 
-async buyLevel(level) {
+  async buyLevel(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     
     const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
@@ -298,20 +298,16 @@ async buyLevel(level) {
         try {
             console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
             
-            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасные параметры газа для SafePal Mobile
+            // 🔥 АЛЬТЕРНАТИВНОЕ РЕШЕНИЕ: Минимальные безопасные параметры
             const txParams = {
                 value: price
             };
 
-            // 🔥 ИСПРАВЛЕНИЕ: УБИРАЕМ явный gasLimit и gasPrice для SafePal Mobile
-            // SafePal лучше сам оценивает газ, наши настройки мешают
             if (isMobile) {
-                console.log('📱 Using SafePal auto gas estimation');
-                // НИЧЕГО не добавляем - пусть SafePal сам рассчитывает газ
-            } else {
-                // Для десктоп можно оставить лимит
-                txParams.gasLimit = 250000;
-                console.log('💻 Using desktop gas limit');
+                // 🔥 САМЫЕ БЕЗОПАСНЫЕ НАСТРОЙКИ ДЛЯ SAFEPAL
+                txParams.gasLimit = 200000; // Минимальный безопасный лимит
+                // НЕ указываем gasPrice - пусть SafePal сам выбирает
+                console.log('📱 Using minimal safe gas for SafePal');
             }
             
             tx = await this.contracts.globalway.buyLevel(level, txParams);
