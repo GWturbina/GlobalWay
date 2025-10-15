@@ -298,21 +298,20 @@ async buyLevel(level) {
         try {
             console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
             
-            // 🔥 ИСПРАВЛЕНИЕ: Явные параметры газа для всех устройств
+            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Безопасные параметры газа для SafePal Mobile
             const txParams = {
                 value: price
             };
 
-            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Явные лимиты газа
+            // 🔥 ИСПРАВЛЕНИЕ: УБИРАЕМ явный gasLimit и gasPrice для SafePal Mobile
+            // SafePal лучше сам оценивает газ, наши настройки мешают
             if (isMobile) {
-               // Для SafePal Mobile - более высокие лимиты
-               txParams.gasLimit = 500000; // Увеличено до 500K
-               txParams.gasPrice = ethers.utils.parseUnits('5', 'gwei'); // Явная цена газа
-               console.log('📱 Using mobile-optimized gas settings');
+                console.log('📱 Using SafePal auto gas estimation');
+                // НИЧЕГО не добавляем - пусть SafePal сам рассчитывает газ
             } else {
-                // Для десктоп - стандартные настройки
-               txParams.gasLimit = 300000;
-                console.log('💻 Using desktop gas settings');
+                // Для десктоп можно оставить лимит
+                txParams.gasLimit = 250000;
+                console.log('💻 Using desktop gas limit');
             }
             
             tx = await this.contracts.globalway.buyLevel(level, txParams);
