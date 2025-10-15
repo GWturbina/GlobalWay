@@ -199,24 +199,35 @@ async init() {
  async connectWallet() {
   try {
     Utils.showLoader(true);
+    Utils.showNotification('Connecting wallet...', 'info');
     
     console.log('🔌 Connecting wallet...');
     
     const address = await web3Manager.connect();
     console.log('✅ Wallet connected:', address);
     
-    // 🔥 НОВОЕ: Ждём полного коннекта (особенно для SafePal на мобильном)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // 🔥 ИСПРАВЛЕНИЕ: Умные задержки для разных устройств
+    const isMobile = web3Manager.isMobile;
+    const connectDelay = isMobile ? 2500 : 1000;
+    console.log(`⏳ Waiting ${connectDelay}ms for full connection...`);
+    await new Promise(resolve => setTimeout(resolve, connectDelay));
     
-    // 🔥 НОВОЕ: Проверяем что коннект действительно установлен
-    if (!web3Manager.connected || !web3Manager.signer) {
-      throw new Error('Wallet connected but signer not ready. Please try again.');
+    // 🔥 ИСПРАВЛЕНИЕ: Расширенная проверка готовности подключения
+    if (!web3Manager.connected || !web3Manager.signer || !web3Manager.address) {
+      console.error('❌ Connection state incomplete:', {
+        connected: web3Manager.connected,
+        signer: !!web3Manager.signer,
+        address: !!web3Manager.address
+      });
+      throw new Error('Wallet connection incomplete. Please try again.');
     }
     
     console.log('📦 Initializing contracts...');
+    Utils.showNotification('Initializing smart contracts...', 'info');
     
-    // 🔥 НОВОЕ: Маленькая задержка перед инициализацией контрактов
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 🔥 ИСПРАВЛЕНИЕ: Увеличенная задержка перед инициализацией контрактов
+    const initDelay = isMobile ? 1000 : 500;
+    await new Promise(resolve => setTimeout(resolve, initDelay));
     
     const contractsInitialized = contracts.init();
     
@@ -232,18 +243,28 @@ async init() {
       throw new Error('Contract initialization failed. Check console for details.');
     }
     
-    // 🔥 НОВОЕ: Проверяем что критические контракты инициализированы
-    if (!contracts.contracts.globalway || !contracts.contracts.token) {
-      throw new Error('Critical contracts not initialized');
+    // 🔥 ИСПРАВЛЕНИЕ: Более тщательная проверка критических контрактов
+    const criticalContracts = ['globalway', 'token', 'stats'];
+    const missingContracts = criticalContracts.filter(contract => !contracts.contracts[contract]);
+    
+    if (missingContracts.length > 0) {
+      throw new Error(`Critical contracts not initialized: ${missingContracts.join(', ')}`);
     }
     
     console.log('✅ All contracts initialized successfully');
     console.log('📊 Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
     
-    Utils.showNotification('Wallet connected!', 'success');
+    Utils.showNotification('Wallet connected successfully!', 'success');
     
-    const isRegistered = await contracts.isUserRegistered(address);
-    console.log('📝 User registered:', isRegistered);
+    // 🔥 ИСПРАВЛЕНИЕ: Проверка регистрации с улучшенной обработкой
+    let isRegistered = false;
+    try {
+      isRegistered = await contracts.isUserRegistered(address);
+      console.log('📝 User registered:', isRegistered);
+    } catch (regError) {
+      console.error('❌ Error checking registration:', regError);
+      // Продолжаем, так как это может быть временной ошибкой
+    }
     
     if (!isRegistered) {
       let referrer = localStorage.getItem('referrer');
@@ -252,11 +273,17 @@ async init() {
       if (referrerId && !referrer) {
         try {
           if (contracts.contracts.stats) {
+            console.log('🔍 Resolving referrer ID:', referrerId);
             referrer = await contracts.getAddressByUserId(parseInt(referrerId));
-            localStorage.setItem('referrer', referrer);
-            console.log('✅ Referrer address resolved:', referrer);
+            
+            if (referrer && referrer !== ethers.constants.AddressZero) {
+              localStorage.setItem('referrer', referrer);
+              console.log('✅ Referrer address resolved:', referrer);
+            } else {
+              console.warn('⚠️ Referrer ID resolved to zero address');
+            }
           } else {
-            console.warn('⚠️ Stats contract not initialized, cannot resolve referrer ID');
+            console.warn('⚠️ Stats contract not available for referrer resolution');
           }
         } catch (error) {
           console.error('Error resolving referrer ID:', error);
@@ -264,44 +291,78 @@ async init() {
       }
       
       if (referrer && Utils.validateAddress(referrer)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Задержка перед показом модального окна
+        await new Promise(resolve => setTimeout(resolve, 500));
         uiManager.showRegistrationModal();
       } else {
-        Utils.showNotification('You need a referral link to register', 'error');
+        Utils.showNotification('Referral link required for registration', 'info');
+        // 🔥 ИСПРАВЛЕНИЕ: Все равно показываем DApp, но без регистрации
+        await this.showDAppInterface();
       }
     } else {
-      const landing = document.getElementById('landing');
-      const dapp = document.getElementById('dapp');
-      
-      if (landing) landing.classList.remove('active');
-      if (dapp) dapp.classList.add('active');
-      
-      // 🔥 НОВОЕ: Задержка перед загрузкой UI (даём время SafePal)
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      await uiManager.loadUserData();
-      await uiManager.updateUI();
-      
-      // 🔥 НОВОЕ: Принудительное обновление header (для кнопки Connect)
-      await new Promise(resolve => setTimeout(resolve, 300));
-      uiManager.updateHeader();
-      uiManager.updateCabinet();
-      
-      if (web3Manager.isAdmin()) {
-        document.body.classList.add('admin-access');
-        console.log('✅ Admin class added to body after wallet connect');
-      }
-      
-      uiManager.showPage('dashboard');
-      await uiManager.loadPageData('dashboard');
-      
-      Utils.showNotification('Welcome to GlobalWay!', 'success');
+      await this.showDAppInterface();
     }
     
   } catch (error) {
     console.error('Connect error:', error);
-    Utils.showNotification('Connection failed: ' + error.message, 'error');
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Более точные сообщения об ошибках
+    let errorMessage = 'Connection failed';
+    if (error.message.includes('user rejected') || error.message.includes('User denied')) {
+      errorMessage = 'Connection cancelled in wallet';
+    } else if (error.message.includes('SafePal') || error.message.includes('wallet')) {
+      errorMessage = 'Wallet connection failed. Please ensure SafePal is installed and try again.';
+    } else if (error.message.includes('network') || error.message.includes('chain')) {
+      errorMessage = 'Network error. Please check your connection.';
+    } else {
+      errorMessage = error.message;
+    }
+    
+    Utils.showNotification(errorMessage, 'error');
   } finally {
     Utils.showLoader(false);
+  }
+}
+
+// 🔥 ДОБАВЬ ЭТУ ВСПОМОГАТЕЛЬНУЮ ФУНКЦИЮ В КЛАСС App:
+async showDAppInterface() {
+  const landing = document.getElementById('landing');
+  const dapp = document.getElementById('dapp');
+  
+  if (landing) landing.classList.remove('active');
+  if (dapp) dapp.classList.add('active');
+  
+  // 🔥 ИСПРАВЛЕНИЕ: Умные задержки для UI загрузки
+  const uiDelay = web3Manager.isMobile ? 1200 : 600;
+  console.log(`⏳ Loading UI in ${uiDelay}ms...`);
+  await new Promise(resolve => setTimeout(resolve, uiDelay));
+  
+  // 🔥 ИСПРАВЛЕНИЕ: Последовательная загрузка данных с retry
+  try {
+    await uiManager.loadUserData();
+    await uiManager.updateUI();
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Принудительное обновление интерфейса
+    await new Promise(resolve => setTimeout(resolve, 400));
+    uiManager.updateHeader();
+    uiManager.updateCabinet();
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Проверка админских прав
+    if (web3Manager.isAdmin()) {
+      document.body.classList.add('admin-access');
+      console.log('✅ Admin access granted');
+    }
+    
+    // 🔥 ИСПРАВЛЕНИЕ: Показ dashboard с задержкой
+    uiManager.showPage('dashboard');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await uiManager.loadPageData('dashboard');
+    
+    Utils.showNotification('Welcome to GlobalWay!', 'success');
+    
+  } catch (uiError) {
+    console.error('❌ UI loading error:', uiError);
+    Utils.showNotification('Interface loading failed. Please refresh.', 'error');
   }
 }
 
