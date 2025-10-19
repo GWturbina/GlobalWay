@@ -266,68 +266,42 @@ async init() {
       // Продолжаем, так как это может быть временной ошибкой
     }
     
-if (!isRegistered) {
-  let referrer = localStorage.getItem('referrer');
-  
-  const referrerId = localStorage.getItem('referrerId');
-  if (referrerId && !referrer) {
-    try {
-      if (contracts.contracts.stats) {
-        console.log('🔍 Resolving referrer ID:', referrerId);
-        referrer = await contracts.getAddressByUserId(parseInt(referrerId));
-        
-        if (referrer && referrer !== ethers.constants.AddressZero) {
-          localStorage.setItem('referrer', referrer);
-          console.log('✅ Referrer address resolved:', referrer);
-        } else {
-          console.warn('⚠️ Referrer ID resolved to zero address');
+    if (!isRegistered) {
+      let referrer = localStorage.getItem('referrer');
+      
+      const referrerId = localStorage.getItem('referrerId');
+      if (referrerId && !referrer) {
+        try {
+          if (contracts.contracts.stats) {
+            console.log('🔍 Resolving referrer ID:', referrerId);
+            referrer = await contracts.getAddressByUserId(parseInt(referrerId));
+            
+            if (referrer && referrer !== ethers.constants.AddressZero) {
+              localStorage.setItem('referrer', referrer);
+              console.log('✅ Referrer address resolved:', referrer);
+            } else {
+              console.warn('⚠️ Referrer ID resolved to zero address');
+            }
+          } else {
+            console.warn('⚠️ Stats contract not available for referrer resolution');
+          }
+        } catch (error) {
+          console.error('Error resolving referrer ID:', error);
         }
-      } else {
-        console.warn('⚠️ Stats contract not available for referrer resolution');
       }
-    } catch (error) {
-      console.error('Error resolving referrer ID:', error);
+      
+      if (referrer && Utils.validateAddress(referrer)) {
+        // 🔥 ИСПРАВЛЕНИЕ: Задержка перед показом модального окна
+        await new Promise(resolve => setTimeout(resolve, 500));
+        uiManager.showRegistrationModal();
+      } else {
+        Utils.showNotification('Referral link required for registration', 'info');
+        // 🔥 ИСПРАВЛЕНИЕ: Все равно показываем DApp, но без регистрации
+        await this.showDAppInterface();
+      }
+    } else {
+      await this.showDAppInterface();
     }
-  }
-  
-  // ГЛАВНОЕ ИСПРАВЛЕНИЕ: Всегда показываем регистрацию
-  if (referrer && Utils.validateAddress(referrer)) {
-    console.log('✅ Valid referrer found, showing registration modal');
-    await new Promise(resolve => setTimeout(resolve, 500));
-    uiManager.showRegistrationModal();
-  } else {
-    console.warn('⚠️ No valid referrer, showing referral input dialog');
-    
-    // Показываем модальное окно с просьбой о реферере
-    const needRefModal = document.createElement('div');
-    needRefModal.className = 'modal';
-    needRefModal.id = 'needReferralModal';
-    needRefModal.style.display = 'block';
-    needRefModal.innerHTML = `
-      <div class="modal-content" style="max-width: 400px; margin: 50px auto; padding: 30px; background: #1a1a2e; border-radius: 10px; text-align: center;">
-        <h3 style="color: #00ff88; margin-bottom: 20px;">Registration Required</h3>
-        <p style="color: #ccc; margin-bottom: 20px;">To register in GlobalWay, please provide a referral link or ID from your sponsor.</p>
-        
-        <input type="text" id="manualReferrer" placeholder="Enter referrer address or ID (e.g., GW123456)" 
-               style="width: 100%; padding: 12px; margin: 15px 0; border-radius: 5px; border: 1px solid #00ff88; background: #0f0f1e; color: #fff;">
-        
-        <div style="display: flex; gap: 10px; margin-top: 25px;">
-          <button id="registerWithRefBtn" onclick="app.registerWithManualReferrer()" 
-                  style="flex: 1; padding: 12px; background: #00ff88; color: #000; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
-            Register
-          </button>
-          <button onclick="document.getElementById('needReferralModal').remove()" 
-                  style="flex: 1; padding: 12px; background: #333; color: #fff; border: none; border-radius: 5px; cursor: pointer;">
-            Cancel
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(needRefModal);
-  }
-} else {
-  await this.showDAppInterface();
-}
     
   } catch (error) {
     console.error('Connect error:', error);
@@ -554,80 +528,6 @@ async showDAppInterface() {
     }
   }
 }
-
-async monitorAccount() {
-    if (!web3Manager.connected) return;
-    
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', async (accounts) => {
-        if (accounts.length === 0) {
-          await web3Manager.disconnect();
-          window.location.reload();
-        } else if (accounts[0] !== web3Manager.address) {
-          window.location.reload();
-        }
-      });
-      
-      window.ethereum.on('chainChanged', () => {
-        window.location.reload();
-      });
-    }
-    
-    if (window.safepal) {
-      window.safepal.on('accountsChanged', async (accounts) => {
-        if (accounts.length === 0) {
-          await web3Manager.disconnect();
-          window.location.reload();
-        } else if (accounts[0] !== web3Manager.address) {
-          window.location.reload();
-        }
-      });
-      
-      window.safepal.on('chainChanged', () => {
-        window.location.reload();
-      });
-    }
-  }
-}
-
-  async registerWithManualReferrer() {
-    const input = document.getElementById('manualReferrer');
-    if (!input) return;
-    
-    const referrerInput = input.value.trim();
-    
-    if (!referrerInput) {
-      Utils.showNotification('Please enter referrer address or ID', 'error');
-      return;
-    }
-    
-    let referrer = referrerInput;
-    
-    try {
-      if (referrerInput.startsWith('GW')) {
-        console.log('Converting GW ID to address...');
-        const userId = Utils.parseUserId(referrerInput);
-        referrer = await contracts.getAddressByUserId(userId);
-      } else if (!isNaN(referrerInput)) {
-        console.log('Converting numeric ID to address...');
-        referrer = await contracts.getAddressByUserId(parseInt(referrerInput));
-      }
-      
-      if (referrer && Utils.validateAddress(referrer) && referrer !== ethers.constants.AddressZero) {
-        console.log('✅ Valid referrer resolved:', referrer);
-        localStorage.setItem('referrer', referrer);
-        document.getElementById('needReferralModal').remove();
-        
-        await new Promise(resolve => setTimeout(resolve, 300));
-        uiManager.showRegistrationModal();
-      } else {
-        Utils.showNotification('Invalid referrer address or ID', 'error');
-      }
-    } catch (error) {
-      console.error('Error resolving referrer:', error);
-      Utils.showNotification('Could not find referrer. Please check the address or ID.', 'error');
-    }
-  }
 
 const app = new App();
 
