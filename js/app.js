@@ -1,33 +1,5 @@
-// 🔥 ОЧИСТКА КЭША - ДОБАВЛЕНО В НАЧАЛО ФАЙЛА
-const APP_VERSION = '1.2.0';
-const storedVersion = localStorage.getItem('app_version');
-
-if (storedVersion !== APP_VERSION) {
-  console.log('🔄 New version detected, clearing cache...');
-  console.log(`Old version: ${storedVersion}, New version: ${APP_VERSION}`);
-  
-  // 🔥 НОВОЕ: Очистка Service Worker кеша
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      registrations.forEach(reg => {
-        console.log('🗑️ Unregistering Service Worker');
-        reg.unregister();
-      });
-    });
-  }
-  
-  // Очистка localStorage
-  localStorage.clear();
-  localStorage.setItem('app_version', APP_VERSION);
-  
-  console.log('✅ Cache cleared successfully');
-  
-  // 🔥 НОВОЕ: Перезагрузка страницы БЕЗ кеша
-  setTimeout(() => {
-    console.log('🔄 Reloading page without cache...');
-    window.location.reload(true);
-  }, 500);
-}
+// 🔥 ИСПРАВЛЕНО: УДАЛЕНА агрессивная очистка кеша
+// Теперь НЕ теряем referrer и другие важные данные!
 
 class App {
   constructor() {
@@ -76,7 +48,7 @@ async init() {
 }
 
   setupEvents() {
-    // Задержка для мобильных браузеров
+    // 🔥 ИСПРАВЛЕНО: Убрана избыточная задержка 2000ms
     setTimeout(() => {
       const connectBtn = document.getElementById('connectBtn');
       if (connectBtn) {
@@ -109,7 +81,7 @@ async init() {
           this.showPlanetInfo(planetType);
         });
       });
-    }, 2000); 
+    }, 500); // 🔥 ИСПРАВЛЕНО: 500ms вместо 2000ms
   }
 
   setupCopyButtons() {
@@ -141,12 +113,12 @@ async init() {
       }
   
       if (params.page) {
-        // 🔥 ИСПРАВЛЕНО: Увеличена задержка для SafePal на мобильном
+        // 🔥 ИСПРАВЛЕНО: Оптимизированная задержка
         setTimeout(() => {
           if (uiManager && typeof uiManager.showPage === 'function') {
             uiManager.showPage(params.page);
           }
-        }, 3000); // 3000мс вместо 500мс
+        }, 1000); // 🔥 ИСПРАВЛЕНО: 1000ms вместо 3000ms
       }
     }
 
@@ -206,13 +178,15 @@ async init() {
     const address = await web3Manager.connect();
     console.log('✅ Wallet connected:', address);
     
-    // 🔥 ИСПРАВЛЕНИЕ: Умные задержки для разных устройств
-    const isMobile = web3Manager.isMobile;
-    const connectDelay = isMobile ? 2500 : 1000;
-    console.log(`⏳ Waiting ${connectDelay}ms for full connection...`);
-    await new Promise(resolve => setTimeout(resolve, connectDelay));
+    // 🔥 ИСПРАВЛЕНО: Умная задержка только для мобильных
+    if (web3Manager.isMobile) {
+      console.log('⏳ Mobile device - waiting for full connection...');
+      await new Promise(resolve => setTimeout(resolve, 1500)); // 🔥 1.5s вместо 2.5s
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 500)); // 🔥 0.5s для desktop
+    }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Расширенная проверка готовности подключения
+    // 🔥 ИСПРАВЛЕНО: Расширенная проверка готовности подключения
     if (!web3Manager.connected || !web3Manager.signer || !web3Manager.address) {
       console.error('❌ Connection state incomplete:', {
         connected: web3Manager.connected,
@@ -225,9 +199,8 @@ async init() {
     console.log('📦 Initializing contracts...');
     Utils.showNotification('Initializing smart contracts...', 'info');
     
-    // 🔥 ИСПРАВЛЕНИЕ: Увеличенная задержка перед инициализацией контрактов
-    const initDelay = isMobile ? 1000 : 500;
-    await new Promise(resolve => setTimeout(resolve, initDelay));
+    // 🔥 ИСПРАВЛЕНО: Короткая задержка перед инициализацией
+    await new Promise(resolve => setTimeout(resolve, 300)); // 🔥 300ms вместо 1000ms
     
     const contractsInitialized = contracts.init();
     
@@ -239,81 +212,34 @@ async init() {
       );
       console.error('❌ Contract initialization returned false');
       console.log('Available ABIs:', Object.keys(contracts.abis).filter(k => contracts.abis[k]));
-      console.log('Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
-      throw new Error('Contract initialization failed. Check console for details.');
+      return;
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Более тщательная проверка критических контрактов
-    const criticalContracts = ['globalway', 'token', 'stats'];
-    const missingContracts = criticalContracts.filter(contract => !contracts.contracts[contract]);
+    console.log('✅ Contracts initialized');
     
-    if (missingContracts.length > 0) {
-      throw new Error(`Critical contracts not initialized: ${missingContracts.join(', ')}`);
-    }
-    
-    console.log('✅ All contracts initialized successfully');
-    console.log('📊 Initialized contracts:', Object.keys(contracts.contracts).filter(k => contracts.contracts[k]));
-    
-    Utils.showNotification('Wallet connected successfully!', 'success');
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Проверка регистрации с улучшенной обработкой
-    let isRegistered = false;
-    try {
-      isRegistered = await contracts.isUserRegistered(address);
-      console.log('📝 User registered:', isRegistered);
-    } catch (regError) {
-      console.error('❌ Error checking registration:', regError);
-      // Продолжаем, так как это может быть временной ошибкой
-    }
-    
-    if (!isRegistered) {
-      let referrer = localStorage.getItem('referrer');
-      
-      const referrerId = localStorage.getItem('referrerId');
-      if (referrerId && !referrer) {
-        try {
-          if (contracts.contracts.stats) {
-            console.log('🔍 Resolving referrer ID:', referrerId);
-            referrer = await contracts.getAddressByUserId(parseInt(referrerId));
-            
-            if (referrer && referrer !== ethers.constants.AddressZero) {
-              localStorage.setItem('referrer', referrer);
-              console.log('✅ Referrer address resolved:', referrer);
-            } else {
-              console.warn('⚠️ Referrer ID resolved to zero address');
-            }
-          } else {
-            console.warn('⚠️ Stats contract not available for referrer resolution');
-          }
-        } catch (error) {
-          console.error('Error resolving referrer ID:', error);
-        }
-      }
-      
-      if (referrer && Utils.validateAddress(referrer)) {
-        // 🔥 ИСПРАВЛЕНИЕ: Задержка перед показом модального окна
-        await new Promise(resolve => setTimeout(resolve, 500));
-        uiManager.showRegistrationModal();
-      } else {
-        Utils.showNotification('Referral link required for registration', 'info');
-        // 🔥 ИСПРАВЛЕНИЕ: Все равно показываем DApp, но без регистрации
-        await this.showDAppInterface();
-      }
-    } else {
-      await this.showDAppInterface();
-    }
+    // 🔥 ИСПРАВЛЕНО: Быстрое переключение на DApp интерфейс
+    await this.showDAppInterface();
     
   } catch (error) {
-    console.error('Connect error:', error);
+    console.error('❌ Wallet connection error:', error);
     
-    // 🔥 ИСПРАВЛЕНИЕ: Более точные сообщения об ошибках
-    let errorMessage = 'Connection failed';
-    if (error.message.includes('user rejected') || error.message.includes('User denied')) {
-      errorMessage = 'Connection cancelled in wallet';
-    } else if (error.message.includes('SafePal') || error.message.includes('wallet')) {
-      errorMessage = 'Wallet connection failed. Please ensure SafePal is installed and try again.';
-    } else if (error.message.includes('network') || error.message.includes('chain')) {
-      errorMessage = 'Network error. Please check your connection.';
+    let errorMessage;
+    
+    // 🔥 ИСПРАВЛЕНО: Лучшая обработка ошибок SafePal
+    if (error.message.includes('User rejected') || error.message.includes('User denied')) {
+      errorMessage = 'Connection cancelled';
+    } else if (error.message.includes('Please complete connection in SafePal')) {
+      errorMessage = error.message;
+    } else if (error.message.includes('SafePal')) {
+      if (web3Manager.isMobile) {
+        errorMessage = 'SafePal Wallet not detected. Please:\n1. Install SafePal Wallet app\n2. Open this link in SafePal DApp browser';
+      } else {
+        errorMessage = 'SafePal extension not detected. Please install SafePal browser extension.';
+      }
+    } else if (error.message.includes('network')) {
+      errorMessage = 'Network error. Please check your connection to opBNB network.';
+    } else if (error.message.includes('opBNB')) {
+      errorMessage = 'Please switch to opBNB network in your wallet';
     } else {
       errorMessage = error.message;
     }
@@ -324,7 +250,7 @@ async init() {
   }
 }
 
-// 🔥 ДОБАВЬ ЭТУ ВСПОМОГАТЕЛЬНУЮ ФУНКЦИЮ В КЛАСС App:
+// 🔥 ИСПРАВЛЕНО: Оптимизированная загрузка интерфейса
 async showDAppInterface() {
   const landing = document.getElementById('landing');
   const dapp = document.getElementById('dapp');
@@ -332,30 +258,26 @@ async showDAppInterface() {
   if (landing) landing.classList.remove('active');
   if (dapp) dapp.classList.add('active');
   
-  // 🔥 ИСПРАВЛЕНИЕ: Умные задержки для UI загрузки
-  const uiDelay = web3Manager.isMobile ? 1200 : 600;
+  // 🔥 ИСПРАВЛЕНО: Короткая задержка для UI
+  const uiDelay = web3Manager.isMobile ? 600 : 300; // 🔥 Уменьшено
   console.log(`⏳ Loading UI in ${uiDelay}ms...`);
   await new Promise(resolve => setTimeout(resolve, uiDelay));
   
-  // 🔥 ИСПРАВЛЕНИЕ: Последовательная загрузка данных с retry
   try {
     await uiManager.loadUserData();
     await uiManager.updateUI();
     
-    // 🔥 ИСПРАВЛЕНИЕ: Принудительное обновление интерфейса
-    await new Promise(resolve => setTimeout(resolve, 400));
+    // 🔥 ИСПРАВЛЕНО: Одно обновление вместо нескольких
+    await new Promise(resolve => setTimeout(resolve, 200));
     uiManager.updateHeader();
     uiManager.updateCabinet();
     
-    // 🔥 ИСПРАВЛЕНИЕ: Проверка админских прав
     if (web3Manager.isAdmin()) {
       document.body.classList.add('admin-access');
       console.log('✅ Admin access granted');
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Показ dashboard с задержкой
     uiManager.showPage('dashboard');
-    await new Promise(resolve => setTimeout(resolve, 300));
     await uiManager.loadPageData('dashboard');
     
     Utils.showNotification('Welcome to GlobalWay!', 'success');
@@ -367,7 +289,6 @@ async showDAppInterface() {
 }
 
   async openDapp() {
-    // 🔥 ИСПРАВЛЕНО: Сначала подключаем кошелек, потом показываем DApp
     try {
       if (!web3Manager.connected) {
         console.log('🔌 Connecting wallet from landing...');
