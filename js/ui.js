@@ -240,7 +240,7 @@ class UIManager {
         action.textContent = 'Connect';
         action.onclick = () => app.connectWallet();
       }
-    } else if (!this.userStats?.isRegistered) {
+    } else if (!this.userStats || !this.userStats.isRegistered) {
       if (message) message.textContent = 'You need to register first';
       if (action) {
         action.textContent = 'Register';
@@ -533,7 +533,7 @@ setupLevelButtons() {
           } catch (error) {
             console.error(`❌ Ошибка при покупке уровня ${i}:`, error);
             
-            const isNowActive = this.userStats?.activeLevels?.includes(i);
+            const isNowActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(i);
             if (!isNowActive) {
               btn.disabled = false;
               btn.style.opacity = '1';
@@ -563,25 +563,6 @@ setupLevelButtons() {
     
     this.injectButtonStyles();
 }
-        
-        // 🔥 ИСПРАВЛЕНИЕ: Удаляем старые обработчики перед добавлением новых
-        btn.removeEventListener('click', clickHandler);
-        btn.addEventListener('click', clickHandler, { once: false });
-        
-        btn.setAttribute('aria-label', `Buy Level ${i} for ${CONFIG.LEVEL_PRICES[i-1]} BNB`);
-      }
-    
-      container.appendChild(btn);
-    }
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Восстанавливаем scroll position
-    container.scrollLeft = scrollPos;
-    
-    console.log(`✅ Created ${container.children.length} level buttons`);
-    
-    // 🔥 ИСПРАВЛЕНИЕ: Добавляем CSS для новых классов
-    this.injectButtonStyles();
-  }
 
 setupBulkButtons() {
     document.querySelectorAll('.bulk-btn').forEach(btn => {
@@ -1765,7 +1746,7 @@ setupBulkButtons() {
       const reward = CONFIG.TOKEN_REWARDS[i - 1];
       totalRewards += reward;
       
-      const isActive = this.userStats?.activeLevels.includes(i);
+      const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(i);
       
       const card = document.createElement('div');
       card.className = `reward-card ${isActive ? 'claimed' : ''}`;
@@ -1804,7 +1785,7 @@ setupBulkButtons() {
       const mintFilter = tokenContract.filters.TokensMinted(web3Manager.address);
       const mintEvents = await tokenContract.queryFilter(mintFilter, fromBlock, currentBlock);
       
-      if (mintEvents.length === 0 && this.userStats?.activeLevels.length > 0) {
+      if (mintEvents.length === 0 && this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.length > 0) {
         this.userStats.activeLevels.forEach(level => {
           const row = tbody.insertRow();
           row.innerHTML = `
@@ -1966,7 +1947,7 @@ setupBulkButtons() {
       card.className = 'project-card';
       card.dataset.status = project.status;
       
-      const hasAccess = this.userStats?.activeLevels.length >= project.requiredLevel;
+      const hasAccess = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.length >= project.requiredLevel;
       
       card.innerHTML = `
         <div class="project-logo">
@@ -2022,7 +2003,7 @@ setupBulkButtons() {
     if (modalRequirements) modalRequirements.textContent = `Level ${project.requiredLevel}+`;
     if (modalPrefix) modalPrefix.textContent = `${project.prefix}-XXXXXXX`;
     
-    const hasAccess = this.userStats?.activeLevels.length >= project.requiredLevel;
+    const hasAccess = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.length >= project.requiredLevel;
     if (actionBtn) {
       actionBtn.disabled = !hasAccess || project.status === 'planning';
       actionBtn.onclick = () => this.openProject(project.id);
@@ -2035,7 +2016,7 @@ setupBulkButtons() {
     const project = CONFIG.PROJECTS.find(p => p.id === projectId);
     if (!project) return;
     
-    const userId = this.userStats?.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats?.userId || 0);
+    const userId = this.userStats && this.userStats.userId && this.userStats.userId.toNumber ? this.userStats.userId.toNumber() : Number((this.userStats && this.userStats.userId) || 0);
     const fullId = `${project.prefix}${String(userId).padStart(7, '0')}`;
     
     Utils.showNotification(`Opening ${project.name} with ID: ${fullId}`, 'info');
