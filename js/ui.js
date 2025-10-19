@@ -535,37 +535,23 @@ async buyLevel(level) {
       
       Utils.showNotification(errorMsg, 'error');
       
-    } finally {
-      // 🔥 ИСПРАВЛЕНИЕ: Гарантированное сброс состояния
-      this.buyingLevel = false;
-      Utils.showLoader(false);
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Принудительное обновление кнопок
-      setTimeout(() => {
-        this.setupLevelButtons();
-      }, 500);
-    }
-  }
-
-setupLevelButtons() {
+   setupLevelButtons() {
     const container = document.getElementById('individualLevels');
     if (!container) {
       console.warn('⚠️ Container #individualLevels not found');
       return;
     }
     
-    // Сохраняем текущий scroll position
     const scrollPos = container.scrollLeft;
     
-    // КЛЮЧНО: Проверяем что userStats и activeLevels готовы
     if (!this.userStats) {
       console.warn('⚠️ userStats not loaded yet');
-      return; // Не создаем кнопки если данные не готовы
+      return;
     }
     
     if (!Array.isArray(this.userStats.activeLevels)) {
       console.warn('⚠️ activeLevels is not an array:', this.userStats.activeLevels);
-      this.userStats.activeLevels = []; // Инициализируем пустым массивом
+      this.userStats.activeLevels = [];
     }
     
     console.log('✅ Creating level buttons with activeLevels:', this.userStats.activeLevels);
@@ -578,7 +564,6 @@ setupLevelButtons() {
       btn.dataset.level = i;
       btn.id = `level-btn-${i}`;
     
-      // КЛЮЧНО: Надежная проверка активного уровня
       const isActive = this.userStats && 
                        Array.isArray(this.userStats.activeLevels) && 
                        this.userStats.activeLevels.includes(i);
@@ -602,7 +587,6 @@ setupLevelButtons() {
         btn.setAttribute('disabled', 'true');
         btn.setAttribute('aria-label', `Level ${i} - Purchased`);
       } else {
-        // 🔥 ИСПРАВЛЕНИЕ: Улучшенная защита от множественных кликов
         const clickHandler = async (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -613,7 +597,6 @@ setupLevelButtons() {
             return;
           }
           
-          // 🔥 ИСПРАВЛЕНИЕ: Визуально дизейблим кнопку с анимацией
           btn.disabled = true;
           btn.style.opacity = '0.6';
           btn.style.transform = 'scale(0.98)';
@@ -627,7 +610,6 @@ setupLevelButtons() {
             console.log(`🔄 Starting purchase for level ${i}`);
             await this.buyLevel(i);
             
-            // 🔥 ИСПРАВЛЕНИЕ: После успешной покупки обновляем ВСЕ кнопки
             setTimeout(() => {
               this.setupLevelButtons();
             }, 1000);
@@ -635,7 +617,6 @@ setupLevelButtons() {
           } catch (error) {
             console.error(`❌ Purchase failed for level ${i}:`, error);
             
-            // 🔥 ИСПРАВЛЕНИЕ: Восстанавливаем кнопку только если уровень не куплен
             const isNowActive = this.userStats?.activeLevels?.includes(i);
             if (!isNowActive) {
               btn.disabled = false;
@@ -646,28 +627,23 @@ setupLevelButtons() {
                 <span class="level-price">${CONFIG.LEVEL_PRICES[i-1]} BNB</span>
               `;
             } else {
-              // Если уровень стал активным, пересоздаем кнопки
               this.setupLevelButtons();
             }
           }
         };
         
-        // 🔥 ИСПРАВЛЕНИЕ: Удаляем старые обработчики перед добавлением новых
         btn.removeEventListener('click', clickHandler);
         btn.addEventListener('click', clickHandler, { once: false });
-        
         btn.setAttribute('aria-label', `Buy Level ${i} for ${CONFIG.LEVEL_PRICES[i-1]} BNB`);
       }
     
       container.appendChild(btn);
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Восстанавливаем scroll position
     container.scrollLeft = scrollPos;
     
     console.log(`✅ Created ${container.children.length} level buttons`);
     
-    // 🔥 ИСПРАВЛЕНИЕ: Добавляем CSS для новых классов
     this.injectButtonStyles();
   }
 
@@ -2251,7 +2227,7 @@ setupBulkButtons() {
       Utils.showLoader(false);
     }
   }
-
+  
   // 🔥 ДОБАВЛЕННАЯ ФУНКЦИЯ: Стили для кнопок уровней
   injectButtonStyles() {
     if (document.getElementById('level-button-styles')) return;
