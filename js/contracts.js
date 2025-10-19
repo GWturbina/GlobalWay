@@ -280,73 +280,73 @@ async buyLevel(level) {
     
     console.log(`🔄 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
     console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-
-    // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
-    const delay = isMobile ? 3000 : 1000;
+    
+    // Задержка перед отправкой
+    const delay = isMobile ? 2000 : 800;
     console.log(`⏳ Waiting ${delay}ms for wallet readiness...`);
     await new Promise(resolve => setTimeout(resolve, delay));
   
     console.log('📤 Sending transaction...');
-    console.log('💡 SafePal will open for confirmation...');
     
-    // 🔥 ИСПРАВЛЕНИЕ: Добавляем retry механизм
     let tx;
-    let lastError;
-    const maxRetries = 2;
+    const maxRetries = 1;
     
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
         try {
             console.log(`🔄 Attempt ${attempt}/${maxRetries + 1}`);
             
-            // 🔥 ИСПРАВЛЕНИЕ: Явные параметры газа для всех устройств
+            // НЕ УСТАНАВЛИВАЕМ gasPrice и gasLimit для мобилы
+            // Пусть SafePal сам считает
             const txParams = {
                 value: price
             };
-
-            // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Явные лимиты газа
-            if (isMobile) {
-                // Для SafePal Mobile - более высокие лимиты
-                txParams.gasLimit = 500000; // Увеличено до 500K
-                txParams.gasPrice = ethers.utils.parseUnits('5', 'gwei'); // Явная цена газа
-                console.log('📱 Using mobile-optimized gas settings');
-            } else {
-                // Для десктоп - стандартные настройки
+            
+            if (!isMobile) {
+                // Только для десктопа
                 txParams.gasLimit = 300000;
-                console.log('💻 Using desktop gas settings');
             }
             
+            console.log('📡 Sending to blockchain...');
             tx = await this.contracts.globalway.buyLevel(level, txParams);
             console.log('✅ Transaction sent:', tx.hash);
-            break; // Успех, выходим из цикла retry
+            break;
             
         } catch (error) {
-            lastError = error;
             console.error(`❌ Attempt ${attempt} failed:`, error.message);
             
             if (attempt <= maxRetries) {
-                // 🔥 ИСПРАВЛЕНИЕ: Экспоненциальная задержка между попытками
-                const retryDelay = 2000 * attempt;
+                const retryDelay = 1500 * attempt;
                 console.log(`🔄 Retrying in ${retryDelay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, retryDelay));
             } else {
-                console.error('❌ All transaction attempts failed');
-                
-                // 🔥 ИСПРАВЛЕНИЕ: Более понятные сообщения об ошибках
-                let userMessage = 'Transaction failed';
-                if (error.message.includes('user rejected') || error.message.includes('User denied')) {
-                    userMessage = 'Transaction cancelled in wallet';
-                } else if (error.message.includes('insufficient funds')) {
-                    userMessage = 'Insufficient BNB balance';
-                } else if (error.message.includes('network') || error.message.includes('chain')) {
-                    userMessage = 'Network error. Please check your connection';
-                } else if (isMobile) {
-                    userMessage = 'Mobile wallet connection failed. Please try again';
-                }
-                
-                throw new Error(userMessage);
+                console.error('❌ All attempts failed');
+                throw error;
             }
         }
     }
+    
+    console.log('⏳ Waiting for blockchain confirmation...');
+    
+    try {
+        // ГЛАВНОЕ ИЗМЕНЕНИЕ: Всегда ждём подтверждение
+        const receipt = await Promise.race([
+            tx.wait(1),
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 120000)
+            )
+        ]);
+        
+        console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+        return tx;
+        
+    } catch (waitError) {
+        if (waitError.message === 'Timeout') {
+            console.warn('⏱️ Confirmation timeout, but transaction sent:', tx.hash);
+            return tx;
+        }
+        throw waitError;
+    }
+}
     
     // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
     console.log('⏳ Transaction pending, waiting for confirmation...');
