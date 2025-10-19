@@ -457,67 +457,6 @@ async buyLevel(level) {
         this.setupLevelButtons();
       }, 500);
     }
-}
-      
-      console.log('✅ Transaction sent:', tx.hash);
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Улучшенный feedback для пользователя
-      Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
-      console.log('⏳ Waiting for blockchain confirmation...');
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Увеличена задержка перед обновлением UI
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Обновляем данные с retry
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          await this.loadUserData();
-          await this.updateUI();
-          await this.loadDashboard();
-          break;
-        } catch (updateError) {
-          retries--;
-          console.warn(`⚠️ UI update failed, ${retries} retries left:`, updateError);
-          if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      Utils.showNotification(`🎉 Level ${level} activated successfully!`, 'success');
-      
-    } catch (error) {
-      console.error('❌ Error buying level:', error);
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Более точные сообщения об ошибках
-      let errorMsg = 'Transaction failed';
-      if (error.message) {
-        if (error.message.includes('user rejected') || error.message.includes('User denied') || error.message.includes('cancelled')) {
-          errorMsg = 'Transaction cancelled in wallet';
-        } else if (error.message.includes('insufficient funds')) {
-          errorMsg = 'Insufficient BNB balance';
-        } else if (error.message.includes('timeout')) {
-          errorMsg = 'Wallet did not respond. Please try again';
-        } else if (error.message.includes('network') || error.message.includes('chain')) {
-          errorMsg = 'Network error. Please check your connection';
-        } else if (isMobile) {
-          errorMsg = 'Mobile wallet error. Please ensure SafePal is open';
-        } else {
-          errorMsg = `Transaction failed: ${error.message.substring(0, 100)}`;
-        }
-      }
-      
-      Utils.showNotification(errorMsg, 'error');
-      
-    } finally {
-      // 🔥 ИСПРАВЛЕНИЕ: Гарантированное сброс состояния
-      this.buyingLevel = false;
-      Utils.showLoader(false);
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Принудительное обновление кнопок
-      setTimeout(() => {
-        this.setupLevelButtons();
-      }, 500);
-    }
   }
 
 setupLevelButtons() {
