@@ -760,38 +760,38 @@ setupBulkButtons() {
     }
   }
 
-  async loadEarnings() {
-    if (!this.userStats) return;
-    
-    try {
+async loadEarnings() {
+  if (!this.userStats) return;
+  
+  try {
     const container = document.getElementById('earningsRank');
-      if (container) container.innerHTML = '';
-    
-      const provider = web3Manager.provider;
-      const marketingContract = contracts.contracts.marketing;
-    
-      if (!provider || !marketingContract) {
-        console.warn('⚠️ Marketing contract not available');
-        if (container) {
-          container.innerHTML = `
-            <div class="earnings-item"><span>Direct Bonus:</span><span>0.0000 BNB</span></div>
-            <div class="earnings-item"><span>Partner Bonus:</span><span>0.0000 BNB</span></div>
-            <div class="earnings-item"><span>Matrix Bonus:</span><span>0.0000 BNB</span></div>
-            <div class="earnings-item"><span>Leadership Bonus:</span><span>0.0000 BNB</span></div>
-          `;
-        }
-        return;
+    if (container) container.innerHTML = '';
+  
+    const provider = web3Manager.provider;
+    const marketingContract = contracts.contracts.marketing;
+  
+    if (!provider || !marketingContract) {
+      console.warn('⚠️ Marketing contract not available');
+      if (container) {
+        container.innerHTML = `
+          <div class="earnings-item"><span>Direct Bonus:</span><span>0.0000 BNB</span></div>
+          <div class="earnings-item"><span>Partner Bonus:</span><span>0.0000 BNB</span></div>
+          <div class="earnings-item"><span>Matrix Bonus:</span><span>0.0000 BNB</span></div>
+          <div class="earnings-item"><span>Leadership Bonus:</span><span>0.0000 BNB</span></div>
+        `;
       }
+      return;
+    }
     
-      const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 50000); // ✅ Ограничение opBNB
+    const currentBlock = await provider.getBlockNumber();
+    const fromBlock = Math.max(0, currentBlock - 50000);
     
-      console.log(`📊 Loading earnings from block ${fromBlock} to ${currentBlock}`);
+    console.log(`📊 Loading earnings from block ${fromBlock} to ${currentBlock}`);
     
-      let directBonus = 0;
-      let partnerBonus = 0;
-      let matrixBonus = 0;
-      let leaderBonus = 0;
+    let directBonus = 0;
+    let partnerBonus = 0;
+    let matrixBonus = 0;
+    let leaderBonus = 0;
       
       try {
       const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
