@@ -170,6 +170,13 @@ async init() {
 
  async connectWallet() {
   try {
+    // 🔥 НОВОЕ: Проверяем что уже не подключены
+    if (web3Manager.connected && web3Manager.address) {
+      console.log('ℹ️ Already connected to:', web3Manager.address);
+      Utils.showNotification('Wallet already connected', 'info');
+      return;
+    }
+    
     Utils.showLoader(true);
     Utils.showNotification('Connecting wallet...', 'info');
     
@@ -216,6 +223,9 @@ async init() {
     }
     
     console.log('✅ Contracts initialized');
+    
+    // 🔥 НОВОЕ: Устанавливаем мониторинг смены аккаунта ПОСЛЕ подключения
+    await this.monitorAccount();
     
     // 🔥 ИСПРАВЛЕНО: Быстрое переключение на DApp интерфейс
     await this.showDAppInterface();
@@ -416,37 +426,86 @@ async showDAppInterface() {
   }
 
   async monitorAccount() {
-    if (!web3Manager.connected) return;
+    // 🔥 ИСПРАВЛЕНО: Убрана проверка connected - теперь всегда устанавливаем слушатели
+    console.log('🔊 Setting up account change listeners...');
     
+    // 🔥 ИСПРАВЛЕНО: Сначала удаляем старые слушатели (если есть)
+    if (window.ethereum && window.ethereum.removeListener) {
+      try {
+        window.ethereum.removeAllListeners('accountsChanged');
+        window.ethereum.removeAllListeners('chainChanged');
+      } catch (e) {
+        console.warn('Could not remove old ethereum listeners:', e);
+      }
+    }
+    
+    if (window.safepal && window.safepal.removeListener) {
+      try {
+        window.safepal.removeAllListeners('accountsChanged');
+        window.safepal.removeAllListeners('chainChanged');
+      } catch (e) {
+        console.warn('Could not remove old safepal listeners:', e);
+      }
+    }
+    
+    // 🔥 ИСПРАВЛЕНО: Универсальный обработчик для любого провайдера
+    const handleAccountsChanged = async (accounts) => {
+      console.log('🔄 Account changed:', accounts);
+      
+      if (!accounts || accounts.length === 0) {
+        console.log('❌ No accounts, disconnecting...');
+        await web3Manager.disconnect();
+        window.location.reload();
+      } else if (web3Manager.address && accounts[0].toLowerCase() !== web3Manager.address.toLowerCase()) {
+        console.log('🔄 Different account detected, reloading...');
+        console.log('Old:', web3Manager.address);
+        console.log('New:', accounts[0]);
+        window.location.reload();
+      }
+    };
+    
+    const handleChainChanged = (chainId) => {
+      console.log('🔄 Chain changed:', chainId);
+      window.location.reload();
+    };
+    
+    // Устанавливаем слушатели для window.ethereum
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', async (accounts) => {
-        if (accounts.length === 0) {
-          await web3Manager.disconnect();
-          window.location.reload();
-        } else if (accounts[0] !== web3Manager.address) {
-          window.location.reload();
-        }
-      });
+      console.log('✅ Setting up ethereum listeners');
       
-      window.ethereum.on('chainChanged', () => {
-        window.location.reload();
-      });
+      if (typeof window.ethereum.on === 'function') {
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+        window.ethereum.on('chainChanged', handleChainChanged);
+      } else {
+        console.warn('⚠️ window.ethereum.on not available, trying addEventListener');
+        try {
+          window.ethereum.addEventListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.addEventListener('chainChanged', handleChainChanged);
+        } catch (e) {
+          console.warn('Could not add ethereum event listeners:', e);
+        }
+      }
     }
     
+    // Устанавливаем слушатели для window.safepal
     if (window.safepal) {
-      window.safepal.on('accountsChanged', async (accounts) => {
-        if (accounts.length === 0) {
-          await web3Manager.disconnect();
-          window.location.reload();
-        } else if (accounts[0] !== web3Manager.address) {
-          window.location.reload();
-        }
-      });
+      console.log('✅ Setting up safepal listeners');
       
-      window.safepal.on('chainChanged', () => {
-        window.location.reload();
-      });
+      if (typeof window.safepal.on === 'function') {
+        window.safepal.on('accountsChanged', handleAccountsChanged);
+        window.safepal.on('chainChanged', handleChainChanged);
+      } else {
+        console.warn('⚠️ window.safepal.on not available, trying addEventListener');
+        try {
+          window.safepal.addEventListener('accountsChanged', handleAccountsChanged);
+          window.safepal.addEventListener('chainChanged', handleChainChanged);
+        } catch (e) {
+          console.warn('Could not add safepal event listeners:', e);
+        }
+      }
     }
+    
+    console.log('✅ Account monitoring active');
   }
 }
 
