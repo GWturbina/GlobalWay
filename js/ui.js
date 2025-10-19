@@ -48,7 +48,7 @@ class UIManager {
   showPage(page) {
     document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    
+    async monitorAccount() {
     const pageElement = document.getElementById(page);
     if (pageElement) pageElement.classList.add('active');
     
@@ -310,37 +310,48 @@ class UIManager {
 
   // === DASHBOARD ===
 
-  async loadDashboard() {
-    // 🔥 НОВОЕ: Проверяем что userStats загружен
+async loadDashboard() {
+    // Убедитесь, что userStats загружены
     if (!this.userStats) {
-      console.warn('⚠️ userStats not loaded, waiting...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-      if (!this.userStats) {
-        console.error('❌ userStats still not loaded!');
-        await this.loadUserData(); // Загружаем принудительно
+      console.warn('⚠️ userStats not loaded, loading...');
+      await this.loadUserData();
+      
+      // Дополнительная задержка для мобильного
+      if (web3Manager.isMobile) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
     
-    // 🔥 НОВОЕ: Задержка перед отрисовкой кнопок
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Если всё ещё не загружено - повторно пытаемся
+    if (!this.userStats || !this.userStats.activeLevels) {
+      console.warn('⚠️ userStats.activeLevels still missing, retrying...');
+      await this.loadUserData();
+    }
     
-    console.log('🎮 Setting up level buttons with userStats:', this.userStats);
+    console.log('✅ userStats ready:', this.userStats);
+    console.log('🎮 Setting up level buttons with activeLevels:', this.userStats?.activeLevels);
+    
+    // Создаем кнопки уровней
     this.setupLevelButtons();
     
+    // Создаем bulk кнопки
     console.log('📦 Setting up bulk buttons');
     this.setupBulkButtons();
     
+    // Загружаем остальные данные
     await this.loadQuarterlyInfo();
     await this.loadEarnings();
     await this.loadHistory();
     await this.loadTokensSummary();
     
-    // 🔥 НОВОЕ: Принудительная перерисовка кнопок через секунду (для надёжности)
+    // Перерисовка кнопок через секунду для надежности
     setTimeout(() => {
       console.log('🔄 Force re-rendering level buttons');
       this.setupLevelButtons();
     }, 1000);
-  }
+}
 
 async buyLevel(level) {
     if (this.buyingLevel) {
@@ -348,20 +359,21 @@ async buyLevel(level) {
       return;
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Более надежная проверка подключения
+    // Проверка подключения
     if (!web3Manager.connected || !web3Manager.signer || !web3Manager.address) {
       Utils.showNotification('Wallet not connected. Please connect first.', 'error');
-      console.error('❌ Wallet not connected - no signer or address');
+      console.error('❌ Wallet not connected');
       return;
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Проверка всех критических контрактов
+    // Проверка контрактов
     if (!contracts.contracts.globalway || !contracts.contracts.token) {
       Utils.showNotification('Smart contracts not ready. Please refresh the page.', 'error');
       console.error('❌ Critical contracts not initialized');
       return;
     }
     
+    // Проверка что уровень не куплен
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
     
     if (isActive) {
@@ -372,7 +384,7 @@ async buyLevel(level) {
     const price = CONFIG.LEVEL_PRICES[level - 1];
     const isMobile = web3Manager.isMobile;
     
-    // 🔥 ИСПРАВЛЕНИЕ: Более информативное подтверждение
+    // Подтверждение
     const confirmMessage = isMobile 
       ? `Buy level ${level} for ${price} BNB?\n\nMake sure SafePal app is open!`
       : `Buy level ${level} for ${price} BNB?`;
@@ -381,7 +393,6 @@ async buyLevel(level) {
       return;
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Флаг ПОСЛЕ confirm + визуальный feedback
     this.buyingLevel = true;
     Utils.showNotification('Opening wallet for confirmation...', 'info');
     
@@ -389,33 +400,91 @@ async buyLevel(level) {
       console.log(`💳 Buying level ${level} for ${price} BNB...`);
       console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
       
-      // 🔥 ИСПРАВЛЕНИЕ: Показываем loader с информацией о процессе
       Utils.showLoader(true);
       
-      // 🔥 ИСПРАВЛЕНИЕ: Умная задержка для разных устройств
+      // Задержка перед отправкой
       if (isMobile) {
-        console.log('📱 Extended mobile delay before transaction...');
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Увеличено до 2 секунд
+        console.log('📱 Mobile delay before transaction...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
         Utils.showNotification('Please confirm in SafePal app...', 'info');
       } else {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      // 🔥 ИСПРАВЛЕНИЕ: Финальная проверка перед транзакцией
+      // Финальная проверка
       if (!contracts.contracts.globalway || !web3Manager.signer) {
         throw new Error('Wallet connection lost. Please reconnect and try again.');
       }
       
       console.log('📤 Sending transaction to blockchain...');
       
-      // 🔥 ИСПРАВЛЕНИЕ: Добавляем таймаут для транзакции
+      // Отправляем транзакцию с таймаутом
       const txPromise = contracts.buyLevel(level);
       const tx = await Promise.race([
         txPromise,
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Transaction timeout - wallet may not have responded')), 45000) // 45 секунд
+          setTimeout(() => reject(new Error('Transaction timeout - wallet may not have responded')), 60000) // 60 секунд
         )
       ]);
+      
+      console.log('✅ Transaction sent:', tx.hash);
+      
+      // Уведомление об отправке
+      Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
+      console.log('⏳ Transaction processing...');
+      
+      // Задержка перед обновлением UI
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Обновляем данные с retry
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          await this.loadUserData();
+          await this.updateUI();
+          await this.loadDashboard();
+          break;
+        } catch (updateError) {
+          retries--;
+          console.warn(`⚠️ UI update failed, ${retries} retries left:`, updateError);
+          if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      Utils.showNotification(`🎉 Level ${level} activated successfully!`, 'success');
+      
+    } catch (error) {
+      console.error('❌ Error buying level:', error);
+      
+      let errorMsg = 'Transaction failed';
+      if (error.message) {
+        if (error.message.includes('user rejected') || error.message.includes('User denied') || error.message.includes('cancelled')) {
+          errorMsg = 'Transaction cancelled in wallet';
+        } else if (error.message.includes('insufficient funds')) {
+          errorMsg = 'Insufficient BNB balance';
+        } else if (error.message.includes('timeout')) {
+          errorMsg = 'Wallet did not respond. Please try again';
+        } else if (error.message.includes('network') || error.message.includes('chain')) {
+          errorMsg = 'Network error. Please check your connection';
+        } else if (isMobile) {
+          errorMsg = 'Mobile wallet error. Please ensure SafePal is open';
+        } else {
+          errorMsg = `Transaction failed: ${error.message.substring(0, 100)}`;
+        }
+      }
+      
+      Utils.showNotification(errorMsg, 'error');
+      
+    } finally {
+      this.buyingLevel = false;
+      Utils.showLoader(false);
+      
+      // Перерисовка кнопок
+      setTimeout(() => {
+        this.setupLevelButtons();
+      }, 500);
+    }
+}
       
       console.log('✅ Transaction sent:', tx.hash);
       
@@ -485,16 +554,21 @@ setupLevelButtons() {
       return;
     }
     
-    // 🔥 ИСПРАВЛЕНИЕ: Сохраняем текущий scroll position
+    // Сохраняем текущий scroll position
     const scrollPos = container.scrollLeft;
     
-    // 🔥 ИСПРАВЛЕНИЕ: Проверяем что userStats загружен с таймаутом
+    // КЛЮЧНО: Проверяем что userStats и activeLevels готовы
     if (!this.userStats) {
-      console.warn('⚠️ userStats not loaded yet, creating buttons with loading state');
-      // Не прерываем создание кнопок, но показываем состояние загрузки
-    } else {
-      console.log('✅ Creating level buttons with activeLevels:', this.userStats.activeLevels);
+      console.warn('⚠️ userStats not loaded yet');
+      return; // Не создаем кнопки если данные не готовы
     }
+    
+    if (!Array.isArray(this.userStats.activeLevels)) {
+      console.warn('⚠️ activeLevels is not an array:', this.userStats.activeLevels);
+      this.userStats.activeLevels = []; // Инициализируем пустым массивом
+    }
+    
+    console.log('✅ Creating level buttons with activeLevels:', this.userStats.activeLevels);
     
     container.innerHTML = '';
     
@@ -502,9 +576,12 @@ setupLevelButtons() {
       const btn = document.createElement('button');
       btn.className = 'level-btn';
       btn.dataset.level = i;
-      btn.id = `level-btn-${i}`; // 🔥 ИСПРАВЛЕНИЕ: Добавляем ID для управления
+      btn.id = `level-btn-${i}`;
     
-      const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(i);
+      // КЛЮЧНО: Надежная проверка активного уровня
+      const isActive = this.userStats && 
+                       Array.isArray(this.userStats.activeLevels) && 
+                       this.userStats.activeLevels.includes(i);
       
       btn.innerHTML = `
         <span class="level-num">${i}</span>
