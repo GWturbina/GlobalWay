@@ -349,50 +349,73 @@ async buyLevel(level) {
     }
     
     // 🔥 ИСПРАВЛЕНИЕ: Улучшенное ожидание подтверждения
-    console.log('⏳ Transaction pending, waiting for confirmation...');
-    
-    try {
-        const receipt = await Promise.race([
-            tx.wait(),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Transaction timeout - it may still process')), 180000) // 3 минуты
-            )
-        ]);
+console.log('⏳ Transaction pending, waiting for confirmation...');
+
+try {
+    // 🔥 ДЛЯ МОБИЛЬНОГО SAFEPAL: Не ждем подтверждения!
+    if (isMobile) {
+        console.log('📱 Mobile SafePal: returning transaction hash without waiting');
+        console.log('📊 Transaction hash:', tx.hash);
         
-        console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
-        console.log('🎉 Level purchase successful!');
-        
-        // 🔥 ИСПРАВЛЕНИЕ: Более надежная проверка событий
-        if (this.contracts.marketing && receipt.logs) {
-            try {
-                let matrixEvents = 0;
-                let referralEvents = 0;
-                
-                receipt.logs.forEach(log => {
-                    try {
-                        if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
-                            const parsedLog = this.contracts.marketing.interface.parseLog(log);
-                            if (parsedLog) {
-                                if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
-                                if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
-                            }
-                        }
-                    } catch (e) {
-                        // Игнорируем ошибки парсинга
-                    }
-                });
-                
-                console.log(`📊 Marketing events - Matrix: ${matrixEvents}, Referral: ${referralEvents}`);
-                
-                if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
-                if (referralEvents > 0) console.log('✅ Referral bonus distributed');
-                
-            } catch (eventError) {
-                console.warn('⚠️ Could not parse marketing events:', eventError.message);
-            }
-        }
-        
+        // Просто возвращаем транзакцию с хешем
+        // Блокчейн обработает её в фоне
         return tx;
+    }
+    
+    // ДЛЯ DESKTOP: Ждем подтверждения с таймаутом
+    console.log('💻 Desktop: waiting for confirmation...');
+    
+    const receipt = await Promise.race([
+        tx.wait(),
+        new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Transaction timeout - it may still process')), 180000) // 3 минуты
+        )
+    ]);
+    
+    console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
+    console.log('🎉 Level purchase successful!');
+    
+    // Проверка событий (только если есть receipt)
+    if (this.contracts.marketing && receipt && receipt.logs) {
+        try {
+            let matrixEvents = 0;
+            let referralEvents = 0;
+            
+            receipt.logs.forEach(log => {
+                try {
+                    if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
+                        const parsedLog = this.contracts.marketing.interface.parseLog(log);
+                        if (parsedLog) {
+                            if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
+                            if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
+                        }
+                    }
+                } catch (e) {
+                    // Игнорируем ошибки парсинга
+                }
+            });
+            
+            console.log(`📊 Marketing events - Matrix: ${matrixEvents}, Referral: ${referralEvents}`);
+            
+            if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
+            if (referralEvents > 0) console.log('✅ Referral bonus distributed');
+            
+        } catch (eventError) {
+            console.warn('⚠️ Could not parse marketing events:', eventError.message);
+        }
+    }
+    
+    return tx;
+    
+} catch (waitError) {
+    if (waitError.message.includes('timeout')) {
+        console.warn('⚠️ Transaction confirmation timeout, but transaction is processing');
+        console.log('📊 Transaction hash:', tx.hash);
+        return tx; // Возвращаем всё равно
+    }
+    console.error('❌ Transaction confirmation failed:', waitError);
+    throw waitError;
+}
         
     } catch (waitError) {
         if (waitError.message.includes('timeout')) {
