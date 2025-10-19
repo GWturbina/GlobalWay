@@ -48,7 +48,7 @@ class UIManager {
   showPage(page) {
     document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    async monitorAccount() {
+    
     const pageElement = document.getElementById(page);
     if (pageElement) pageElement.classList.add('active');
     
@@ -60,90 +60,84 @@ class UIManager {
   }
 
   async loadPageData(page) {
-      Utils.showLoader(true);
-      try {
-        switch(page) {
-          case 'dashboard':
-            await this.loadDashboard();
-            break;
-          case 'partners':
-            await this.loadPartners();
-            break;
-          case 'matrix':
-            await this.loadMatrix();
-            break;
-          case 'tokens':
-            await this.loadTokens();
-            break;
-          case 'projects':
-            await this.loadProjects();
-            break;
-          case 'admin':
+    Utils.showLoader(true);
+    try {
+      switch(page) {
+        case 'dashboard':
+          await this.loadDashboard();
+          break;
+        case 'partners':
+          await this.loadPartners();
+          break;
+        case 'matrix':
+          await this.loadMatrix();
+          break;
+        case 'tokens':
+          await this.loadTokens();
+          break;
+        case 'projects':
+          await this.loadProjects();
+          break;
+        case 'admin':
           await this.loadAdmin();
-            break;
-        }
-      } catch (error) {
-        console.error('Error loading page:', error);
-        Utils.showNotification('Error loading data', 'error');
-      } finally {
-        Utils.showLoader(false);
+          break;
       }
+    } catch (error) {
+      console.error('Error loading page:', error);
+      Utils.showNotification('Error loading data', 'error');
+    } finally {
+      Utils.showLoader(false);
     }
-  
+  }
+
   async updateUI() {
-      if (!web3Manager.connected) {
-        this.showConnectionAlert();
-        return;
-      }
-      
-      //  НОВОЕ: Задержка для SafePal на мобильном
-      if (web3Manager.isMobile) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
-      await this.loadUserData();
-      
-      // 🔥 НОВОЕ: Проверяем что данные загружены
-      if (!this.userStats) {
-        console.warn('⚠️ User stats not loaded, retrying...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await this.loadUserData();
-      }
-      
-      // 🔥 НОВОЕ: Принудительное обновление header и cabinet
-      await new Promise(resolve => setTimeout(resolve, 200));
-      this.updateHeader();
-      this.updateCabinet();
-      
-      // 🔥 НОВОЕ: Ещё одно обновление header через секунду (для кнопки Connect)
-      setTimeout(() => {
-        this.updateHeader();
-        console.log('🔄 Header force-updated after 1s');
-      }, 1000);
-  
-      if (web3Manager.isAdmin()) {
-        console.log('✅ Admin access granted');
-      
-        // 🔥 ИСПРАВЛЕНИЕ: Добавляем класс к body
-        document.body.classList.add('admin-access');
-      
-        document.querySelectorAll('.admin-only').forEach(el => {
-          el.style.display = '';
-          console.log('✅ Showing admin element:', el.className);
-        });
-        
-        if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
-          this.adminAutoOpened = true;
-          console.log('🔄 Attempting to auto-open admin panel...');
-          
-          setTimeout(() => {
-            this.showPage('admin');
-            console.log('✅ Admin panel auto-opened');
-          }, 2000);
-        }
-      }
+    if (!web3Manager.connected) {
+      this.showConnectionAlert();
+      return;
     }
     
+    if (web3Manager.isMobile) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
+    await this.loadUserData();
+    
+    if (!this.userStats) {
+      console.warn('⚠️ User stats not loaded, retrying...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await this.loadUserData();
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 200));
+    this.updateHeader();
+    this.updateCabinet();
+    
+    setTimeout(() => {
+      this.updateHeader();
+      console.log('🔄 Header force-updated after 1s');
+    }, 1000);
+
+    if (web3Manager.isAdmin()) {
+      console.log('✅ Admin access granted');
+      document.body.classList.add('admin-access');
+      
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = '';
+        console.log('✅ Showing admin element:', el.className);
+      });
+      
+      if ((web3Manager.isOwner() || web3Manager.isFounder()) && !this.adminAutoOpened) {
+        this.adminAutoOpened = true;
+        console.log('🔄 Attempting to auto-open admin panel...');
+        
+        setTimeout(() => {
+          this.showPage('admin');
+          console.log('✅ Admin panel auto-opened');
+        }, 2000);
+      }
+    }
+  }
+
   async loadUserData() {
     try {
       const addr = web3Manager && web3Manager.address ? web3Manager.address : null;
@@ -257,7 +251,6 @@ class UIManager {
     
     console.log('🔄 updateHeader called, connected:', web3Manager.connected, 'address:', web3Manager.address);
     
-    // 🔥 НОВОЕ: Проверяем что адрес реально есть
     if (web3Manager.connected && web3Manager.address && connectBtn) {
       connectBtn.textContent = Utils.formatAddress(web3Manager.address);
       if (status) status.classList.add('connected');
@@ -270,9 +263,8 @@ class UIManager {
       if (status) status.classList.remove('connected');
     }
   }
-  
+
   updateCabinet() {
-    // 🔥 НОВОЕ: Проверяем коннект перед обновлением
     if (!web3Manager.connected || !web3Manager.address) {
       console.warn('⚠️ Cannot update cabinet - wallet not connected');
       return;
@@ -282,7 +274,7 @@ class UIManager {
     if (userAddressEl) {
       userAddressEl.textContent = Utils.formatAddress(web3Manager.address);
     }
-  
+
     web3Manager.getBalance().then(balance => {
       const balanceEl = document.getElementById('userBalance');
       if (balanceEl) {
@@ -291,7 +283,7 @@ class UIManager {
     }).catch(error => {
       console.error('Error getting balance:', error);
     });
-  
+
     if (this.userStats && this.userStats.userId) {
       const userId = this.userStats.userId.toNumber ? this.userStats.userId.toNumber() : Number(this.userStats.userId);
       const userIdEl = document.getElementById('userId');
@@ -308,15 +300,11 @@ class UIManager {
     }
   }
 
-  // === DASHBOARD ===
-
-async loadDashboard() {
-    // Убедитесь, что userStats загружены
+  async loadDashboard() {
     if (!this.userStats) {
       console.warn('⚠️ userStats not loaded, loading...');
       await this.loadUserData();
       
-      // Дополнительная задержка для мобильного
       if (web3Manager.isMobile) {
         await new Promise(resolve => setTimeout(resolve, 800));
       } else {
@@ -324,7 +312,6 @@ async loadDashboard() {
       }
     }
     
-    // Если всё ещё не загружено - повторно пытаемся
     if (!this.userStats || !this.userStats.activeLevels) {
       console.warn('⚠️ userStats.activeLevels still missing, retrying...');
       await this.loadUserData();
@@ -333,47 +320,39 @@ async loadDashboard() {
     console.log('✅ userStats ready:', this.userStats);
     console.log('🎮 Setting up level buttons with activeLevels:', this.userStats?.activeLevels);
     
-    // Создаем кнопки уровней
     this.setupLevelButtons();
-    
-    // Создаем bulk кнопки
     console.log('📦 Setting up bulk buttons');
     this.setupBulkButtons();
     
-    // Загружаем остальные данные
     await this.loadQuarterlyInfo();
     await this.loadEarnings();
     await this.loadHistory();
     await this.loadTokensSummary();
     
-    // Перерисовка кнопок через секунду для надежности
     setTimeout(() => {
       console.log('🔄 Force re-rendering level buttons');
       this.setupLevelButtons();
     }, 1000);
-}
+  }
 
-async buyLevel(level) {
+  async buyLevel(level) {
     if (this.buyingLevel) {
       console.log('⚠️ Purchase already in progress');
       return;
     }
     
-    // Проверка подключения
     if (!web3Manager.connected || !web3Manager.signer || !web3Manager.address) {
       Utils.showNotification('Wallet not connected. Please connect first.', 'error');
       console.error('❌ Wallet not connected');
       return;
     }
     
-    // Проверка контрактов
     if (!contracts.contracts.globalway || !contracts.contracts.token) {
       Utils.showNotification('Smart contracts not ready. Please refresh the page.', 'error');
       console.error('❌ Critical contracts not initialized');
       return;
     }
     
-    // Проверка что уровень не куплен
     const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
     
     if (isActive) {
@@ -384,7 +363,6 @@ async buyLevel(level) {
     const price = CONFIG.LEVEL_PRICES[level - 1];
     const isMobile = web3Manager.isMobile;
     
-    // Подтверждение
     const confirmMessage = isMobile 
       ? `Buy level ${level} for ${price} BNB?\n\nMake sure SafePal app is open!`
       : `Buy level ${level} for ${price} BNB?`;
@@ -402,7 +380,6 @@ async buyLevel(level) {
       
       Utils.showLoader(true);
       
-      // Задержка перед отправкой
       if (isMobile) {
         console.log('📱 Mobile delay before transaction...');
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -411,32 +388,27 @@ async buyLevel(level) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
       
-      // Финальная проверка
       if (!contracts.contracts.globalway || !web3Manager.signer) {
         throw new Error('Wallet connection lost. Please reconnect and try again.');
       }
       
       console.log('📤 Sending transaction to blockchain...');
       
-      // Отправляем транзакцию с таймаутом
       const txPromise = contracts.buyLevel(level);
       const tx = await Promise.race([
         txPromise,
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Transaction timeout - wallet may not have responded')), 60000) // 60 секунд
+          setTimeout(() => reject(new Error('Transaction timeout - wallet may not have responded')), 60000)
         )
       ]);
       
       console.log('✅ Transaction sent:', tx.hash);
       
-      // Уведомление об отправке
       Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
       console.log('⏳ Transaction processing...');
       
-      // Задержка перед обновлением UI
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Обновляем данные с retry
       let retries = 3;
       while (retries > 0) {
         try {
@@ -479,63 +451,13 @@ async buyLevel(level) {
       this.buyingLevel = false;
       Utils.showLoader(false);
       
-      // Перерисовка кнопок
       setTimeout(() => {
         this.setupLevelButtons();
       }, 500);
     }
-}
-      
-      console.log('✅ Transaction sent:', tx.hash);
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Улучшенный feedback для пользователя
-      Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
-      console.log('⏳ Waiting for blockchain confirmation...');
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Увеличена задержка перед обновлением UI
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Обновляем данные с retry
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          await this.loadUserData();
-          await this.updateUI();
-          await this.loadDashboard();
-          break;
-        } catch (updateError) {
-          retries--;
-          console.warn(`⚠️ UI update failed, ${retries} retries left:`, updateError);
-          if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      Utils.showNotification(`🎉 Level ${level} activated successfully!`, 'success');
-      
-    } catch (error) {
-      console.error('❌ Error buying level:', error);
-      
-      // 🔥 ИСПРАВЛЕНИЕ: Более точные сообщения об ошибках
-      let errorMsg = 'Transaction failed';
-      if (error.message) {
-        if (error.message.includes('user rejected') || error.message.includes('User denied') || error.message.includes('cancelled')) {
-          errorMsg = 'Transaction cancelled in wallet';
-        } else if (error.message.includes('insufficient funds')) {
-          errorMsg = 'Insufficient BNB balance';
-        } else if (error.message.includes('timeout')) {
-          errorMsg = 'Wallet did not respond. Please try again';
-        } else if (error.message.includes('network') || error.message.includes('chain')) {
-          errorMsg = 'Network error. Please check your connection';
-        } else if (isMobile) {
-          errorMsg = 'Mobile wallet error. Please ensure SafePal is open';
-        } else {
-          errorMsg = `Transaction failed: ${error.message.substring(0, 100)}`;
-        }
-      }
-      
-      Utils.showNotification(errorMsg, 'error');
-      
-   setupLevelButtons() {
+  }
+
+  setupLevelButtons() {
     const container = document.getElementById('individualLevels');
     if (!container) {
       console.warn('⚠️ Container #individualLevels not found');
@@ -647,7 +569,7 @@ async buyLevel(level) {
     this.injectButtonStyles();
   }
 
-setupBulkButtons() {
+  setupBulkButtons() {
     document.querySelectorAll('.bulk-btn').forEach(btn => {
       const newBtn = btn.cloneNode(true);
       btn.parentNode.replaceChild(newBtn, btn);
@@ -664,7 +586,6 @@ setupBulkButtons() {
         const maxLevel = parseInt(newBtn.dataset.levels);
         const packageType = parseInt(newBtn.dataset.package);
         
-        // 🔥 НОВОЕ: Проверка валидности данных
         if (!maxLevel || !packageType) {
           console.error('Invalid button data:', { maxLevel, packageType });
           return;
@@ -740,7 +661,7 @@ setupBulkButtons() {
     if (!this.userStats) return;
     
     try {
-    const container = document.getElementById('earningsRank');
+      const container = document.getElementById('earningsRank');
       if (container) container.innerHTML = '';
     
       const provider = web3Manager.provider;
@@ -760,7 +681,7 @@ setupBulkButtons() {
       }
     
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 50000); // ✅ Ограничение opBNB
+      const fromBlock = Math.max(0, currentBlock - 50000);
     
       console.log(`📊 Loading earnings from block ${fromBlock} to ${currentBlock}`);
     
@@ -770,7 +691,7 @@ setupBulkButtons() {
       let leaderBonus = 0;
       
       try {
-      const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
+        const personalFilter = marketingContract.filters.PersonalBonusPaid(null, web3Manager.address);
         const personalEvents = await marketingContract.queryFilter(personalFilter, fromBlock, currentBlock);
         
         personalEvents.forEach(event => {
@@ -871,7 +792,7 @@ setupBulkButtons() {
       }
       
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = 0; // ✅ Загружать все блоки
+      const fromBlock = 0;
     
       const allEvents = [];
     
@@ -1863,7 +1784,7 @@ setupBulkButtons() {
       }
       
       const currentBlock = await provider.getBlockNumber();
-      const fromBlock = Math.max(0, currentBlock - 50000); // ✅ Ограничение opBNB
+      const fromBlock = Math.max(0, currentBlock - 50000);
       
       const mintFilter = tokenContract.filters.TokensMinted(web3Manager.address);
       const mintEvents = await tokenContract.queryFilter(mintFilter, fromBlock, currentBlock);
@@ -2227,34 +2148,33 @@ setupBulkButtons() {
       Utils.showLoader(false);
     }
   }
-  
-  // 🔥 ДОБАВЛЕННАЯ ФУНКЦИЯ: Стили для кнопок уровней
+
   injectButtonStyles() {
     if (document.getElementById('level-button-styles')) return;
     
     const styles = `
-        .purchased-badge {
-            color: #00ff00 !important;
-            font-size: 10px !important;
-            margin-top: 2px !important;
-            display: block !important;
-            font-weight: bold !important;
-        }
-        .loading-badge {
-            color: #ffa500 !important;
-            font-size: 10px !important;
-            margin-top: 2px !important;
-            display: block !important;
-            animation: pulse 1.5s infinite !important;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        .level-btn:disabled {
-            transition: all 0.3s ease !important;
-        }
+      .purchased-badge {
+        color: #00ff00 !important;
+        font-size: 10px !important;
+        margin-top: 2px !important;
+        display: block !important;
+        font-weight: bold !important;
+      }
+      .loading-badge {
+        color: #ffa500 !important;
+        font-size: 10px !important;
+        margin-top: 2px !important;
+        display: block !important;
+        animation: pulse 1.5s infinite !important;
+      }
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+      .level-btn:disabled {
+        transition: all 0.3s ease !important;
+      }
     `;
     
     const styleSheet = document.createElement('style');
@@ -2264,11 +2184,10 @@ setupBulkButtons() {
   }
 }
 
-// 🔥 ИСПРАВЛЕНО: Предотвращение двойного объявления
 if (typeof window.uiManager === 'undefined') {
   window.uiManager = new UIManager();
 }
-// Для обратной совместимости
+
 if (typeof window.UIManager === 'undefined') {
   window.UIManager = window.uiManager;
 }
