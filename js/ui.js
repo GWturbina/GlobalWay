@@ -427,75 +427,80 @@ async buyLevel(level) {
         )
       ]);
       
-      console.log('✅ Transaction sent:', tx.hash);
-      
-      // Уведомление об отправке
-      Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
-      console.log('⏳ Transaction processing...');
-      
-      // Задержка перед обновлением UI
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Обновляем данные с retry
-      let retries = 3;
-      while (retries > 0) {
-        try {
-          await this.loadUserData();
-          await this.updateUI();
-          await this.loadDashboard();
-          break;
-        } catch (updateError) {
-          retries--;
-          console.warn(`⚠️ UI update failed, ${retries} retries left:`, updateError);
-          if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      Utils.showNotification(`🎉 Level ${level} activated successfully!`, 'success');
-      
-    } catch (error) {
-      console.error('❌ Error buying level:', error);
-      
-      let errorMsg = 'Transaction failed';
-      if (error.message) {
-        if (error.message.includes('user rejected') || error.message.includes('User denied') || error.message.includes('cancelled')) {
-          errorMsg = 'Transaction cancelled in wallet';
-        } else if (error.message.includes('insufficient funds')) {
-          errorMsg = 'Insufficient BNB balance';
-        } else if (error.message.includes('timeout')) {
-          errorMsg = 'Wallet did not respond. Please try again';
-        } else if (error.message.includes('network') || error.message.includes('chain')) {
-          errorMsg = 'Network error. Please check your connection';
-        } else if (isMobile) {
-          errorMsg = 'Mobile wallet error. Please ensure SafePal is open';
-        } else {
-          errorMsg = `Transaction failed: ${error.message.substring(0, 100)}`;
-        }
-      }
-      
-      Utils.showNotification(errorMsg, 'error');
-      
-    } finally {
-      this.buyingLevel = false;
-      Utils.showLoader(false);
-      
-      // Перерисовка кнопок
-      setTimeout(() => {
-        this.setupLevelButtons();
-      }, 500);
+async buyLevel(level) {
+    if (this.buyingLevel) {
+      console.log('⚠️ Purchase already in progress');
+      return;
     }
-}
+    
+    if (!web3Manager.connected || !web3Manager.signer || !web3Manager.address) {
+      Utils.showNotification('Wallet not connected. Please connect first.', 'error');
+      console.error('❌ Wallet not connected - no signer or address');
+      return;
+    }
+    
+    if (!contracts.contracts.globalway || !contracts.contracts.token) {
+      Utils.showNotification('Smart contracts not ready. Please refresh the page.', 'error');
+      console.error('❌ Critical contracts not initialized');
+      return;
+    }
+    
+    const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(level);
+    
+    if (isActive) {
+      Utils.showNotification('Level already purchased', 'info');
+      return;
+    }
+    
+    const price = CONFIG.LEVEL_PRICES[level - 1];
+    const isMobile = web3Manager.isMobile;
+    
+    const confirmMessage = isMobile 
+      ? `Buy level ${level} for ${price} BNB?\n\nMake sure SafePal app is open!`
+      : `Buy level ${level} for ${price} BNB?`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+    
+    this.buyingLevel = true;
+    Utils.showNotification('Opening wallet for confirmation...', 'info');
+    
+    try {
+      console.log(`💳 Buying level ${level} for ${price} BNB...`);
+      console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
+      
+      Utils.showLoader(true);
+      
+      if (isMobile) {
+        console.log('📱 Extended mobile delay before transaction...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        Utils.showNotification('Please confirm in SafePal app...', 'info');
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      if (!contracts.contracts.globalway || !web3Manager.signer) {
+        throw new Error('Wallet connection lost. Please reconnect and try again.');
+      }
+      
+      console.log('🤝 Sending transaction to blockchain...');
+      
+      const txPromise = contracts.buyLevel(level);
+      const tx = await Promise.race([
+        txPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction timeout - wallet may not have responded')), 45000)
+        )
+      ]);
       
       console.log('✅ Transaction sent:', tx.hash);
       
-      // 🔥 ИСПРАВЛЕНИЕ: Улучшенный feedback для пользователя
       Utils.showNotification('Transaction sent! Waiting for confirmation...', 'info');
       console.log('⏳ Waiting for blockchain confirmation...');
       
-      // 🔥 ИСПРАВЛЕНИЕ: Увеличена задержка перед обновлением UI
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // 🔥 ИСПРАВЛЕНИЕ: Обновляем данные с retry
       let retries = 3;
       while (retries > 0) {
         try {
@@ -515,7 +520,6 @@ async buyLevel(level) {
     } catch (error) {
       console.error('❌ Error buying level:', error);
       
-      // 🔥 ИСПРАВЛЕНИЕ: Более точные сообщения об ошибках
       let errorMsg = 'Transaction failed';
       if (error.message) {
         if (error.message.includes('user rejected') || error.message.includes('User denied') || error.message.includes('cancelled')) {
@@ -536,11 +540,9 @@ async buyLevel(level) {
       Utils.showNotification(errorMsg, 'error');
       
     } finally {
-      // 🔥 ИСПРАВЛЕНИЕ: Гарантированное сброс состояния
       this.buyingLevel = false;
       Utils.showLoader(false);
       
-      // 🔥 ИСПРАВЛЕНИЕ: Принудительное обновление кнопок
       setTimeout(() => {
         this.setupLevelButtons();
       }, 500);
@@ -554,21 +556,13 @@ setupLevelButtons() {
       return;
     }
     
-    // Сохраняем текущий scroll position
     const scrollPos = container.scrollLeft;
     
-    // КЛЮЧНО: Проверяем что userStats и activeLevels готовы
     if (!this.userStats) {
-      console.warn('⚠️ userStats not loaded yet');
-      return; // Не создаем кнопки если данные не готовы
+      console.warn('⚠️ userStats not loaded yet, creating buttons with loading state');
+    } else {
+      console.log('✅ Creating level buttons with activeLevels:', this.userStats.activeLevels);
     }
-    
-    if (!Array.isArray(this.userStats.activeLevels)) {
-      console.warn('⚠️ activeLevels is not an array:', this.userStats.activeLevels);
-      this.userStats.activeLevels = []; // Инициализируем пустым массивом
-    }
-    
-    console.log('✅ Creating level buttons with activeLevels:', this.userStats.activeLevels);
     
     container.innerHTML = '';
     
@@ -578,10 +572,7 @@ setupLevelButtons() {
       btn.dataset.level = i;
       btn.id = `level-btn-${i}`;
     
-      // КЛЮЧНО: Надежная проверка активного уровня
-      const isActive = this.userStats && 
-                       Array.isArray(this.userStats.activeLevels) && 
-                       this.userStats.activeLevels.includes(i);
+      const isActive = this.userStats && this.userStats.activeLevels && this.userStats.activeLevels.includes(i);
       
       btn.innerHTML = `
         <span class="level-num">${i}</span>
@@ -602,7 +593,6 @@ setupLevelButtons() {
         btn.setAttribute('disabled', 'true');
         btn.setAttribute('aria-label', `Level ${i} - Purchased`);
       } else {
-        // 🔥 ИСПРАВЛЕНИЕ: Улучшенная защита от множественных кликов
         const clickHandler = async (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -613,7 +603,6 @@ setupLevelButtons() {
             return;
           }
           
-          // 🔥 ИСПРАВЛЕНИЕ: Визуально дизейблим кнопку с анимацией
           btn.disabled = true;
           btn.style.opacity = '0.6';
           btn.style.transform = 'scale(0.98)';
@@ -622,6 +611,48 @@ setupLevelButtons() {
             <span class="level-price">${CONFIG.LEVEL_PRICES[i-1]} BNB</span>
             <span class="loading-badge">⏳ Processing...</span>
           `;
+          
+          try {
+            console.log(`🔄 Starting purchase for level ${i}`);
+            await this.buyLevel(i);
+            
+            setTimeout(() => {
+              this.setupLevelButtons();
+            }, 1000);
+            
+          } catch (error) {
+            console.error(`❌ Purchase failed for level ${i}:`, error);
+            
+            const isNowActive = this.userStats?.activeLevels?.includes(i);
+            if (!isNowActive) {
+              btn.disabled = false;
+              btn.style.opacity = '1';
+              btn.style.transform = 'scale(1)';
+              btn.innerHTML = `
+                <span class="level-num">${i}</span>
+                <span class="level-price">${CONFIG.LEVEL_PRICES[i-1]} BNB</span>
+              `;
+            } else {
+              this.setupLevelButtons();
+            }
+          }
+        };
+        
+        btn.removeEventListener('click', clickHandler);
+        btn.addEventListener('click', clickHandler, { once: false });
+        
+        btn.setAttribute('aria-label', `Buy Level ${i} for ${CONFIG.LEVEL_PRICES[i-1]} BNB`);
+      }
+    
+      container.appendChild(btn);
+    }
+    
+    container.scrollLeft = scrollPos;
+    
+    console.log(`✅ Created ${container.children.length} level buttons`);
+    
+    this.injectButtonStyles();
+  }
           
           try {
             console.log(`🔄 Starting purchase for level ${i}`);
