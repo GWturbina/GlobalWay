@@ -588,6 +588,7 @@ async monitorAccount() {
       });
     }
   }
+}
 
   async registerWithManualReferrer() {
     const input = document.getElementById('manualReferrer');
