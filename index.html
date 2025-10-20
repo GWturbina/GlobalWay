@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="css/variables.css" />
     <link rel="stylesheet" href="css/main.css" />
     <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/registration.css">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -382,26 +383,13 @@
     
     <!-- 2. Конфигурация (СРАЗУ после библиотек) -->
     <script src="js/config.js"></script>
-    
-    <!-- 3. Утилиты (НЕ зависят от других) -->
     <script src="js/utils.js"></script>
-    
-    <!-- 4. Интернационализация (зависит от utils) -->
     <script src="js/i18n.js"></script>
-    
-    <!-- 5. Web3 менеджер (зависит от ethers, config) -->
     <script src="js/web3.js"></script>
-    
-    <!-- 6. Контракты (зависит от web3Manager, config) -->
     <script src="js/contracts.js"></script>
-    
-    <!-- 7. Админ менеджер (зависит от contracts, web3Manager) -->
     <script src="js/admin.js"></script>
-    
-    <!-- 8. UI менеджер (зависит от всех предыдущих) -->
+    <script src="js/registration.js"></script>
     <script src="js/ui.js"></script>
-    
-    <!-- 9. Главное приложение (зависит от ВСЕХ, загружается ПОСЛЕДНИМ) -->
     <script src="js/app.js"></script>
 </body>
 </html>
