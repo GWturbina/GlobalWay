@@ -387,7 +387,60 @@ async buyLevel(level) {
 
   async getUserInfo(address) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    return await this.contracts.globalway.users(address);
+    
+    const [
+      isRegistered,
+      sponsor,
+      registrationTime,
+      lastActivity,
+      personalInvites,
+      totalEarned,
+      isInactive
+    ] = await this.contracts.globalway.users(address);
+    
+    const userId = await this.contracts.globalway.addressToId(address);
+    const leaderRank = await this.contracts.stats.getLeaderRank(address);
+    const activeLevels = await this.contracts.globalway.getUserActiveLevels(address);
+    
+    return {
+      isRegistered,
+      sponsor,
+      registrationTime,
+      lastActivity,
+      personalInvites,
+      totalEarned,
+      isInactive,
+      userId,
+      leaderRank,
+      activeLevels
+    };
+  }
+
+  // === GET USER ADDRESS BY ID ===
+  async getUserAddress(userId) {
+    try {
+      if (!this.contracts.globalway) {
+        throw new Error('GlobalWay not initialized');
+      }
+      
+      console.log('🔍 Getting address for user ID:', userId);
+      
+      // Вызываем функцию контракта для получения адреса по ID
+      const address = await this.contracts.globalway.idToAddress(userId);
+      
+      // Проверяем что адрес не нулевой
+      if (!address || address === '0x0000000000000000000000000000000000000000') {
+        console.warn('⚠️ User ID not found:', userId);
+        return '0x0000000000000000000000000000000000000000';
+      }
+      
+      console.log('✅ Address found:', address);
+      return address;
+      
+    } catch (error) {
+      console.error('❌ Error getting user address:', error);
+      throw error;
+    }
   }
 
   async getUserReferrals(address) {
