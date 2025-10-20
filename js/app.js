@@ -188,7 +188,7 @@ class App {
     return key.split('.').reduce((o, k) => (o || {})[k], obj);
   }
 
- async connectWallet() {
+async connectWallet() {
   try {
     // 🔥 НОВОЕ: Проверяем что уже не подключены
     if (web3Manager.connected && web3Manager.address) {
@@ -243,6 +243,10 @@ class App {
     }
     
     console.log('✅ Contracts initialized');
+    
+    // 🔥 НОВОЕ: Инициализируем registrationManager ПОСЛЕ контрактов
+    await registrationManager.init();
+    console.log('✅ Registration manager initialized');
     
     // 🔥 НОВОЕ: Устанавливаем мониторинг смены аккаунта ПОСЛЕ подключения
     await this.monitorAccount();
