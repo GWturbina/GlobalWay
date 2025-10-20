@@ -472,50 +472,47 @@ async getUserInfo(address) {
 }
 
   // === GET USER ADDRESS BY ID ===
-  async getUserAddress(userId) {
-    try {
-      if (!this.contracts.globalway) {
-        throw new Error('GlobalWay not initialized');
-      }
-      
-      console.log('🔍 Getting address for user ID:', userId);
-      
-      // Вызываем функцию контракта для получения адреса по ID
-      const address = await this.contracts.globalway.idToAddress(userId);
-      
-      // Проверяем что адрес не нулевой
-      if (!address || address === '0x0000000000000000000000000000000000000000') {
-        console.warn('⚠️ User ID not found:', userId);
-        return '0x0000000000000000000000000000000000000000';
-      }
-      
-      console.log('✅ Address found:', address);
-      return address;
-      
-    } catch (error) {
-      console.error('❌ Error getting user address:', error);
-      throw error;
+async getUserAddress(userId) {
+  try {
+    if (!this.contracts.globalway) {
+      throw new Error('GlobalWay not initialized');
     }
-  }
-
-  async getUserReferrals(address) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    return await this.contracts.globalway.getUserReferrals(address);
-  }
-
-  async getActiveLevels(address) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    const activeLevels = [];
-    for (let i = 1; i <= 12; i++) {
-      try {
-        const isActive = await this.contracts.globalway.isLevelActive(address, i);
-        if (isActive) activeLevels.push(i);
-      } catch (error) {
-        console.error(`Error checking level ${i}:`, error);
-      }
+    
+    console.log('🔍 Getting address for user ID:', userId);
+    
+    // Проверяем валидность ID
+    if (!userId || userId < 1) {
+      console.warn('⚠️ Invalid user ID:', userId);
+      return '0x0000000000000000000000000000000000000000';
     }
-    return activeLevels;
+    
+    // ID начинается с 1, массив с 0 → ID - 1 = индекс
+    const arrayIndex = userId - 1;
+    
+    // Получаем адрес из массива allUsers
+    const address = await this.contracts.globalway.allUsers(arrayIndex);
+    
+    // Проверяем что адрес не нулевой
+    if (!address || address === '0x0000000000000000000000000000000000000000') {
+      console.warn('⚠️ User ID not found or not registered:', userId);
+      return '0x0000000000000000000000000000000000000000';
+    }
+    
+    console.log('✅ Address found for ID', userId, ':', address);
+    return address;
+    
+  } catch (error) {
+    console.error('❌ Error getting user address:', error);
+    
+    // Если индекс вне диапазона - значит такого ID нет
+    if (error.message.includes('out of bounds') || error.message.includes('invalid arrayify')) {
+      console.warn('⚠️ User ID does not exist:', userId);
+      return '0x0000000000000000000000000000000000000000';
+    }
+    
+    throw error;
   }
+}
 
   async getMatrixPosition(level, position) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
