@@ -388,46 +388,87 @@ async buyLevel(level) {
 async getUserInfo(address) {
   if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
   
-  const [
-    isRegistered,
-    sponsor,
-    registrationTime,
-    lastActivity,
-    personalInvites,
-    totalEarned,
-    isInactive
-  ] = await this.contracts.globalway.users(address);
-  
-  // Получаем userId безопасным способом
-  let userId = 0;
   try {
-    if (typeof this.contracts.globalway.addressToId === 'function') {
-      userId = await this.contracts.globalway.addressToId(address);
-    } else if (typeof this.contracts.globalway.getUserId === 'function') {
-      userId = await this.contracts.globalway.getUserId(address);
-    } else {
-      console.warn('⚠️ addressToId function not found in contract');
+    const [
+      isRegistered,
+      sponsor,
+      registrationTime,
+      lastActivity,
+      personalInvites,
+      totalEarned,
+      isInactive
+    ] = await this.contracts.globalway.users(address);
+    
+    // Безопасное получение userId
+    let userId = 0;
+    try {
+      if (typeof this.contracts.globalway.addressToId === 'function') {
+        userId = await this.contracts.globalway.addressToId(address);
+      } else if (typeof this.contracts.globalway.getUserId === 'function') {
+        userId = await this.contracts.globalway.getUserId(address);
+      } else {
+        console.warn('⚠️ addressToId function not found in contract');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not get userId:', error.message);
+      userId = 0;
     }
+    
+    // Безопасное получение leaderRank
+    let leaderRank = 0;
+    try {
+      if (this.contracts.stats && typeof this.contracts.stats.getLeaderRank === 'function') {
+        leaderRank = await this.contracts.stats.getLeaderRank(address);
+      } else {
+        console.warn('⚠️ getLeaderRank function not found in contract');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not get leaderRank:', error.message);
+      leaderRank = 0;
+    }
+    
+    // Безопасное получение activeLevels
+    let activeLevels = [];
+    try {
+      if (typeof this.contracts.globalway.getUserActiveLevels === 'function') {
+        activeLevels = await this.contracts.globalway.getUserActiveLevels(address);
+      } else {
+        console.warn('⚠️ getUserActiveLevels function not found in contract');
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not get activeLevels:', error.message);
+      activeLevels = [];
+    }
+    
+    return {
+      isRegistered,
+      sponsor,
+      registrationTime,
+      lastActivity,
+      personalInvites,
+      totalEarned,
+      isInactive,
+      userId,
+      leaderRank,
+      activeLevels
+    };
+    
   } catch (error) {
-    console.warn('⚠️ Could not get userId:', error.message);
-    userId = 0;
+    console.error('❌ Error in getUserInfo:', error);
+    // Возвращаем дефолтные значения при ошибке
+    return {
+      isRegistered: false,
+      sponsor: '0x0000000000000000000000000000000000000000',
+      registrationTime: { _hex: '0x0' },
+      lastActivity: { _hex: '0x0' },
+      personalInvites: 0,
+      totalEarned: { _hex: '0x0' },
+      isInactive: false,
+      userId: 0,
+      leaderRank: 0,
+      activeLevels: []
+    };
   }
-  
-  const leaderRank = await this.contracts.stats.getLeaderRank(address);
-  const activeLevels = await this.contracts.globalway.getUserActiveLevels(address);
-  
-  return {
-    isRegistered,
-    sponsor,
-    registrationTime,
-    lastActivity,
-    personalInvites,
-    totalEarned,
-    isInactive,
-    userId,
-    leaderRank,
-    activeLevels
-  };
 }
 
   // === GET USER ADDRESS BY ID ===
