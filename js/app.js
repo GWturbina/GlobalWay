@@ -6,7 +6,7 @@ class App {
     this.initialized = false;
   }
 
-async init() {
+  async init() {
   try {
     console.log('Initializing GlobalWay DApp...');
     
@@ -15,17 +15,19 @@ async init() {
     
     await web3Manager.init();
     console.log('✅ Web3 initialized');
-
-    // 🔥 НОВОЕ: Инициализация системы регистрации
-    await registrationManager.init();
-    console.log('✅ Registration manager initialized');
+    
+    // 🔥 УДАЛИТЬ отсюда registrationManager.init()!
     
     if (web3Manager.connected && web3Manager.signer) {
       console.log('🔗 Auto-connected wallet detected, initializing contracts...');
       const contractsInitialized = contracts.init();
-  
+      
       if (contractsInitialized) {
         console.log('✅ Contracts initialized during auto-connect');
+        
+        // 🔥 НОВОЕ: Инициализируем registrationManager ПОСЛЕ контрактов!
+        await registrationManager.init();
+        console.log('✅ Registration manager initialized');
       } else {
         console.warn('⚠️ Failed to initialize contracts during auto-connect');
       }
