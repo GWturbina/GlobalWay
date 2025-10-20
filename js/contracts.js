@@ -385,36 +385,50 @@ async buyLevel(level) {
     return tx.hash;
   }
 
-  async getUserInfo(address) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    
-    const [
-      isRegistered,
-      sponsor,
-      registrationTime,
-      lastActivity,
-      personalInvites,
-      totalEarned,
-      isInactive
-    ] = await this.contracts.globalway.users(address);
-    
-    const userId = await this.contracts.globalway.addressToId(address);
-    const leaderRank = await this.contracts.stats.getLeaderRank(address);
-    const activeLevels = await this.contracts.globalway.getUserActiveLevels(address);
-    
-    return {
-      isRegistered,
-      sponsor,
-      registrationTime,
-      lastActivity,
-      personalInvites,
-      totalEarned,
-      isInactive,
-      userId,
-      leaderRank,
-      activeLevels
-    };
+async getUserInfo(address) {
+  if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+  
+  const [
+    isRegistered,
+    sponsor,
+    registrationTime,
+    lastActivity,
+    personalInvites,
+    totalEarned,
+    isInactive
+  ] = await this.contracts.globalway.users(address);
+  
+  // Получаем userId безопасным способом
+  let userId = 0;
+  try {
+    if (typeof this.contracts.globalway.addressToId === 'function') {
+      userId = await this.contracts.globalway.addressToId(address);
+    } else if (typeof this.contracts.globalway.getUserId === 'function') {
+      userId = await this.contracts.globalway.getUserId(address);
+    } else {
+      console.warn('⚠️ addressToId function not found in contract');
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not get userId:', error.message);
+    userId = 0;
   }
+  
+  const leaderRank = await this.contracts.stats.getLeaderRank(address);
+  const activeLevels = await this.contracts.globalway.getUserActiveLevels(address);
+  
+  return {
+    isRegistered,
+    sponsor,
+    registrationTime,
+    lastActivity,
+    personalInvites,
+    totalEarned,
+    isInactive,
+    userId,
+    leaderRank,
+    activeLevels
+  };
+}
 
   // === GET USER ADDRESS BY ID ===
   async getUserAddress(userId) {
