@@ -817,13 +817,46 @@ async buyLevel(level) {
     return await this.contracts.marketing.canWithdraw(address);
   }
 
-  async withdrawMarketing(amount, recipient) {
+async withdrawMarketing(amount, recipient) {
     if (!this.contracts.marketing) throw new Error('Marketing not initialized');
     const amountWei = ethers.utils.parseEther(amount.toString());
     const tx = await this.contracts.marketing.withdraw(amountWei, recipient);
     await tx.wait();
     return tx.hash;
   }
-}
+
+  // === TOKEN PRICE ===
+  async getRealTokenPrice() {
+    try {
+      if (!this.contracts.token) {
+        console.warn('⚠️ Token contract not initialized');
+        return '0';
+      }
+      
+      // Пробуем получить цену из контракта
+      if (typeof this.contracts.token.getTokenPrice === 'function') {
+        const price = await this.contracts.token.getTokenPrice();
+        return ethers.utils.formatUnits(price, 18);
+      }
+      
+      // Если функция tokenPrice существует
+      if (typeof this.contracts.token.tokenPrice === 'function') {
+        const price = await this.contracts.token.tokenPrice();
+        return ethers.utils.formatUnits(price, 18);
+      }
+      
+      // Возвращаем значение по умолчанию из CONFIG
+      if (CONFIG && CONFIG.TOKEN_PRICE) {
+        return CONFIG.TOKEN_PRICE.toString();
+      }
+      
+      return '0.01';
+      
+    } catch (error) {
+      console.error('❌ Error getting token price:', error);
+      return CONFIG && CONFIG.TOKEN_PRICE ? CONFIG.TOKEN_PRICE.toString() : '0.01';
+    }
+  }
+}  // ← ВОТ ЗДЕСЬ ЗАКРЫВАЕТСЯ КЛАСС!
 
 const contracts = new ContractsManager();
