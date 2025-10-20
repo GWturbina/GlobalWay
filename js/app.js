@@ -15,6 +15,10 @@ async init() {
     
     await web3Manager.init();
     console.log('✅ Web3 initialized');
+
+    // 🔥 НОВОЕ: Инициализация системы регистрации
+    await registrationManager.init();
+    console.log('✅ Registration manager initialized');
     
     if (web3Manager.connected && web3Manager.signer) {
       console.log('🔗 Auto-connected wallet detected, initializing contracts...');
@@ -291,6 +295,11 @@ async showDAppInterface() {
     await uiManager.loadPageData('dashboard');
     
     Utils.showNotification('Welcome to GlobalWay!', 'success');
+
+    // 🔥 НОВОЕ: Проверка регистрации и показ модального окна
+    setTimeout(async () => {
+      await registrationManager.showRegistrationModal();
+    }, 500);
     
   } catch (uiError) {
     console.error('❌ UI loading error:', uiError);
