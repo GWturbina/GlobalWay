@@ -23,12 +23,26 @@ async init() {
     if (web3Manager.connected && web3Manager.signer) {
       console.log('🔗 Auto-connected wallet detected, initializing contracts...');
       const contractsInitialized = contracts.init();
-      
+  
       if (contractsInitialized) {
         console.log('✅ Contracts initialized during auto-connect');
       } else {
         console.warn('⚠️ Failed to initialize contracts during auto-connect');
       }
+    }
+
+    // 🔥 НОВОЕ: Проверка регистрации при автоподключении
+    if (web3Manager.connected && web3Manager.address) {
+      console.log('🔍 Checking registration status...');
+  
+      setTimeout(async () => {
+        try {
+          await uiManager.loadUserData();
+          await registrationManager.showRegistrationModal();
+        } catch (error) {
+          console.error('⚠️ Error checking registration:', error);
+        }
+      }, 2000);
     }
     
     await uiManager.init();
