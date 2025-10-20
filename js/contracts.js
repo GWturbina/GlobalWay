@@ -825,7 +825,7 @@ async withdrawMarketing(amount, recipient) {
     return tx.hash;
   }
 
-  // === TOKEN PRICE ===
+// === TOKEN PRICE ===
   async getRealTokenPrice() {
     try {
       if (!this.contracts.token) {
@@ -857,6 +857,46 @@ async withdrawMarketing(amount, recipient) {
       return CONFIG && CONFIG.TOKEN_PRICE ? CONFIG.TOKEN_PRICE.toString() : '0.01';
     }
   }
-}  // ← ВОТ ЗДЕСЬ ЗАКРЫВАЕТСЯ КЛАСС!
+
+  // === LEADERSHIP INFO ===
+  async getLeadershipInfo(address) {
+    try {
+      if (!this.contracts.stats) {
+        console.warn('⚠️ Stats contract not initialized');
+        return {
+          leaderRank: 0,
+          qualificationProgress: 0,
+          nextRankRequirement: 0
+        };
+      }
+      
+      const leaderRank = await this.contracts.stats.getLeaderRank(address);
+      
+      let qualificationProgress = 0;
+      let nextRankRequirement = 0;
+      
+      if (typeof this.contracts.stats.getQualificationProgress === 'function') {
+        qualificationProgress = await this.contracts.stats.getQualificationProgress(address);
+      }
+      
+      const rankRequirements = [0, 5, 10, 20, 50, 100, 200, 500, 1000, 2000];
+      nextRankRequirement = rankRequirements[leaderRank] || 0;
+      
+      return {
+        leaderRank: leaderRank,
+        qualificationProgress: qualificationProgress,
+        nextRankRequirement: nextRankRequirement
+      };
+      
+    } catch (error) {
+      console.error('❌ Error getting leadership info:', error);
+      return {
+        leaderRank: 0,
+        qualificationProgress: 0,
+        nextRankRequirement: 0
+      };
+    }
+  }
+}
 
 const contracts = new ContractsManager();
