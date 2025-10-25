@@ -19,17 +19,40 @@ class ContractsManager {
   }
 
   async loadABIs() {
-    console.log('⏳ Loading contract ABIs from contracts-config.json...');
+    console.log('⏳ Loading contract ABIs from frontend-config.json...');
 
     try {
-      const response = await fetch('/contracts/contracts-config.json');
-  
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Попробуем несколько путей
+      const paths = [
+        '/contracts/frontend-config.json',
+        './contracts/frontend-config.json',
+        'contracts/frontend-config.json'
+      ];
+      
+      let configData = null;
+      let successPath = null;
+      
+      for (const path of paths) {
+        try {
+          console.log(`🔍 Trying path: ${path}`);
+          const response = await fetch(path);
+          
+          if (response.ok) {
+            configData = await response.json();
+            successPath = path;
+            console.log(`✅ Found config at: ${path}`);
+            break;
+          }
+        } catch (e) {
+          console.log(`⚠️ Path ${path} failed:`, e.message);
+        }
+      }
+      
+      if (!configData) {
+        throw new Error('Could not load frontend-config.json from any path');
       }
   
-      const configData = await response.json();
-  
+      // Проверяем структуру файла
       if (configData.contracts) {
         this.abis.globalway = configData.contracts.GlobalWay?.abi || null;
         this.abis.token = configData.contracts.GWTToken?.abi || null;
@@ -42,13 +65,26 @@ class ContractsManager {
         this.abis.marketing = configData.contracts.Marketing?.abi || null;
         this.abis.bridge = configData.contracts.Bridge?.abi || null;
       
-        console.log('✅ ABIs loaded successfully');
+        console.log('✅ ABIs loaded successfully from', successPath);
+        console.log('📊 Loaded ABIs:', {
+          GlobalWay: !!this.abis.globalway,
+          GWTToken: !!this.abis.token,
+          Stats: !!this.abis.stats,
+          LeaderPool: !!this.abis.leaderPool,
+          Investment: !!this.abis.investment,
+          Quarterly: !!this.abis.quarterly,
+          Governance: !!this.abis.governance,
+          TechAccounts: !!this.abis.techAccounts,
+          Marketing: !!this.abis.marketing,
+          Bridge: !!this.abis.bridge
+        });
       } else {
-        console.error('❌ Invalid structure in contracts-config.json');
+        console.error('❌ Invalid structure in frontend-config.json');
+        console.error('Expected structure: { contracts: { ContractName: { abi: [...] } } }');
       }
     } catch (error) {
-      console.error('❌ Failed to load contracts-config.json:', error);
-      console.error('Attempted path: /contracts/contracts-config.json');
+      console.error('❌ Failed to load frontend-config.json:', error);
+      console.error('Make sure the file exists in /contracts/ folder');
     }
   }
 
