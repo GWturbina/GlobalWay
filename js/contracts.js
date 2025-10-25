@@ -961,6 +961,5 @@ class ContractsManager {
       };
     }
   }
-}
 
 const contracts = new ContractsManager();
