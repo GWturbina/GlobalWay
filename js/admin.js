@@ -10,17 +10,29 @@ class AdminManager {
       return; // Останавливаем если нет прав
     }
     await this.loadAdminStats();
+    await this.loadBoardMembers(); // Load board members list
     this.setupAdminActions();
   }
 
   checkRights() {
-    this.isOwner = web3Manager.isOwner();
-    this.isFounder = web3Manager.isFounder();
-    this.isBoard = web3Manager.isAdmin();
+    // 🔥 СТРОГАЯ ПРОВЕРКА: Только Owner + 3 Founders
+    const allowedAddresses = [
+      CONFIG.ADMIN.owner.toLowerCase(),
+      CONFIG.ADMIN.founders[0].toLowerCase(),
+      CONFIG.ADMIN.founders[1].toLowerCase(),
+      CONFIG.ADMIN.founders[2].toLowerCase()
+    ];
+    
+    const currentAddress = web3Manager.address ? web3Manager.address.toLowerCase() : '';
+    const hasAccess = allowedAddresses.includes(currentAddress);
+    
+    // Определяем уровень прав
+    this.isOwner = currentAddress === CONFIG.ADMIN.owner.toLowerCase();
+    this.isFounder = CONFIG.ADMIN.founders.slice(0, 3).some(f => f.toLowerCase() === currentAddress);
+    this.isBoard = hasAccess; // Только для совместимости с остальным кодом
 
     const rightsLevel = this.isOwner ? 'Owner' :
-                       this.isFounder ? 'Founder' :
-                       this.isBoard ? 'Board Member' : 'No Access';
+                       this.isFounder ? 'Founder' : 'No Access';
 
     const adminCurrentAccountEl = document.getElementById('adminCurrentAccount');
     const adminRightsLevelEl = document.getElementById('adminRightsLevel');
@@ -28,29 +40,39 @@ class AdminManager {
     if (adminCurrentAccountEl) adminCurrentAccountEl.textContent = Utils.formatAddress(web3Manager.address);
     if (adminRightsLevelEl) adminRightsLevelEl.textContent = rightsLevel;
 
-    if (!this.isBoard) {
-      console.error('❌ No admin access for:', web3Manager.address);
-      console.log('Owner:', CONFIG.ADMIN.owner);
-      console.log('Founders:', CONFIG.ADMIN.founders);
-      console.log('Board:', CONFIG.ADMIN.board);
+    // 🔥 СТРОГАЯ ПРОВЕРКА: Если адрес НЕ в списке разрешенных - доступ запрещен
+    if (!hasAccess) {
+      console.error('❌ ADMIN ACCESS DENIED for:', web3Manager.address);
+      console.log('✅ Allowed addresses:');
+      console.log('  Owner:', CONFIG.ADMIN.owner);
+      console.log('  Founder 1:', CONFIG.ADMIN.founders[0]);
+      console.log('  Founder 2:', CONFIG.ADMIN.founders[1]);
+      console.log('  Founder 3:', CONFIG.ADMIN.founders[2]);
 
-      Utils.showNotification('Access denied: Admin rights required', 'error');
+      Utils.showNotification('Access denied: Only Owner and 3 Founders allowed', 'error');
 
       const adminPage = document.getElementById('admin');
       if (adminPage) {
         adminPage.innerHTML = `
           <div style="text-align: center; padding: 50px;">
             <h2>🔒 Access Denied</h2>
-            <p>You don't have admin rights.</p>
+            <p style="color: #ff4444; font-weight: bold;">Admin panel is restricted to 4 addresses only.</p>
             <p>Your address: <code>${web3Manager.address}</code></p>
-            <p>Contact the system administrator.</p>
+            <p style="margin-top: 20px;">Allowed addresses:</p>
+            <ul style="list-style: none; padding: 0;">
+              <li><strong>Owner:</strong> <code>${CONFIG.ADMIN.owner}</code></li>
+              <li><strong>Founder 1:</strong> <code>${CONFIG.ADMIN.founders[0]}</code></li>
+              <li><strong>Founder 2:</strong> <code>${CONFIG.ADMIN.founders[1]}</code></li>
+              <li><strong>Founder 3:</strong> <code>${CONFIG.ADMIN.founders[2]}</code></li>
+            </ul>
           </div>
         `;
       }
       return false;
     }
 
-    console.log('✅ Admin access granted:', rightsLevel);
+    console.log('✅ Admin access granted:', rightsLevel, 'for', web3Manager.address);
+    console.log('🔐 Access level:', this.isOwner ? 'OWNER' : 'FOUNDER');
 
     // Добавляем класс к body
     document.body.classList.add('admin-access');
@@ -94,6 +116,7 @@ class AdminManager {
     if (batchActivateBtn) {
       batchActivateBtn.addEventListener('click', () => this.batchActivate());
     }
+  }
     
     // Contract Management
     const pauseBtn = document.getElementById('pauseContractBtn');
@@ -168,6 +191,22 @@ class AdminManager {
     const publishNewsBtn = document.getElementById('publishNewsBtn');
     if (publishNewsBtn) {
       publishNewsBtn.addEventListener('click', () => this.publishNews());
+    }
+    
+    // Board Members Management
+    const addBoardMemberBtn = document.getElementById('addBoardMemberBtn');
+    if (addBoardMemberBtn) {
+      addBoardMemberBtn.addEventListener('click', () => this.addBoardMember());
+    }
+    
+    const removeBoardMemberBtn = document.getElementById('removeBoardMemberBtn');
+    if (removeBoardMemberBtn) {
+      removeBoardMemberBtn.addEventListener('click', () => this.removeBoardMember());
+    }
+    
+    const refreshBoardBtn = document.getElementById('refreshBoardBtn');
+    if (refreshBoardBtn) {
+      refreshBoardBtn.addEventListener('click', () => this.loadBoardMembers());
     }
   }
 
@@ -822,6 +861,190 @@ class AdminManager {
     } catch (error) {
       console.error('Publish news error:', error);
       Utils.showNotification('Publishing failed: ' + error.message, 'error');
+    } finally {
+      Utils.showLoader(false);
+    }
+  }
+
+  // === BOARD MEMBERS MANAGEMENT ===
+
+  async loadBoardMembers() {
+    try {
+      const members = await contracts.getBoardMembers();
+      const boardList = document.getElementById('boardMembersList');
+      const totalBoardEl = document.getElementById('totalBoardMembers');
+      
+      if (!boardList) return;
+      
+      if (!members || members.length === 0) {
+        boardList.innerHTML = '<div class="no-data">No board members found</div>';
+        if (totalBoardEl) totalBoardEl.textContent = '0';
+        return;
+      }
+      
+      boardList.innerHTML = '';
+      members.forEach((address, index) => {
+        const memberCard = document.createElement('div');
+        memberCard.className = 'board-member-card';
+        memberCard.innerHTML = `
+          <div class="member-info">
+            <span class="member-number">#${index + 1}</span>
+            <span class="member-address">${address}</span>
+            <span class="member-short">${Utils.formatAddress(address)}</span>
+          </div>
+          <button class="btn-small btn-copy" onclick="Utils.copyToClipboard('${address}')">📋 Copy</button>
+        `;
+        boardList.appendChild(memberCard);
+      });
+      
+      if (totalBoardEl) totalBoardEl.textContent = members.length.toString();
+      
+      console.log('✅ Board members loaded:', members.length);
+      
+    } catch (error) {
+      console.error('Error loading board members:', error);
+      const boardList = document.getElementById('boardMembersList');
+      if (boardList) {
+        boardList.innerHTML = '<div class="error">Error loading board members</div>';
+      }
+    }
+  }
+
+  async addBoardMember() {
+    const addressInput = document.getElementById('addBoardAddress');
+    const reasonInput = document.getElementById('addBoardReason');
+    
+    if (!addressInput || !reasonInput) return;
+    
+    const address = addressInput.value.trim();
+    const reason = reasonInput.value.trim();
+    
+    if (!address) {
+      Utils.showNotification('Please enter board member address', 'error');
+      return;
+    }
+    
+    if (!Utils.validateAddress(address)) {
+      Utils.showNotification('Invalid address format', 'error');
+      return;
+    }
+    
+    if (!reason) {
+      Utils.showNotification('Please provide a reason', 'error');
+      return;
+    }
+    
+    try {
+      Utils.showLoader(true);
+      Utils.showNotification('Adding board member...', 'info');
+      
+      console.log('➕ Adding board member:', address);
+      console.log('Reason:', reason);
+      
+      const txHash = await contracts.addBoardMember(address);
+      
+      console.log('✅ Board member added:', txHash);
+      Utils.showNotification('Board member added successfully!', 'success');
+      
+      // Clear inputs
+      addressInput.value = '';
+      reasonInput.value = '';
+      
+      // Reload board members
+      await this.loadBoardMembers();
+      
+    } catch (error) {
+      console.error('❌ Add board member error:', error);
+      
+      let errorMsg = 'Failed to add board member';
+      
+      if (error.message.includes('rejected') || error.message.includes('denied')) {
+        errorMsg = 'Transaction cancelled';
+      } else if (error.message.includes('Already board member')) {
+        errorMsg = 'This address is already a board member';
+      } else if (error.message.includes('not owner')) {
+        errorMsg = 'Only owner can add board members';
+      } else {
+        errorMsg = `Error: ${error.message.substring(0, 80)}`;
+      }
+      
+      Utils.showNotification(errorMsg, 'error');
+      
+    } finally {
+      Utils.showLoader(false);
+    }
+  }
+
+  async removeBoardMember() {
+    const addressInput = document.getElementById('removeBoardAddress');
+    const reasonInput = document.getElementById('removeBoardReason');
+    
+    if (!addressInput || !reasonInput) return;
+    
+    const address = addressInput.value.trim();
+    const reason = reasonInput.value.trim();
+    
+    if (!address) {
+      Utils.showNotification('Please enter board member address', 'error');
+      return;
+    }
+    
+    if (!Utils.validateAddress(address)) {
+      Utils.showNotification('Invalid address format', 'error');
+      return;
+    }
+    
+    if (!reason) {
+      Utils.showNotification('Please provide a reason', 'error');
+      return;
+    }
+    
+    // Confirmation
+    const confirmed = confirm(
+      `Are you sure you want to remove this board member?\n\n` +
+      `Address: ${address}\n` +
+      `Reason: ${reason}\n\n` +
+      `This action requires voting approval.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      Utils.showLoader(true);
+      Utils.showNotification('Removing board member...', 'info');
+      
+      console.log('➖ Removing board member:', address);
+      console.log('Reason:', reason);
+      
+      const txHash = await contracts.removeBoardMember(address);
+      
+      console.log('✅ Board member removed:', txHash);
+      Utils.showNotification('Board member removed successfully!', 'success');
+      
+      // Clear inputs
+      addressInput.value = '';
+      reasonInput.value = '';
+      
+      // Reload board members
+      await this.loadBoardMembers();
+      
+    } catch (error) {
+      console.error('❌ Remove board member error:', error);
+      
+      let errorMsg = 'Failed to remove board member';
+      
+      if (error.message.includes('rejected') || error.message.includes('denied')) {
+        errorMsg = 'Transaction cancelled';
+      } else if (error.message.includes('Not board member')) {
+        errorMsg = 'This address is not a board member';
+      } else if (error.message.includes('not owner')) {
+        errorMsg = 'Only owner can remove board members';
+      } else {
+        errorMsg = `Error: ${error.message.substring(0, 80)}`;
+      }
+      
+      Utils.showNotification(errorMsg, 'error');
+      
     } finally {
       Utils.showLoader(false);
     }
