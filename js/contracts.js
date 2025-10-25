@@ -52,18 +52,36 @@ class ContractsManager {
         throw new Error('Could not load contracts-config.json from any path');
       }
   
-      // Проверяем структуру файла
+      // Проверяем структуру файла и поддерживаем оба варианта названий
       if (configData.contracts) {
+        // GlobalWay и GWTToken (стандартные названия)
         this.abis.globalway = configData.contracts.GlobalWay?.abi || null;
         this.abis.token = configData.contracts.GWTToken?.abi || null;
-        this.abis.stats = configData.contracts.Stats?.abi || null;
-        this.abis.leaderPool = configData.contracts.LeaderPool?.abi || null;
-        this.abis.investment = configData.contracts.Investment?.abi || null;
-        this.abis.quarterly = configData.contracts.Quarterly?.abi || null;
-        this.abis.governance = configData.contracts.Governance?.abi || null;
-        this.abis.techAccounts = configData.contracts.TechAccounts?.abi || null;
-        this.abis.marketing = configData.contracts.Marketing?.abi || null;
-        this.abis.bridge = configData.contracts.Bridge?.abi || null;
+        
+        // Поддержка обоих вариантов названий для остальных контрактов
+        this.abis.stats = configData.contracts.Stats?.abi || 
+                          configData.contracts.GlobalWayStats?.abi || null;
+        
+        this.abis.leaderPool = configData.contracts.LeaderPool?.abi || 
+                               configData.contracts.GlobalWayLeaderPool?.abi || null;
+        
+        this.abis.investment = configData.contracts.Investment?.abi || 
+                               configData.contracts.GlobalWayInvestment?.abi || null;
+        
+        this.abis.quarterly = configData.contracts.Quarterly?.abi || 
+                              configData.contracts.GlobalWayQuarterly?.abi || null;
+        
+        this.abis.governance = configData.contracts.Governance?.abi || 
+                               configData.contracts.GlobalWayGovernance?.abi || null;
+        
+        this.abis.techAccounts = configData.contracts.TechAccounts?.abi || 
+                                 configData.contracts.GlobalWayTechAccounts?.abi || null;
+        
+        this.abis.marketing = configData.contracts.Marketing?.abi || 
+                              configData.contracts.GlobalWayMarketing?.abi || null;
+        
+        this.abis.bridge = configData.contracts.Bridge?.abi || 
+                           configData.contracts.GlobalWayBridge?.abi || null;
       
         console.log('✅ ABIs loaded successfully from', successPath);
         console.log('📊 Loaded ABIs:', {
