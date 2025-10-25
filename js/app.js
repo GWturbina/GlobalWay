@@ -638,12 +638,20 @@ async showDAppInterface() {
 }
 
 const app = new App();
+
 window.addEventListener('DOMContentLoaded', async () => {
   await app.init();
   app.monitorAccount();
 });
 
-// Error handlers
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(() => {
+    console.log('Service Worker registered');
+  }).catch(err => {
+    console.log('Service Worker registration failed:', err);
+  });
+}
+
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
   if (!event.error.message.includes('ResizeObserver')) {
@@ -655,50 +663,3 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled rejection:', event.reason);
   Utils.showNotification('Transaction rejected or failed', 'error');
 });
-
-// ===================================================================
-// SERVICE WORKER REGISTRATION
-// ===================================================================
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('✅ SW registered:', registration.scope);
-        
-        // Проверка обновлений каждую минуту
-        setInterval(() => {
-          registration.update();
-        }, 60000);
-        
-        // Обработка обновлений
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('🔄 New version available!');
-              
-              if (confirm('New version available! Reload to update?')) {
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-                window.location.reload();
-              }
-            }
-          });
-        });
-      })
-      .catch(err => {
-        console.error('❌ SW registration failed:', err);
-      });
-  });
-
-  // Обработка смены контроллера
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
-  });
-}
-
-console.log('🚀 GlobalWay DApp v2.0 fully initialized with PWA support');
