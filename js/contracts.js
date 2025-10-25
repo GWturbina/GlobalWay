@@ -321,7 +321,8 @@ class ContractsManager {
   async isUserExists(address) {
     if (!this.contracts.globalway) return false;
     try {
-      return await this.contracts.globalway.isUserExists(address);
+      const userInfo = await this.contracts.globalway.users(address);
+      return userInfo[0]; // isRegistered - первое поле в структуре
     } catch (error) {
       console.error('Error checking user existence:', error);
       return false;
@@ -339,10 +340,17 @@ class ContractsManager {
   }
 
   async getUserId(address) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    if (!this.contracts.globalway) return 0;
     try {
-      const id = await this.contracts.stats.getUserId(address);
-      return id.toNumber();
+      // Получаем индекс пользователя из массива allUsers
+      const totalUsers = await this.contracts.globalway.totalUsers();
+      for (let i = 0; i < totalUsers; i++) {
+        const userAddr = await this.contracts.globalway.allUsers(i);
+        if (userAddr.toLowerCase() === address.toLowerCase()) {
+          return i + 1; // ID начинается с 1
+        }
+      }
+      return 0;
     } catch (error) {
       console.error('Error getting user ID:', error);
       return 0;
@@ -350,9 +358,11 @@ class ContractsManager {
   }
 
   async getIdToAddress(userId) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     try {
-      return await this.contracts.stats.idToAddress(userId);
+      // ID начинается с 1, массив с 0
+      if (userId < 1) return ethers.constants.AddressZero;
+      return await this.contracts.globalway.allUsers(userId - 1);
     } catch (error) {
       console.error('Error getting address by ID:', error);
       return ethers.constants.AddressZero;
@@ -440,8 +450,8 @@ class ContractsManager {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     
     try {
-      const price = await this.contracts.globalway.levelPrice(level);
-      const tx = await this.contracts.globalway.buyNewLevel(matrix, level, {
+      const price = await this.contracts.globalway.levelPrices(level);
+      const tx = await this.contracts.globalway.activateLevel(level, {
         value: price
       });
       await tx.wait();
@@ -455,7 +465,7 @@ class ContractsManager {
   async getLevelPrice(level) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     try {
-      const price = await this.contracts.globalway.levelPrice(level);
+      const price = await this.contracts.globalway.levelPrices(level);
       return ethers.utils.formatEther(price);
     } catch (error) {
       console.error('Error getting level price:', error);
@@ -468,7 +478,7 @@ class ContractsManager {
     try {
       const levels = [];
       for (let i = 1; i <= 12; i++) {
-        const hasLevel = await this.contracts.globalway.usersActiveX3Levels(address, i);
+        const hasLevel = await this.contracts.globalway.isLevelActive(address, i);
         levels.push(hasLevel);
       }
       return levels;
@@ -590,7 +600,7 @@ class ContractsManager {
   async getUserStats(address) {
     if (!this.contracts.stats) throw new Error('Stats not initialized');
     try {
-      const stats = await this.contracts.stats.getUserStats(address);
+      const stats = await this.contracts.stats.getUserFullStats(address);
       return {
         totalEarned: ethers.utils.formatEther(stats.totalEarned || '0'),
         partnersCount: stats.partnersCount?.toNumber() || 0,
@@ -622,9 +632,9 @@ class ContractsManager {
   }
 
   async getPartners(address) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     try {
-      return await this.contracts.stats.getPartners(address);
+      return await this.contracts.globalway.getUserReferrals(address);
     } catch (error) {
       console.error('Error getting partners:', error);
       return [];
@@ -632,10 +642,10 @@ class ContractsManager {
   }
 
   async getPartnersCount(address) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     try {
-      const count = await this.contracts.stats.getPartnersCount(address);
-      return count.toNumber();
+      const referrals = await this.contracts.globalway.getUserReferrals(address);
+      return referrals.length;
     } catch (error) {
       console.error('Error getting partners count:', error);
       return 0;
