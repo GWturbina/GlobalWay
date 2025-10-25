@@ -106,6 +106,10 @@ class ContractsManager {
 
     console.log('🔗 Initializing contracts...');
     
+    // Сохраняем ссылку на web3Manager и адреса контрактов
+    this.web3 = web3Manager;
+    this.addresses = CONFIG.CONTRACTS;
+    
     let successCount = 0;
     let totalCount = 0;
     
@@ -450,11 +454,17 @@ class ContractsManager {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     
     try {
+      console.log(`🔍 Getting price for level ${level}...`);
       const price = await this.contracts.globalway.levelPrices(level);
+      console.log(`💰 Level ${level} price:`, price.toString(), 'wei');
+      console.log(`💰 Level ${level} price:`, ethers.utils.formatEther(price), 'BNB');
+      
       const tx = await this.contracts.globalway.activateLevel(level, {
         value: price
       });
+      console.log(`📤 Transaction sent:`, tx.hash);
       await tx.wait();
+      console.log(`✅ Level ${level} activated!`);
       return tx.hash;
     } catch (error) {
       console.error('Buy level error:', error);
