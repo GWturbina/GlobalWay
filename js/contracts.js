@@ -468,12 +468,26 @@ class ContractsManager {
       const userAddress = await this.web3.signer.getAddress();
       console.log(`👤 User address:`, userAddress);
       
-      const user = await this.contracts.globalway.users(userAddress);
-      console.log(`📊 User data:`, user);
-      console.log(`   - ID:`, user.id.toString());
-      console.log(`   - isRegistered:`, user.isRegistered);
-      console.log(`   - sponsor:`, user.sponsor);
+      // users() возвращает массив: [isRegistered, sponsor, registrationTime, lastActivity, personalInvites, level1ActivationTime]
+      const userData = await this.contracts.globalway.users(userAddress);
+      console.log(`📊 User data (raw):`, userData);
       
+      // Парсим массив
+      const isRegistered = userData[0];
+      const sponsor = userData[1];
+      
+      console.log(`   - isRegistered:`, isRegistered);
+      console.log(`   - sponsor:`, sponsor);
+      
+      if (!isRegistered) {
+        throw new Error('Пользователь не зарегистрирован! Сначала зарегистрируйтесь.');
+      }
+      
+      // Получаем ID отдельно
+      const userId = await this.getUserId(userAddress);
+      console.log(`   - User ID:`, userId);
+      
+      // Проверяем активен ли уровень
       const isActive = await this.contracts.globalway.isLevelActive(userAddress, level);
       console.log(`   - Level ${level} active:`, isActive);
       
@@ -487,8 +501,9 @@ class ContractsManager {
         gasLimit: 500000 // Принудительный gas limit
       });
       console.log(`📤 Transaction sent:`, tx.hash);
+      console.log(`⏳ Waiting for confirmation...`);
       await tx.wait();
-      console.log(`✅ Level ${level} activated!`);
+      console.log(`✅ Level ${level} activated successfully!`);
       return tx;
     } catch (error) {
       console.error('Buy level error:', error);
@@ -499,6 +514,9 @@ class ContractsManager {
       }
       if (error.reason) {
         console.error('❌ Reason:', error.reason);
+      }
+      if (error.message) {
+        console.error('❌ Message:', error.message);
       }
       
       throw error;
