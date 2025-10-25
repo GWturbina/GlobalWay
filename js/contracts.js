@@ -13,7 +13,8 @@ class ContractsManager {
       quarterly: null,
       governance: null,
       techAccounts: null,
-      marketing: null
+      marketing: null,
+      bridge: null
     };
   }
 
@@ -32,13 +33,14 @@ class ContractsManager {
       if (configData.contracts) {
         this.abis.globalway = configData.contracts.GlobalWay?.abi || null;
         this.abis.token = configData.contracts.GWTToken?.abi || null;
-        this.abis.stats = configData.contracts.GlobalWayStats?.abi || null;
-        this.abis.leaderPool = configData.contracts.GlobalWayLeaderPool?.abi || null;
-        this.abis.investment = configData.contracts.GlobalWayInvestment?.abi || null;
-        this.abis.quarterly = configData.contracts.GlobalWayQuarterly?.abi || null;
-        this.abis.governance = configData.contracts.GlobalWayGovernance?.abi || null;
-        this.abis.techAccounts = configData.contracts.GlobalWayTechAccounts?.abi || null;
-        this.abis.marketing = configData.contracts.GlobalWayMarketing?.abi || null;
+        this.abis.stats = configData.contracts.Stats?.abi || null;
+        this.abis.leaderPool = configData.contracts.LeaderPool?.abi || null;
+        this.abis.investment = configData.contracts.Investment?.abi || null;
+        this.abis.quarterly = configData.contracts.Quarterly?.abi || null;
+        this.abis.governance = configData.contracts.Governance?.abi || null;
+        this.abis.techAccounts = configData.contracts.TechAccounts?.abi || null;
+        this.abis.marketing = configData.contracts.Marketing?.abi || null;
+        this.abis.bridge = configData.contracts.Bridge?.abi || null;
       
         console.log('✅ ABIs loaded successfully');
       } else {
@@ -103,7 +105,7 @@ class ContractsManager {
       if (this.abis.stats && Array.isArray(this.abis.stats)) {
         try {
           this.contracts.stats = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayStats,
+            CONFIG.CONTRACTS.Stats,
             this.abis.stats,
             web3Manager.signer
           );
@@ -121,7 +123,7 @@ class ContractsManager {
       if (this.abis.leaderPool && Array.isArray(this.abis.leaderPool)) {
         try {
           this.contracts.leaderPool = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayLeaderPool,
+            CONFIG.CONTRACTS.LeaderPool,
             this.abis.leaderPool,
             web3Manager.signer
           );
@@ -139,7 +141,7 @@ class ContractsManager {
       if (this.abis.investment && Array.isArray(this.abis.investment)) {
         try {
           this.contracts.investment = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayInvestment,
+            CONFIG.CONTRACTS.Investment,
             this.abis.investment,
             web3Manager.signer
           );
@@ -157,7 +159,7 @@ class ContractsManager {
       if (this.abis.quarterly && Array.isArray(this.abis.quarterly)) {
         try {
           this.contracts.quarterly = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayQuarterly,
+            CONFIG.CONTRACTS.Quarterly,
             this.abis.quarterly,
             web3Manager.signer
           );
@@ -175,7 +177,7 @@ class ContractsManager {
       if (this.abis.governance && Array.isArray(this.abis.governance)) {
         try {
           this.contracts.governance = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayGovernance,
+            CONFIG.CONTRACTS.Governance,
             this.abis.governance,
             web3Manager.signer
           );
@@ -193,7 +195,7 @@ class ContractsManager {
       if (this.abis.techAccounts && Array.isArray(this.abis.techAccounts)) {
         try {
           this.contracts.techAccounts = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayTechAccounts,
+            CONFIG.CONTRACTS.TechAccounts,
             this.abis.techAccounts,
             web3Manager.signer
           );
@@ -211,7 +213,7 @@ class ContractsManager {
       if (this.abis.marketing && Array.isArray(this.abis.marketing)) {
         try {
           this.contracts.marketing = new ethers.Contract(
-            CONFIG.CONTRACTS.GlobalWayMarketing,
+            CONFIG.CONTRACTS.Marketing,
             this.abis.marketing,
             web3Manager.signer
           );
@@ -222,6 +224,24 @@ class ContractsManager {
         }
       } else {
         console.error('❌ Marketing ABI missing or invalid');
+      }
+
+      // Bridge
+      totalCount++;
+      if (this.abis.bridge && Array.isArray(this.abis.bridge)) {
+        try {
+          this.contracts.bridge = new ethers.Contract(
+            CONFIG.CONTRACTS.Bridge,
+            this.abis.bridge,
+            web3Manager.signer
+          );
+          console.log('✅ Bridge initialized');
+          successCount++;
+        } catch (error) {
+          console.error('❌ Bridge initialization failed:', error);
+        }
+      } else {
+        console.error('❌ Bridge ABI missing or invalid');
       }
 
       console.log(`📊 Contracts initialized: ${successCount}/${totalCount}`);
@@ -236,334 +256,93 @@ class ContractsManager {
       
       const criticalInitialized = criticalContracts.every(c => c !== null && c !== undefined);
       
-      if (!criticalInitialized) {
-        console.error('❌ Critical contracts not initialized');
+      if (criticalInitialized) {
+        console.log('✅ All critical contracts initialized');
+        return true;
+      } else {
+        console.error('❌ Some critical contracts failed to initialize');
         return false;
       }
       
-      console.log('✅ All critical contracts initialized');
-      return true;
-
     } catch (error) {
-      console.error('❌ Contract init failed:', error);
+      console.error('❌ Critical error during contract initialization:', error);
       return false;
     }
   }
 
-  // === GLOBALWAY ===
+  // === USER INFO ===
   
-  async isUserRegistered(address) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+  async isUserExists(address) {
+    if (!this.contracts.globalway) return false;
     try {
-      return await this.contracts.globalway.isUserRegistered(address);
+      return await this.contracts.globalway.isUserExists(address);
     } catch (error) {
-      console.error('Error checking registration:', error);
+      console.error('Error checking user existence:', error);
       return false;
     }
   }
 
-  async register(sponsorAddress) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    const tx = await this.contracts.globalway.register(sponsorAddress);
-    await tx.wait();
-    return tx.hash;
-  }
-
-// 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: УПРОЩЁННАЯ функция buyLevel для SafePal Mobile
-async buyLevel(level) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    
-    const price = ethers.utils.parseEther(CONFIG.LEVEL_PRICES[level - 1]);
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    console.log(`🛒 Buying level ${level} for ${CONFIG.LEVEL_PRICES[level - 1]} BNB`);
-    console.log(`📱 Device: ${isMobile ? 'Mobile' : 'Desktop'}`);
-
-    try {
-        // 🔥 ИСПРАВЛЕНО: Минимальная задержка только для мобильных
-        if (isMobile) {
-            console.log('⏳ Mobile - preparing wallet...');
-            await new Promise(resolve => setTimeout(resolve, 800)); // 🔥 800ms вместо 3000ms!
-        }
-        
-        console.log('📤 Sending transaction to SafePal...');
-        
-        // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: ПРОСТОЙ вызов БЕЗ явных параметров газа
-        // Пусть SafePal сам установит оптимальные параметры!
-        const tx = await this.contracts.globalway.buyLevel(level, {
-            value: price
-            // 🔥 НЕ указываем gasLimit и gasPrice - SafePal установит автоматически!
-        });
-        
-        console.log('✅ Transaction sent:', tx.hash);
-        console.log('⏳ Waiting for confirmation...');
-        
-        // 🔥 ИСПРАВЛЕНО: Разумный timeout 90 секунд
-        const receipt = await Promise.race([
-            tx.wait(),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Transaction confirmation timeout')), 90000)
-            )
-        ]);
-        
-        console.log('✅ Transaction confirmed in block:', receipt.blockNumber);
-        console.log('🎉 Level purchased successfully!');
-        
-        // Парсинг событий (опционально)
-        if (this.contracts.marketing && receipt.logs) {
-            try {
-                let matrixEvents = 0;
-                let referralEvents = 0;
-                
-                receipt.logs.forEach(log => {
-                    try {
-                        if (log.address.toLowerCase() === CONFIG.CONTRACTS.GlobalWayMarketing.toLowerCase()) {
-                            const parsedLog = this.contracts.marketing.interface.parseLog(log);
-                            if (parsedLog) {
-                                if (parsedLog.name === 'MatrixBonusPaid') matrixEvents++;
-                                if (parsedLog.name === 'ReferralBonusPaid') referralEvents++;
-                            }
-                        }
-                    } catch (e) {
-                        // Игнорируем ошибки парсинга
-                    }
-                });
-                
-                if (matrixEvents > 0) console.log('✅ Matrix bonus distributed');
-                if (referralEvents > 0) console.log('✅ Referral bonus distributed');
-                
-            } catch (eventError) {
-                console.warn('⚠️ Could not parse events:', eventError.message);
-            }
-        }
-        
-        return tx;
-        
-    } catch (error) {
-        console.error('❌ Transaction failed:', error);
-        
-        // 🔥 ИСПРАВЛЕНО: Понятные сообщения об ошибках
-        if (error.message.includes('user rejected') || error.message.includes('User denied')) {
-            throw new Error('Transaction cancelled in wallet');
-        } else if (error.message.includes('insufficient funds')) {
-            throw new Error('Insufficient BNB balance for transaction + gas');
-        } else if (error.message.includes('timeout')) {
-            throw new Error('Transaction confirmation timeout. Check your transaction in explorer.');
-        } else if (error.message.includes('nonce')) {
-            throw new Error('Transaction nonce error. Please wait and try again.');
-        } else if (error.message.includes('already pending')) {
-            throw new Error('You have a pending transaction. Please wait for it to complete.');
-        } else if (isMobile && error.message.includes('execution reverted')) {
-            throw new Error('Transaction failed. Please check: 1) You are registered, 2) Previous level is active, 3) Sufficient BNB balance');
-        } else {
-            throw new Error(error.message || 'Transaction failed. Please try again.');
-        }
-    }
-}
-
-  async buyLevelsBulk(maxLevel) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    
-    let packageType;
-    if (maxLevel === 3) packageType = 1;
-    else if (maxLevel === 4) packageType = 2;
-    else if (maxLevel === 7) packageType = 3;
-    else if (maxLevel === 10) packageType = 4;
-    else if (maxLevel === 12) packageType = 5;
-    else throw new Error('Invalid max level. Must be 3, 4, 7, 10, or 12');
-    
-    return await this.activatePackage(packageType);
-  }
-
-  async activatePackage(packageType) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    
-    const totalCost = await this.contracts.globalway.calculatePackagePrice(packageType);
-    
-    const tx = await this.contracts.globalway.activatePackage(packageType, { value: totalCost });
-    await tx.wait();
-    return tx.hash;
-  }
-
-async getUserInfo(address) {
-  if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-  
-  try {
-    const [
-      isRegistered,
-      sponsor,
-      registrationTime,
-      lastActivity,
-      personalInvites,
-      totalEarned,
-      isInactive
-    ] = await this.contracts.globalway.users(address);
-    
-    // Безопасное получение userId
-    let userId = 0;
-    try {
-      if (typeof this.contracts.globalway.addressToId === 'function') {
-        userId = await this.contracts.globalway.addressToId(address);
-      } else if (typeof this.contracts.globalway.getUserId === 'function') {
-        userId = await this.contracts.globalway.getUserId(address);
-      } else {
-        console.warn('⚠️ addressToId function not found in contract');
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not get userId:', error.message);
-      userId = 0;
-    }
-    
-    // Безопасное получение leaderRank
-    let leaderRank = 0;
-    try {
-      if (this.contracts.stats && typeof this.contracts.stats.getLeaderRank === 'function') {
-        leaderRank = await this.contracts.stats.getLeaderRank(address);
-      } else {
-        console.warn('⚠️ getLeaderRank function not found in contract');
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not get leaderRank:', error.message);
-      leaderRank = 0;
-    }
-    
-    // Безопасное получение activeLevels
-    let activeLevels = [];
-    try {
-      if (typeof this.contracts.globalway.getUserActiveLevels === 'function') {
-        activeLevels = await this.contracts.globalway.getUserActiveLevels(address);
-      } else {
-        console.warn('⚠️ getUserActiveLevels function not found in contract');
-      }
-    } catch (error) {
-      console.warn('⚠️ Could not get activeLevels:', error.message);
-      activeLevels = [];
-    }
-    
-    return {
-      isRegistered,
-      sponsor,
-      registrationTime,
-      lastActivity,
-      personalInvites,
-      totalEarned,
-      isInactive,
-      userId,
-      leaderRank,
-      activeLevels
-    };
-    
-  } catch (error) {
-    console.error('❌ Error in getUserInfo:', error);
-    // Возвращаем дефолтные значения при ошибке
-    return {
-      isRegistered: false,
-      sponsor: '0x0000000000000000000000000000000000000000',
-      registrationTime: { _hex: '0x0' },
-      lastActivity: { _hex: '0x0' },
-      personalInvites: 0,
-      totalEarned: { _hex: '0x0' },
-      isInactive: false,
-      userId: 0,
-      leaderRank: 0,
-      activeLevels: []
-    };
-  }
-}
-
-  // === GET USER ADDRESS BY ID ===
-async getUserAddress(userId) {
-  try {
-    if (!this.contracts.globalway) {
-      throw new Error('GlobalWay not initialized');
-    }
-    
-    console.log('🔍 Getting address for user ID:', userId);
-    
-    // Проверяем валидность ID
-    if (!userId || userId < 1) {
-      console.warn('⚠️ Invalid user ID:', userId);
-      return '0x0000000000000000000000000000000000000000';
-    }
-    
-    // ID начинается с 1, массив с 0 → ID - 1 = индекс
-    const arrayIndex = userId - 1;
-    
-    // Получаем адрес из массива allUsers
-    const address = await this.contracts.globalway.allUsers(arrayIndex);
-    
-    // Проверяем что адрес не нулевой
-    if (!address || address === '0x0000000000000000000000000000000000000000') {
-      console.warn('⚠️ User ID not found or not registered:', userId);
-      return '0x0000000000000000000000000000000000000000';
-    }
-    
-    console.log('✅ Address found for ID', userId, ':', address);
-    return address;
-    
-  } catch (error) {
-    console.error('❌ Error getting user address:', error);
-    
-    // Если индекс вне диапазона - значит такого ID нет
-    if (error.message.includes('out of bounds') || error.message.includes('invalid arrayify')) {
-      console.warn('⚠️ User ID does not exist:', userId);
-      return '0x0000000000000000000000000000000000000000';
-    }
-    
-    throw error;
-  }
-}
-
-  async getMatrixPosition(level, position) {
+  async getUserInfo(address) {
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     try {
-      const pos = await this.contracts.globalway.getMatrixPosition(level, position);
-      
-      const normalizedData = {
-        user: pos[0] || pos.user || ethers.constants.AddressZero,
-        position: pos[1] !== undefined ? pos[1] : (pos.position !== undefined ? pos.position : 0)
-      };
-      
-      if (normalizedData.user === ethers.constants.AddressZero) {
-        console.log(`Position ${position} at level ${level} is empty`);
-      }
-      
-      return normalizedData;
+      return await this.contracts.globalway.users(address);
     } catch (error) {
-      console.error(`Error getting matrix position ${position} at level ${level}:`, error);
-      return {
-        user: ethers.constants.AddressZero,
-        position: 0
-      };
+      console.error('Error getting user info:', error);
+      throw error;
     }
   }
 
-  async getUserMatrixPosition(level, address) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    return await this.contracts.globalway.getUserMatrixPosition(level, address);
+  async getUserId(address) {
+    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    try {
+      const id = await this.contracts.stats.getUserId(address);
+      return id.toNumber();
+    } catch (error) {
+      console.error('Error getting user ID:', error);
+      return 0;
+    }
   }
 
-  async getLevelPrice(level) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    return await this.contracts.globalway.levelPrices(level);
+  async getIdToAddress(userId) {
+    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    try {
+      return await this.contracts.stats.idToAddress(userId);
+    } catch (error) {
+      console.error('Error getting address by ID:', error);
+      return ethers.constants.AddressZero;
+    }
   }
 
-  async getTokenReward(level) {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    return await this.contracts.globalway.tokenRewards(level);
-  }
+  // === HELPER FUNCTIONS FOR REGISTRATION ===
 
-  async getTotalUsers() {
-    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
-    return await this.contracts.globalway.totalUsers();
+  async getUserAddress(userId) {
+    return await this.getIdToAddress(userId);
   }
 
   async getUserFullInfo(address) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    
     try {
-      return await this.contracts.stats.getUserFullInfo(address);
+      const userInfo = await this.getUserInfo(address);
+      const userId = await this.getUserId(address);
+      const stats = await this.getUserStats(address);
+      const levels = await this.getUserLevels(address, 1);
+      
+      return {
+        isRegistered: await this.isUserExists(address),
+        sponsor: userInfo.referrer || ethers.constants.AddressZero,
+        registrationTime: userInfo.registrationTime || 0,
+        lastActivity: userInfo.lastActivity || 0,
+        personalInvites: stats.partnersCount || 0,
+        totalEarned: stats.totalEarned ? ethers.utils.parseEther(stats.totalEarned) : ethers.BigNumber.from(0),
+        isInactive: false,
+        userId: userId,
+        referrals: await this.getPartners(address),
+        activeLevels: levels,
+        isInvestor: false
+      };
     } catch (error) {
-      console.error('Error getting user info:', error);
+      console.error('Error getting full user info:', error);
       return {
         isRegistered: false,
         sponsor: ethers.constants.AddressZero,
@@ -573,199 +352,294 @@ async getUserAddress(userId) {
         totalEarned: ethers.BigNumber.from(0),
         isInactive: false,
         userId: 0,
-        activeLevels: [],
         referrals: [],
+        activeLevels: [],
         isInvestor: false
       };
     }
   }
 
-  // === TOKEN ===
+  // === REGISTRATION ===
+
+  async register(referrerId) {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    
+    try {
+      const price = await this.contracts.globalway.REGISTRATION_COST();
+      const tx = await this.contracts.globalway.register(referrerId, {
+        value: price
+      });
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  }
+
+  async getRegistrationCost() {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    try {
+      const cost = await this.contracts.globalway.REGISTRATION_COST();
+      return ethers.utils.formatEther(cost);
+    } catch (error) {
+      console.error('Error getting registration cost:', error);
+      return '0.0015';
+    }
+  }
+
+  // === LEVELS ===
+
+  async buyLevel(matrix, level) {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    
+    try {
+      const price = await this.contracts.globalway.levelPrice(level);
+      const tx = await this.contracts.globalway.buyNewLevel(matrix, level, {
+        value: price
+      });
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Buy level error:', error);
+      throw error;
+    }
+  }
+
+  async getLevelPrice(level) {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    try {
+      const price = await this.contracts.globalway.levelPrice(level);
+      return ethers.utils.formatEther(price);
+    } catch (error) {
+      console.error('Error getting level price:', error);
+      return CONFIG.LEVEL_PRICES[level - 1] || '0';
+    }
+  }
+
+  async getUserLevels(address, matrix) {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    try {
+      const levels = [];
+      for (let i = 1; i <= 12; i++) {
+        const hasLevel = await this.contracts.globalway.usersActiveX3Levels(address, i);
+        levels.push(hasLevel);
+      }
+      return levels;
+    } catch (error) {
+      console.error('Error getting user levels:', error);
+      return Array(12).fill(false);
+    }
+  }
+
+  // === TOKEN FUNCTIONS ===
 
   async getTokenBalance(address) {
     if (!this.contracts.token) throw new Error('Token not initialized');
-    return await this.contracts.token.balanceOf(address);
+    try {
+      const balance = await this.contracts.token.balanceOf(address);
+      return ethers.utils.formatEther(balance);
+    } catch (error) {
+      console.error('Error getting token balance:', error);
+      return '0';
+    }
   }
 
   async getTokenTotalSupply() {
     if (!this.contracts.token) throw new Error('Token not initialized');
-    return await this.contracts.token.totalSupply();
-  }
-
-  async getTokenName() {
-    if (!this.contracts.token) throw new Error('Token not initialized');
-    return await this.contracts.token.name();
-  }
-
-  async getTokenSymbol() {
-    if (!this.contracts.token) throw new Error('Token not initialized');
-    return await this.contracts.token.symbol();
+    try {
+      const supply = await this.contracts.token.totalSupply();
+      return ethers.utils.formatEther(supply);
+    } catch (error) {
+      console.error('Error getting total supply:', error);
+      return '0';
+    }
   }
 
   async transferTokens(to, amount) {
     if (!this.contracts.token) throw new Error('Token not initialized');
-    const amountWei = ethers.utils.parseEther(amount.toString());
-    const tx = await this.contracts.token.transfer(to, amountWei);
-    await tx.wait();
-    return tx.hash;
+    try {
+      const amountWei = ethers.utils.parseEther(amount.toString());
+      const tx = await this.contracts.token.transfer(to, amountWei);
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Transfer error:', error);
+      throw error;
+    }
+  }
+
+  async approveTokens(spender, amount) {
+    if (!this.contracts.token) throw new Error('Token not initialized');
+    try {
+      const amountWei = ethers.utils.parseEther(amount.toString());
+      const tx = await this.contracts.token.approve(spender, amountWei);
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Approve error:', error);
+      throw error;
+    }
+  }
+
+  // === QUARTERLY ACTIVITY ===
+
+  async getQuarterlyInfo(address) {
+    if (!this.contracts.quarterly) throw new Error('Quarterly not initialized');
+    try {
+      const info = await this.contracts.quarterly.getQuarterlyInfo(address);
+      return {
+        currentQuarter: info.currentQuarter?.toNumber() || 0,
+        lastPayment: info.lastPayment?.toNumber() || 0,
+        nextPayment: info.nextPayment?.toNumber() || 0,
+        isActive: info.isActive || false
+      };
+    } catch (error) {
+      console.error('Error getting quarterly info:', error);
+      return {
+        currentQuarter: 0,
+        lastPayment: 0,
+        nextPayment: 0,
+        isActive: false
+      };
+    }
+  }
+
+  async payQuarterlyActivity() {
+    if (!this.contracts.quarterly) throw new Error('Quarterly not initialized');
+    try {
+      const cost = ethers.utils.parseEther(CONFIG.QUARTERLY_COST);
+      const tx = await this.contracts.quarterly.payActivity({
+        value: cost
+      });
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Pay activity error:', error);
+      throw error;
+    }
   }
 
   // === STATS ===
 
-  async getLeaderboardTop(count = 10) {
+  async getGlobalStats() {
     if (!this.contracts.stats) throw new Error('Stats not initialized');
     try {
-      return await this.contracts.stats.getLeaderboard(count);
+      const stats = await this.contracts.stats.getGlobalStats();
+      return {
+        totalUsers: stats.totalUsers?.toNumber() || 0,
+        totalTransactions: stats.totalTransactions?.toNumber() || 0,
+        totalVolume: ethers.utils.formatEther(stats.totalVolume || '0')
+      };
     } catch (error) {
-      console.error('Error getting leaderboard:', error);
+      console.error('Error getting global stats:', error);
+      return {
+        totalUsers: 0,
+        totalTransactions: 0,
+        totalVolume: '0'
+      };
+    }
+  }
+
+  async getUserStats(address) {
+    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    try {
+      const stats = await this.contracts.stats.getUserStats(address);
+      return {
+        totalEarned: ethers.utils.formatEther(stats.totalEarned || '0'),
+        partnersCount: stats.partnersCount?.toNumber() || 0,
+        matrixIncome: ethers.utils.formatEther(stats.matrixIncome || '0'),
+        partnerIncome: ethers.utils.formatEther(stats.partnerIncome || '0')
+      };
+    } catch (error) {
+      console.error('Error getting user stats:', error);
+      return {
+        totalEarned: '0',
+        partnersCount: 0,
+        matrixIncome: '0',
+        partnerIncome: '0'
+      };
+    }
+  }
+
+  // === PARTNER STRUCTURE ===
+
+  async getReferrer(address) {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    try {
+      const userInfo = await this.contracts.globalway.users(address);
+      return userInfo.referrer || ethers.constants.AddressZero;
+    } catch (error) {
+      console.error('Error getting referrer:', error);
+      return ethers.constants.AddressZero;
+    }
+  }
+
+  async getPartners(address) {
+    if (!this.contracts.stats) throw new Error('Stats not initialized');
+    try {
+      return await this.contracts.stats.getPartners(address);
+    } catch (error) {
+      console.error('Error getting partners:', error);
       return [];
     }
   }
 
-  async getUserRank(address) {
+  async getPartnersCount(address) {
     if (!this.contracts.stats) throw new Error('Stats not initialized');
     try {
-      return await this.contracts.stats.getUserRank(address);
+      const count = await this.contracts.stats.getPartnersCount(address);
+      return count.toNumber();
     } catch (error) {
-      console.error('Error getting user rank:', error);
+      console.error('Error getting partners count:', error);
       return 0;
     }
   }
 
-  async getSystemStats() {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
-    return await this.contracts.stats.getSystemStats();
-  }
+  // === MATRIX INFO ===
 
-  async getUserDetailedStats(address) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
-    return await this.contracts.stats.getUserDetailedStats(address);
-  }
-
-  async getUserIdByAddress(address) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
-    return await this.contracts.stats.getUserIdByAddress(address);
-  }
-
-  async getAddressById(userId) {
-    if (!this.contracts.stats) throw new Error('Stats not initialized');
-    return await this.contracts.stats.getAddressById(userId);
-  }
-
-  // === LEADER POOL ===
-
-  async claimLeaderReward() {
-    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
-    const tx = await this.contracts.leaderPool.claimReward();
-    await tx.wait();
-    return tx.hash;
-  }
-
-  async getLeaderReward(address) {
-    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
-    return await this.contracts.leaderPool.getReward(address);
-  }
-
-  async getLeaderRank(address) {
-    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
-    return await this.contracts.leaderPool.getUserRank(address);
-  }
-
-  async getLeaderPoolBalance() {
-    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
-    return await this.contracts.leaderPool.getPoolBalance();
-  }
-
-  // === INVESTMENT ===
-
-  async becomeInvestor() {
-    if (!this.contracts.investment) throw new Error('Investment not initialized');
-    const requiredAmount = await this.contracts.investment.investorThreshold();
-    const tx = await this.contracts.investment.becomeInvestor({ value: requiredAmount });
-    await tx.wait();
-    return tx.hash;
-  }
-
-  async claimInvestmentReward() {
-    if (!this.contracts.investment) throw new Error('Investment not initialized');
-    const tx = await this.contracts.investment.claimReward();
-    await tx.wait();
-    return tx.hash;
-  }
-
-  async getInvestmentReward(address) {
-    if (!this.contracts.investment) throw new Error('Investment not initialized');
-    return await this.contracts.investment.getReward(address);
-  }
-
-  async getInvestmentInfo(address) {
-    if (!this.contracts.investment) throw new Error('Investment not initialized');
-    return await this.contracts.investment.getInvestmentInfo(address);
-  }
-
-  async getPoolStats() {
-    if (!this.contracts.investment) throw new Error('Investment not initialized');
-    return await this.contracts.investment.getPoolStats();
-  }
-
-  // === QUARTERLY ===
-
-  async payQuarterlyActivity(charityRecipient = null) {
-    if (!this.contracts.quarterly) throw new Error('Quarterly not initialized');
-    
-    const price = ethers.utils.parseEther(CONFIG.QUARTERLY_COST);
-    
-    if (charityRecipient && charityRecipient !== ethers.constants.AddressZero) {
-      const tx = await this.contracts.quarterly.payQuarterlyActivity(charityRecipient, { value: price });
-      await tx.wait();
-      return tx.hash;
-    } else {
-      const tx = await this.contracts.quarterly.payQuarterlyActivityRegular({ value: price });
-      await tx.wait();
-      return tx.hash;
+  async getUserMatrix(address, level) {
+    if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
+    try {
+      return await this.contracts.globalway.usersX3Matrix(address, level);
+    } catch (error) {
+      console.error('Error getting matrix info:', error);
+      return null;
     }
   }
 
-  async canPayQuarterly(address) {
-    if (!this.contracts.quarterly) throw new Error('Quarterly not initialized');
-    return await this.contracts.quarterly.canPayQuarterly(address);
-  }
+  // === GOVERNANCE ===
 
-  async getUserQuarterlyInfo(address) {
-    if (!this.contracts.quarterly) throw new Error('Quarterly not initialized');
-    return await this.contracts.quarterly.getUserQuarterlyInfo(address);
-  }
-
-  // === TECH ACCOUNTS ===
-
-  async isTechAccount(address) {
-    if (!this.contracts.techAccounts) return false;
+  async isOwner(address) {
+    if (!this.contracts.governance) return false;
     try {
-      return await this.contracts.techAccounts.isTechAccount(address);
+      const owner = await this.contracts.governance.owner();
+      return owner.toLowerCase() === address.toLowerCase();
     } catch (error) {
-      console.error('Error checking tech account:', error);
+      console.error('Error checking owner:', error);
       return false;
     }
   }
 
-  async getTechAccountInfo(address) {
-    if (!this.contracts.techAccounts) throw new Error('TechAccounts not initialized');
-    return await this.contracts.techAccounts.getTechAccountInfo(address);
+  async isFounder(address) {
+    if (!this.contracts.governance) return false;
+    try {
+      return await this.contracts.governance.isFounder(address);
+    } catch (error) {
+      console.error('Error checking founder status:', error);
+      return false;
+    }
   }
 
-  async getAllTechAccounts() {
-    if (!this.contracts.techAccounts) throw new Error('TechAccounts not initialized');
-    return await this.contracts.techAccounts.getAllTechAccounts();
+  async isBoardMember(address) {
+    if (!this.contracts.governance) return false;
+    try {
+      return await this.contracts.governance.isBoardMember(address);
+    } catch (error) {
+      console.error('Error checking board status:', error);
+      return false;
+    }
   }
-
-  async processTechAccountQuarterly(techAccount) {
-    if (!this.contracts.techAccounts) throw new Error('TechAccounts not initialized');
-    const tx = await this.contracts.techAccounts.processTechAccountQuarterly(techAccount);
-    await tx.wait();
-    return tx.hash;
-  }
-
-  // === GOVERNANCE ===
 
   async isUserBlocked(address) {
     if (!this.contracts.governance) return false;
@@ -912,25 +786,110 @@ async getUserAddress(userId) {
 
   // === MARKETING POOL ===
 
-  async getMarketingBalance() {
+  async getMarketingBalance(address) {
     if (!this.contracts.marketing) throw new Error('Marketing not initialized');
-    return await this.contracts.marketing.getBalance();
+    try {
+      const balance = await this.contracts.marketing.getBalance(address);
+      return ethers.utils.formatEther(balance);
+    } catch (error) {
+      console.error('Error getting marketing balance:', error);
+      return '0';
+    }
   }
 
   async canWithdrawMarketing(address) {
     if (!this.contracts.marketing) throw new Error('Marketing not initialized');
-    return await this.contracts.marketing.canWithdraw(address);
+    try {
+      return await this.contracts.marketing.canWithdraw(address);
+    } catch (error) {
+      console.error('Error checking marketing withdrawal:', error);
+      return false;
+    }
   }
 
-async withdrawMarketing(amount, recipient) {
+  async withdrawMarketing() {
     if (!this.contracts.marketing) throw new Error('Marketing not initialized');
-    const amountWei = ethers.utils.parseEther(amount.toString());
-    const tx = await this.contracts.marketing.withdraw(amountWei, recipient);
-    await tx.wait();
-    return tx.hash;
+    try {
+      const tx = await this.contracts.marketing.withdraw();
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Marketing withdrawal error:', error);
+      throw error;
+    }
   }
 
-// === TOKEN PRICE ===
+  // === LEADER POOL ===
+
+  async getLeaderBalance(address) {
+    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
+    try {
+      const balance = await this.contracts.leaderPool.getBalance(address);
+      return ethers.utils.formatEther(balance);
+    } catch (error) {
+      console.error('Error getting leader balance:', error);
+      return '0';
+    }
+  }
+
+  async canWithdrawLeader(address) {
+    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
+    try {
+      return await this.contracts.leaderPool.canWithdraw(address);
+    } catch (error) {
+      console.error('Error checking leader withdrawal:', error);
+      return false;
+    }
+  }
+
+  async withdrawLeader() {
+    if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
+    try {
+      const tx = await this.contracts.leaderPool.withdraw();
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Leader withdrawal error:', error);
+      throw error;
+    }
+  }
+
+  // === INVESTMENT POOL ===
+
+  async getInvestmentBalance(address) {
+    if (!this.contracts.investment) throw new Error('Investment not initialized');
+    try {
+      const balance = await this.contracts.investment.getBalance(address);
+      return ethers.utils.formatEther(balance);
+    } catch (error) {
+      console.error('Error getting investment balance:', error);
+      return '0';
+    }
+  }
+
+  async canWithdrawInvestment(address) {
+    if (!this.contracts.investment) throw new Error('Investment not initialized');
+    try {
+      return await this.contracts.investment.canWithdraw(address);
+    } catch (error) {
+      console.error('Error checking investment withdrawal:', error);
+      return false;
+    }
+  }
+
+  async withdrawInvestment() {
+    if (!this.contracts.investment) throw new Error('Investment not initialized');
+    try {
+      const tx = await this.contracts.investment.withdraw();
+      await tx.wait();
+      return tx.hash;
+    } catch (error) {
+      console.error('Investment withdrawal error:', error);
+      throw error;
+    }
+  }
+
+  // === TOKEN PRICE ===
   async getRealTokenPrice() {
     try {
       if (!this.contracts.token) {
