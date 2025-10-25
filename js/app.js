@@ -454,6 +454,105 @@ async showDAppInterface() {
     });
   }
 
+
+  // === NEW: LOAD CONTRACT BALANCES ===
+  async loadContractBalances() {
+    if (!web3Manager.connected || !web3Manager.address) {
+      console.warn('⚠️ Wallet not connected, skipping balance load');
+      return;
+    }
+
+    try {
+      console.log('💰 Loading contract balances...');
+
+      // Marketing balance
+      try {
+        const marketingBalance = await contracts.getMarketingBalance(web3Manager.address);
+        const marketingBalanceEl = document.getElementById('marketingBalance');
+        if (marketingBalanceEl) {
+          marketingBalanceEl.textContent = `${Utils.formatBNB(marketingBalance)} BNB`;
+        }
+        console.log('✅ Marketing balance:', marketingBalance);
+      } catch (error) {
+        console.error('⚠️ Marketing balance error:', error);
+      }
+
+      // Leader Pool balance
+      try {
+        const leaderBalance = await contracts.getLeaderBalance(web3Manager.address);
+        const leaderBalanceEl = document.getElementById('leaderBalance');
+        if (leaderBalanceEl) {
+          leaderBalanceEl.textContent = `${Utils.formatBNB(leaderBalance)} BNB`;
+        }
+        console.log('✅ Leader balance:', leaderBalance);
+      } catch (error) {
+        console.error('⚠️ Leader balance error:', error);
+      }
+
+      // Investment balance
+      try {
+        const investmentBalance = await contracts.getInvestmentBalance(web3Manager.address);
+        const investmentBalanceEl = document.getElementById('investmentBalance');
+        if (investmentBalanceEl) {
+          investmentBalanceEl.textContent = `${Utils.formatBNB(investmentBalance)} BNB`;
+        }
+        console.log('✅ Investment balance:', investmentBalance);
+      } catch (error) {
+        console.error('⚠️ Investment balance error:', error);
+      }
+
+      console.log('✅ All balances loaded');
+
+    } catch (error) {
+      console.error('❌ Error loading contract balances:', error);
+    }
+  }
+
+  // === NEW: WITHDRAW FROM CONTRACTS ===
+  async withdrawFromContract(contractType) {
+    if (!web3Manager.connected || !web3Manager.address) {
+      Utils.showNotification('Please connect wallet first', 'error');
+      return;
+    }
+
+    try {
+      Utils.showLoader(true);
+      Utils.showNotification(`Withdrawing from ${contractType}...`, 'info');
+
+      let txHash;
+
+      switch (contractType) {
+        case 'marketing':
+          txHash = await contracts.withdrawMarketing();
+          break;
+        case 'leader':
+          txHash = await contracts.withdrawLeader();
+          break;
+        case 'investment':
+          txHash = await contracts.withdrawInvestment();
+          break;
+        default:
+          throw new Error('Unknown contract type');
+      }
+
+      console.log('✅ Withdrawal successful:', txHash);
+      Utils.showNotification('Withdrawal successful!', 'success');
+
+      // Reload balances after withdrawal
+      await this.loadContractBalances();
+      if (uiManager && typeof uiManager.loadUserData === 'function') {
+        await uiManager.loadUserData();
+      }
+
+    } catch (error) {
+      console.error('❌ Withdrawal error:', error);
+      const errorMsg = error.message || 'Withdrawal failed';
+      Utils.showNotification(errorMsg, 'error');
+    } finally {
+      Utils.showLoader(false);
+    }
+  }
+
   async monitorAccount() {
     // 🔥 ИСПРАВЛЕНО: Убрана проверка connected - теперь всегда устанавливаем слушатели
     console.log('🔊 Setting up account change listeners...');
@@ -539,20 +638,12 @@ async showDAppInterface() {
 }
 
 const app = new App();
-
 window.addEventListener('DOMContentLoaded', async () => {
   await app.init();
   app.monitorAccount();
 });
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(() => {
-    console.log('Service Worker registered');
-  }).catch(err => {
-    console.log('Service Worker registration failed:', err);
-  });
-}
-
+// Error handlers
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error);
   if (!event.error.message.includes('ResizeObserver')) {
@@ -564,3 +655,50 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled rejection:', event.reason);
   Utils.showNotification('Transaction rejected or failed', 'error');
 });
+
+// ===================================================================
+// SERVICE WORKER REGISTRATION
+// ===================================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('✅ SW registered:', registration.scope);
+        
+        // Проверка обновлений каждую минуту
+        setInterval(() => {
+          registration.update();
+        }, 60000);
+        
+        // Обработка обновлений
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('🔄 New version available!');
+              
+              if (confirm('New version available! Reload to update?')) {
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+              }
+            }
+          });
+        });
+      })
+      .catch(err => {
+        console.error('❌ SW registration failed:', err);
+      });
+  });
+
+  // Обработка смены контроллера
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
+
+console.log('🚀 GlobalWay DApp v2.0 fully initialized with PWA support');
