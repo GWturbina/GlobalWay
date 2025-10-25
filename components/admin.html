@@ -151,6 +151,58 @@
         </div>
     </section>
 
+
+    <!-- Board Members Management -->
+    <section class="board-management">
+        <h3 data-translate="admin.boardManagement">👔 Board Members Management</h3>
+        
+        <!-- Current Board Members -->
+        <div class="board-list">
+            <h4 data-translate="admin.currentBoard">Current Board Members</h4>
+            <div id="boardMembersList" class="board-members-list">
+                <div class="loading">Loading board members...</div>
+            </div>
+            <button id="refreshBoardBtn" class="btn-secondary">🔄 Refresh List</button>
+        </div>
+
+        <!-- Add Board Member -->
+        <div class="management-section">
+            <h4 data-translate="admin.addBoardMember">Add Board Member</h4>
+            <div class="management-form">
+                <input type="text" id="addBoardAddress" placeholder="Board Member Address (0x...)" data-translate="admin.boardAddress">
+                <textarea id="addBoardReason" placeholder="Reason for adding this board member" rows="2" data-translate="admin.addReason"></textarea>
+                <div class="info-box">
+                    <small>⚠️ Adding a board member requires voting approval. They will have rights to vote on proposals.</small>
+                </div>
+                <button id="addBoardMemberBtn" class="btn-primary" data-translate="admin.addMember">➕ Add Board Member</button>
+            </div>
+        </div>
+
+        <!-- Remove Board Member -->
+        <div class="management-section">
+            <h4 data-translate="admin.removeBoardMember">Remove Board Member</h4>
+            <div class="management-form">
+                <input type="text" id="removeBoardAddress" placeholder="Board Member Address (0x...)" data-translate="admin.boardAddress">
+                <textarea id="removeBoardReason" placeholder="Reason for removing this board member" rows="2" data-translate="admin.removeReason"></textarea>
+                <div class="warning-box">
+                    <small>⚠️ Removing a board member requires voting approval. This action cannot be undone without another vote.</small>
+                </div>
+                <button id="removeBoardMemberBtn" class="btn-danger" data-translate="admin.removeMember">➖ Remove Board Member</button>
+            </div>
+        </div>
+
+        <!-- Board Statistics -->
+        <div class="board-stats">
+            <div class="stat-item">
+                <label data-translate="admin.totalBoardMembers">Total Board Members:</label>
+                <span id="totalBoardMembers">0</span>
+            </div>
+            <div class="stat-item">
+                <label data-translate="admin.votingQuorum">Voting Quorum:</label>
+                <span id="votingQuorum">5/8 (63%)</span>
+            </div>
+        </div>
+    </section>
     <!-- Financial Management -->
     <section class="financial-management">
         <h3 data-translate="admin.financial">💰 Financial Management</h3>
