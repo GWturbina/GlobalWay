@@ -216,6 +216,16 @@ class UIManager {
 
       console.log('✅ User data loaded:', this.userStats);
 
+      // === NEW: Load contract balances ===
+      if (app && typeof app.loadContractBalances === 'function') {
+        try {
+          await app.loadContractBalances();
+          console.log('✅ Contract balances loaded');
+        } catch (error) {
+          console.error('⚠️ Error loading contract balances:', error);
+        }
+      }
+
     } catch (error) {
       console.error('Error loading user data:', error);
       this.userStats = { 
