@@ -1252,3 +1252,40 @@ contracts.getMarketCap = async function() {
     return '0';
   }
 };
+
+// === DEBUG FUNCTIONS ===
+
+contracts.checkContractAddresses = async function() {
+  if (!this.contracts.globalway) {
+    console.error('GlobalWay not initialized');
+    return null;
+  }
+  
+  try {
+    console.log('🔍 Checking GlobalWay contract addresses...');
+    
+    const marketing = await this.contracts.globalway.marketingContract();
+    const leaderPool = await this.contracts.globalway.leaderPoolContract();
+    const investment = await this.contracts.globalway.investmentPoolContract();
+    const tokenomics = await this.contracts.globalway.tokenomics();
+    const dev = await this.contracts.globalway.dev();
+    
+    console.log('📊 Contract Addresses:');
+    console.log('  Marketing:', marketing);
+    console.log('  LeaderPool:', leaderPool);
+    console.log('  Investment:', investment);
+    console.log('  Tokenomics:', tokenomics);
+    console.log('  Dev:', dev);
+    
+    return {
+      marketing,
+      leaderPool,
+      investment,
+      tokenomics,
+      dev
+    };
+  } catch (error) {
+    console.error('Error checking addresses:', error);
+    return null;
+  }
+};
