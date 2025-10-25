@@ -19,90 +19,82 @@ class ContractsManager {
   }
 
   async loadABIs() {
-    console.log('⏳ Loading contract ABIs from contracts-config.json...');
+    console.log('⏳ Loading contract ABIs from separate files...');
 
     try {
-      // Попробуем несколько путей
-      const paths = [
-        '/contracts/contracts-config.json',
-        './contracts/contracts-config.json',
-        'contracts/contracts-config.json'
+      // Список контрактов для загрузки
+      const contracts = [
+        { key: 'globalway', file: 'GlobalWay.json' },
+        { key: 'token', file: 'GWTToken.json' },
+        { key: 'stats', file: 'Stats.json' },
+        { key: 'leaderPool', file: 'LeaderPool.json' },
+        { key: 'investment', file: 'Investment.json' },
+        { key: 'quarterly', file: 'Quarterly.json' },
+        { key: 'governance', file: 'Governance.json' },
+        { key: 'techAccounts', file: 'TechAccounts.json' },
+        { key: 'marketing', file: 'Marketing.json' },
+        { key: 'bridge', file: 'Bridge.json' }
       ];
+
+      let loadedCount = 0;
       
-      let configData = null;
-      let successPath = null;
-      
-      for (const path of paths) {
+      // Загружаем каждый контракт отдельно
+      for (const contract of contracts) {
         try {
-          console.log(`🔍 Trying path: ${path}`);
-          const response = await fetch(path);
+          console.log(`🔍 Loading ${contract.file}...`);
           
-          if (response.ok) {
-            configData = await response.json();
-            successPath = path;
-            console.log(`✅ Found config at: ${path}`);
-            break;
+          // Пробуем разные пути
+          const paths = [
+            `/contracts/abis/${contract.file}`,
+            `./contracts/abis/${contract.file}`,
+            `contracts/abis/${contract.file}`
+          ];
+          
+          let loaded = false;
+          
+          for (const path of paths) {
+            try {
+              const response = await fetch(path);
+              
+              if (response.ok) {
+                const data = await response.json();
+                this.abis[contract.key] = data.abi;
+                console.log(`✅ ${contract.file} loaded (${data.abi.length} items)`);
+                loadedCount++;
+                loaded = true;
+                break;
+              }
+            } catch (e) {
+              // Пробуем следующий путь
+            }
           }
-        } catch (e) {
-          console.log(`⚠️ Path ${path} failed:`, e.message);
+          
+          if (!loaded) {
+            console.warn(`⚠️ Could not load ${contract.file}`);
+          }
+          
+        } catch (error) {
+          console.error(`❌ Error loading ${contract.file}:`, error.message);
         }
       }
       
-      if (!configData) {
-        throw new Error('Could not load contracts-config.json from any path');
-      }
-  
-      // Проверяем структуру файла и поддерживаем оба варианта названий
-      if (configData.contracts) {
-        // GlobalWay и GWTToken (стандартные названия)
-        this.abis.globalway = configData.contracts.GlobalWay?.abi || null;
-        this.abis.token = configData.contracts.GWTToken?.abi || null;
-        
-        // Поддержка обоих вариантов названий для остальных контрактов
-        this.abis.stats = configData.contracts.Stats?.abi || 
-                          configData.contracts.GlobalWayStats?.abi || null;
-        
-        this.abis.leaderPool = configData.contracts.LeaderPool?.abi || 
-                               configData.contracts.GlobalWayLeaderPool?.abi || null;
-        
-        this.abis.investment = configData.contracts.Investment?.abi || 
-                               configData.contracts.GlobalWayInvestment?.abi || null;
-        
-        this.abis.quarterly = configData.contracts.Quarterly?.abi || 
-                              configData.contracts.GlobalWayQuarterly?.abi || null;
-        
-        this.abis.governance = configData.contracts.Governance?.abi || 
-                               configData.contracts.GlobalWayGovernance?.abi || null;
-        
-        this.abis.techAccounts = configData.contracts.TechAccounts?.abi || 
-                                 configData.contracts.GlobalWayTechAccounts?.abi || null;
-        
-        this.abis.marketing = configData.contracts.Marketing?.abi || 
-                              configData.contracts.GlobalWayMarketing?.abi || null;
-        
-        this.abis.bridge = configData.contracts.Bridge?.abi || 
-                           configData.contracts.GlobalWayBridge?.abi || null;
+      console.log(`✅ ABIs loaded: ${loadedCount}/${contracts.length}`);
+      console.log('📊 Loaded ABIs:', {
+        GlobalWay: !!this.abis.globalway,
+        GWTToken: !!this.abis.token,
+        Stats: !!this.abis.stats,
+        LeaderPool: !!this.abis.leaderPool,
+        Investment: !!this.abis.investment,
+        Quarterly: !!this.abis.quarterly,
+        Governance: !!this.abis.governance,
+        TechAccounts: !!this.abis.techAccounts,
+        Marketing: !!this.abis.marketing,
+        Bridge: !!this.abis.bridge
+      });
       
-        console.log('✅ ABIs loaded successfully from', successPath);
-        console.log('📊 Loaded ABIs:', {
-          GlobalWay: !!this.abis.globalway,
-          GWTToken: !!this.abis.token,
-          Stats: !!this.abis.stats,
-          LeaderPool: !!this.abis.leaderPool,
-          Investment: !!this.abis.investment,
-          Quarterly: !!this.abis.quarterly,
-          Governance: !!this.abis.governance,
-          TechAccounts: !!this.abis.techAccounts,
-          Marketing: !!this.abis.marketing,
-          Bridge: !!this.abis.bridge
-        });
-      } else {
-        console.error('❌ Invalid structure in contracts-config.json');
-        console.error('Expected structure: { contracts: { ContractName: { abi: [...] } } }');
-      }
     } catch (error) {
-      console.error('❌ Failed to load contracts-config.json:', error);
-      console.error('Make sure the file exists in /contracts/ folder');
+      console.error('❌ Failed to load ABIs:', error);
+      console.error('Make sure ABI files exist in /contracts/abis/ folder');
     }
   }
 
