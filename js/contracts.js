@@ -464,8 +464,27 @@ class ContractsManager {
       console.log(`💰 Level ${level} price:`, price.toString(), 'wei');
       console.log(`💰 Level ${level} price:`, ethers.utils.formatEther(price), 'BNB');
       
+      // Проверим данные пользователя перед отправкой
+      const userAddress = await this.web3.signer.getAddress();
+      console.log(`👤 User address:`, userAddress);
+      
+      const user = await this.contracts.globalway.users(userAddress);
+      console.log(`📊 User data:`, user);
+      console.log(`   - ID:`, user.id.toString());
+      console.log(`   - isRegistered:`, user.isRegistered);
+      console.log(`   - sponsor:`, user.sponsor);
+      
+      const isActive = await this.contracts.globalway.isLevelActive(userAddress, level);
+      console.log(`   - Level ${level} active:`, isActive);
+      
+      if (isActive) {
+        throw new Error(`Уровень ${level} уже активирован!`);
+      }
+      
+      console.log(`📤 Sending activateLevel transaction...`);
       const tx = await this.contracts.globalway.activateLevel(level, {
-        value: price
+        value: price,
+        gasLimit: 500000 // Принудительный gas limit
       });
       console.log(`📤 Transaction sent:`, tx.hash);
       await tx.wait();
@@ -473,6 +492,15 @@ class ContractsManager {
       return tx;
     } catch (error) {
       console.error('Buy level error:', error);
+      
+      // Попробуем получить более детальную информацию об ошибке
+      if (error.error && error.error.message) {
+        console.error('❌ Contract error:', error.error.message);
+      }
+      if (error.reason) {
+        console.error('❌ Reason:', error.reason);
+      }
+      
       throw error;
     }
   }
