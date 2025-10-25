@@ -450,7 +450,12 @@ class ContractsManager {
 
   // === LEVELS ===
 
-  async buyLevel(matrix, level) {
+  async buyLevel(levelOrMatrix, optionalLevel) {
+    // Поддержка обоих вариантов вызова:
+    // buyLevel(1) - один параметр (уровень)
+    // buyLevel('X3', 1) - два параметра (matrix, уровень)
+    const level = optionalLevel !== undefined ? optionalLevel : levelOrMatrix;
+    
     if (!this.contracts.globalway) throw new Error('GlobalWay not initialized');
     
     try {
@@ -465,7 +470,7 @@ class ContractsManager {
       console.log(`📤 Transaction sent:`, tx.hash);
       await tx.wait();
       console.log(`✅ Level ${level} activated!`);
-      return tx.hash;
+      return tx;
     } catch (error) {
       console.error('Buy level error:', error);
       throw error;
@@ -1080,5 +1085,124 @@ contracts.getTradingEnabled = async function() {
   } catch (error) {
     console.error('Error getting trading enabled:', error);
     return false;
+  }
+};
+
+// === MISSING FUNCTIONS FROM UI.JS ===
+
+contracts.getUserIdByAddress = async function(address) {
+  return await this.getUserId(address);
+};
+
+contracts.getAddressByUserId = async function(userId) {
+  return await this.getIdToAddress(userId);
+};
+
+contracts.getUserMatrixPosition = async function(level, address) {
+  if (!this.contracts.globalway) return null;
+  try {
+    return await this.contracts.globalway.getUserMatrixPosition(level, address);
+  } catch (error) {
+    console.error('Error getting user matrix position:', error);
+    return null;
+  }
+};
+
+contracts.getMatrixPosition = async function(level, address) {
+  return await this.getUserMatrixPosition(level, address);
+};
+
+contracts.getMatrixStats = async function(address) {
+  // Возвращаем пустую статистику, так как нет такой функции в контракте
+  return {
+    totalPositions: 0,
+    activePositions: 0,
+    completedCycles: 0
+  };
+};
+
+contracts.addTokenToWallet = async function() {
+  if (!this.web3 || !this.web3.provider) return false;
+  try {
+    await this.web3.provider.send('wallet_watchAsset', {
+      type: 'ERC20',
+      options: {
+        address: this.addresses.GWTToken,
+        symbol: 'GWT',
+        decimals: 18,
+        image: 'https://global-way-kappa.vercel.app/assets/icons/logo.png'
+      }
+    });
+    return true;
+  } catch (error) {
+    console.error('Error adding token to wallet:', error);
+    return false;
+  }
+};
+
+contracts.buyTokens = async function(bnbAmount) {
+  if (!this.contracts.token) throw new Error('Token not initialized');
+  try {
+    const tx = await this.contracts.token.buy({
+      value: ethers.utils.parseEther(bnbAmount.toString())
+    });
+    await tx.wait();
+    return tx;
+  } catch (error) {
+    console.error('Error buying tokens:', error);
+    throw error;
+  }
+};
+
+contracts.sellTokens = async function(tokenAmount) {
+  if (!this.contracts.token) throw new Error('Token not initialized');
+  try {
+    const amount = ethers.utils.parseEther(tokenAmount.toString());
+    const tx = await this.contracts.token.sell(amount);
+    await tx.wait();
+    return tx;
+  } catch (error) {
+    console.error('Error selling tokens:', error);
+    throw error;
+  }
+};
+
+contracts.getTokenPrice = async function() {
+  // Возвращаем цену токена (например из контракта или фиксированную)
+  return '0.0001'; // 0.0001 BNB за токен
+};
+
+contracts.getCirculatingSupply = async function() {
+  if (!this.contracts.token) return '0';
+  try {
+    const total = await this.contracts.token.totalSupply();
+    // Можно вычесть burned или locked tokens если есть
+    return ethers.utils.formatEther(total);
+  } catch (error) {
+    console.error('Error getting circulating supply:', error);
+    return '0';
+  }
+};
+
+contracts.getTotalBurned = async function() {
+  if (!this.contracts.token) return '0';
+  try {
+    // Если в контракте есть функция burned()
+    const burned = await this.contracts.token.totalBurned();
+    return ethers.utils.formatEther(burned);
+  } catch (error) {
+    // Если нет функции, возвращаем 0
+    return '0';
+  }
+};
+
+contracts.getMarketCap = async function() {
+  try {
+    const supply = await this.getCirculatingSupply();
+    const price = await this.getTokenPrice();
+    return (parseFloat(supply) * parseFloat(price)).toFixed(2);
+  } catch (error) {
+    console.error('Error getting market cap:', error);
+    return '0';
   }
 };
