@@ -845,7 +845,8 @@ class ContractsManager {
   async getMarketingBalance(address) {
     if (!this.contracts.marketing) throw new Error('Marketing not initialized');
     try {
-      const balance = await this.contracts.marketing.getBalance(address);
+      // Получаем баланс контракта напрямую через provider
+      const balance = await this.web3.provider.getBalance(this.addresses.Marketing);
       return ethers.utils.formatEther(balance);
     } catch (error) {
       console.error('Error getting marketing balance:', error);
@@ -880,7 +881,8 @@ class ContractsManager {
   async getLeaderBalance(address) {
     if (!this.contracts.leaderPool) throw new Error('LeaderPool not initialized');
     try {
-      const balance = await this.contracts.leaderPool.getBalance(address);
+      // Получаем баланс контракта напрямую через provider
+      const balance = await this.web3.provider.getBalance(this.addresses.LeaderPool);
       return ethers.utils.formatEther(balance);
     } catch (error) {
       console.error('Error getting leader balance:', error);
@@ -915,7 +917,8 @@ class ContractsManager {
   async getInvestmentBalance(address) {
     if (!this.contracts.investment) throw new Error('Investment not initialized');
     try {
-      const balance = await this.contracts.investment.getBalance(address);
+      // Получаем баланс контракта напрямую через provider
+      const balance = await this.web3.provider.getBalance(this.addresses.Investment);
       return ethers.utils.formatEther(balance);
     } catch (error) {
       console.error('Error getting investment balance:', error);
@@ -1042,7 +1045,7 @@ contracts.isLevelActive = async function(address, level) {
 contracts.getUserQuarterlyInfo = async function(address) {
   if (!this.contracts.quarterly) return null;
   try {
-    return await this.contracts.quarterly.getUserInfo(address);
+    return await this.contracts.quarterly.getUserQuarterlyInfo(address);
   } catch (error) {
     console.error('Error getting quarterly info:', error);
     return null;
