@@ -19,14 +19,14 @@ class ContractsManager {
   }
 
   async loadABIs() {
-    console.log('⏳ Loading contract ABIs from frontend-config.json...');
+    console.log('⏳ Loading contract ABIs from contracts-config.json...');
 
     try {
       // Попробуем несколько путей
       const paths = [
-        '/contracts/frontend-config.json',
-        './contracts/frontend-config.json',
-        'contracts/frontend-config.json'
+        '/contracts/contracts-config.json',
+        './contracts/contracts-config.json',
+        'contracts/contracts-config.json'
       ];
       
       let configData = null;
@@ -49,7 +49,7 @@ class ContractsManager {
       }
       
       if (!configData) {
-        throw new Error('Could not load frontend-config.json from any path');
+        throw new Error('Could not load contracts-config.json from any path');
       }
   
       // Проверяем структуру файла
@@ -79,11 +79,11 @@ class ContractsManager {
           Bridge: !!this.abis.bridge
         });
       } else {
-        console.error('❌ Invalid structure in frontend-config.json');
+        console.error('❌ Invalid structure in contracts-config.json');
         console.error('Expected structure: { contracts: { ContractName: { abi: [...] } } }');
       }
     } catch (error) {
-      console.error('❌ Failed to load frontend-config.json:', error);
+      console.error('❌ Failed to load contracts-config.json:', error);
       console.error('Make sure the file exists in /contracts/ folder');
     }
   }
