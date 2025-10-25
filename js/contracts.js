@@ -1020,3 +1020,52 @@ class ContractsManager {
 }
 
 const contracts = new ContractsManager();
+
+// === GLOBAL WRAPPER FUNCTIONS FOR UI.JS ===
+// ui.js вызывает эти функции напрямую из объекта contracts
+// Добавляем их как методы объекта contracts
+
+contracts.getUserReferrals = async function(address) {
+  return await this.getPartners(address);
+};
+
+contracts.isLevelActive = async function(address, level) {
+  if (!this.contracts.globalway) return false;
+  try {
+    return await this.contracts.globalway.isLevelActive(address, level);
+  } catch (error) {
+    console.error('Error checking level active:', error);
+    return false;
+  }
+};
+
+contracts.getUserQuarterlyInfo = async function(address) {
+  if (!this.contracts.quarterly) return null;
+  try {
+    return await this.contracts.quarterly.getUserInfo(address);
+  } catch (error) {
+    console.error('Error getting quarterly info:', error);
+    return null;
+  }
+};
+
+contracts.getTotalSupply = async function() {
+  if (!this.contracts.token) return '0';
+  try {
+    const supply = await this.contracts.token.totalSupply();
+    return ethers.utils.formatEther(supply);
+  } catch (error) {
+    console.error('Error getting total supply:', error);
+    return '0';
+  }
+};
+
+contracts.getTradingEnabled = async function() {
+  if (!this.contracts.token) return false;
+  try {
+    return await this.contracts.token.tradingEnabled();
+  } catch (error) {
+    console.error('Error getting trading enabled:', error);
+    return false;
+  }
+};
